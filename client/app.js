@@ -627,6 +627,17 @@
     connect();
   });
 
+  // Opened from the QR code in the PhoneMouse window: the PIN comes after "#", which the
+  // browser never sends anywhere. Use it, then wipe it so it isn't kept in history or an icon.
+  if (location.hash) {
+    const fromQr = /^#pin=(\d{6})$/.exec(location.hash);
+    if (fromQr) {
+      setPin(fromQr[1]);
+      pinJustEntered = true;
+    }
+    history.replaceState(null, '', location.pathname + location.search);
+  }
+
   renderSettings();
   connect();
 })();
