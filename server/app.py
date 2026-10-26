@@ -12,7 +12,7 @@ from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
 from fastapi import FastAPI, Request, WebSocket, WebSocketDisconnect
-from fastapi.responses import PlainTextResponse
+from fastapi.responses import PlainTextResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 
 from . import protocol
@@ -106,6 +106,12 @@ def create_app(backend: InputBackend, pin: str, addresses: list[str] | None = No
         if wrong_host(host_header):
             return PlainTextResponse(f"Open PhoneMouse at http://{addresses[0].removesuffix(':80')}",
                                      status_code=403)
+        # Another website linking to the page could put a PIN after "#" and make it try wrong
+        # PINs until everyone is locked out. Such links land on /?from=link, where the page
+        # ignores "#pin". The Camera app, a typed address and reloads aren't affected.
+        if (request.url.path in ("/", "/index.html") and "from" not in request.query_params
+                and request.headers.get("sec-fetch-site") in ("cross-site", "same-site")):
+            return RedirectResponse("/?from=link", status_code=303)
         response = await call_next(request)
         # Make Safari check for a newer client on every load (a cheap 304 when nothing changed),
         # otherwise it keeps showing an old page after an update.

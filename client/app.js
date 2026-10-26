@@ -629,15 +629,31 @@
 
   // Opened from the QR code in the PhoneMouse window: the PIN comes after "#", which the
   // browser never sends anywhere. Use it, then wipe it so it isn't kept in history or an icon.
-  if (location.hash) {
+  // Pages linked from other websites arrive as /?from=link (see server/app.py): there the
+  // PIN is ignored, so a website can't make PhoneMouse try wrong PINs.
+  // Returns true when a PIN from the QR code was taken.
+  function takePinFromQr() {
+    if (!location.hash) return false;
     const fromQr = /^#pin=(\d{6})$/.exec(location.hash);
-    if (fromQr) {
-      setPin(fromQr[1]);
-      pinJustEntered = true;
-    }
-    history.replaceState(null, '', location.pathname + location.search);
+    const trusted = !new URLSearchParams(location.search).has('from');
+    history.replaceState(null, '', location.pathname);
+    if (!fromQr || !trusted) return false;
+    setPin(fromQr[1]);
+    // Not "just entered": a QR code from an earlier start then says the PIN has changed.
+    pinJustEntered = false;
+    return true;
   }
 
+  // Scanning again while PhoneMouse is already open only changes the "#" part.
+  window.addEventListener('hashchange', () => {
+    if (takePinFromQr()) {
+      dropConnection(false);
+      reconnectDelay = 500;
+      connect();
+    }
+  });
+
+  takePinFromQr();
   renderSettings();
   connect();
 })();

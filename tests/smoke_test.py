@@ -10,6 +10,7 @@ Run:  .venv\\Scripts\\python.exe tests\\smoke_test.py
 from __future__ import annotations
 
 import asyncio
+import http.client
 import json
 import os
 import re
@@ -197,6 +198,24 @@ async def run(server: Server, port: int) -> None:
     except urllib.error.HTTPError as exc:
         status = exc.code
     check(status == 403, f"page requested under another host name is refused ({status})")
+
+    # A link from another website must not log in with a PIN in its "#": the page is sent
+    # to /?from=link, where the client ignores it. Camera, typed address and reload log in.
+    def page(path: str, fetch_site: str | None) -> tuple[int, str | None]:
+        conn = http.client.HTTPConnection(HOST, port, timeout=5)
+        conn.request("GET", path, headers={"Sec-Fetch-Site": fetch_site} if fetch_site else {})
+        r = conn.getresponse()
+        r.read()
+        conn.close()
+        return r.status, r.getheader("location")
+    for path, site, expected in [("/", "cross-site", (303, "/?from=link")),
+                                 ("/index.html", "cross-site", (303, "/?from=link")),
+                                 ("/", "same-site", (303, "/?from=link")),
+                                 ("/?from=link", "cross-site", (200, None)),
+                                 ("/", "none", (200, None)),
+                                 ("/", "same-origin", (200, None)),
+                                 ("/", None, (200, None))]:
+        check(page(path, site) == expected, f"GET {path} from {site or 'unknown'} -> {page(path, site)}")
 
     print("Wrong PINs are limited across all addresses")
     guard = PinGuard("123456")
