@@ -126,6 +126,9 @@ class PynputBackend(InputBackend):
             "up": k.up, "down": k.down, "left": k.left, "right": k.right,
             "space": k.space, "page_up": k.page_up, "page_down": k.page_down,
             "ctrl": k.ctrl, "alt": k.alt, "shift": k.shift, "win": k.cmd,
+            "volume_down": k.media_volume_down, "volume_mute": k.media_volume_mute,
+            "volume_up": k.media_volume_up, "media_previous": k.media_previous,
+            "media_play_pause": k.media_play_pause, "media_next": k.media_next,
             **{f"f{i}": getattr(k, f"f{i}") for i in range(1, 13)},
         }
 

@@ -54,7 +54,7 @@ Fields that are missing default to `0` (numbers) or `"left"` (button). Unknown e
 ### Key names
 
 `key` accepts:
-`enter`, `backspace`, `tab`, `esc`, `delete`, `home`, `end`, `up`, `down`, `left`, `right`, `space`, `page_up`, `page_down`
+`enter`, `backspace`, `tab`, `esc`, `delete`, `home`, `end`, `up`, `down`, `left`, `right`, `space`, `page_up`, `page_down`, and the media keys `volume_down`, `volume_mute`, `volume_up`, `media_previous`, `media_play_pause`, `media_next`
 
 `hotkey` accepts all of the above, plus:
 - the modifiers `ctrl`, `alt`, `shift`, `win`

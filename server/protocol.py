@@ -19,6 +19,8 @@ NAMED_KEYS = (
     "enter", "backspace", "tab", "esc", "delete", "home", "end",
     "up", "down", "left", "right",
     "space", "page_up", "page_down",
+    "volume_down", "volume_mute", "volume_up",
+    "media_previous", "media_play_pause", "media_next",
 )
 
 # Extra names accepted inside "hotkey" combinations.

@@ -47,6 +47,8 @@ INPUT_MESSAGES = [
     ({"type": "hotkey", "keys": ["win", "s"]}, "DRY-RUN hotkey keys=win+s"),
     ({"type": "hotkey", "keys": ["alt", "tab"]}, "DRY-RUN hotkey keys=alt+tab"),
     ({"type": "hotkey", "keys": ["win", "d"]}, "DRY-RUN hotkey keys=win+d"),
+    *[({"type": "key", "name": n}, f"DRY-RUN hotkey keys={n}")
+      for n in ("volume_down", "volume_mute", "volume_up", "media_previous", "media_play_pause", "media_next")],
     ({"type": "hotkey", "keys": ["ctrl", "c"]}, "DRY-RUN hotkey keys=ctrl+c"),
     ({"type": "hotkey", "keys": ["ctrl", "v"]}, "DRY-RUN hotkey keys=ctrl+v"),
     ({"type": "hotkey", "keys": ["ctrl", "shift", "Esc"]}, "DRY-RUN hotkey keys=ctrl+shift+esc"),
