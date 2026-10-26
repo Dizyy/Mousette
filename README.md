@@ -48,10 +48,12 @@ On the first run it creates a `.venv` folder and installs the packages from `req
 
 ```
 ==============================================
-  PhoneMouse 1.0.0 is running
+  PhoneMouse 1.1.0 is running
   Open on iPhone/iPad:  http://phonemouse.local
   Or:                   http://192.168.1.23
   PIN:                  482915
+  Or scan with the iPhone/iPad camera:
+  (a QR code appears here)
   Press Ctrl+C to stop.
 ==============================================
 ```
@@ -94,8 +96,10 @@ New-NetFirewallRule -DisplayName "PhoneMouse" -Direction Inbound -Protocol TCP -
 ## 4. Open it on the iPhone or iPad
 
 1. Make sure the iPhone or iPad is on the **same Wi-Fi** as the PC (the same router).
-2. In Safari, open `http://phonemouse.local` (or the address on the **Or:** line of your PhoneMouse window).
-3. Enter the 6-digit PIN. The dot at the top turns **green** when you're connected.
+2. **Easiest:** open the **Camera** app, point it at the QR code in the PhoneMouse window and tap the link. PhoneMouse opens and connects by itself, no typing.
+3. **Or type it:** in Safari, open `http://phonemouse.local` (or the address on the **Or:** line) and enter the 6-digit PIN.
+
+The dot at the top turns **green** when you're connected.
 
 The phone does not save the PIN. Each time you open PhoneMouse, type the PIN shown in the PC window; the server makes a new one every time it starts. While the page stays open, it remembers the PIN in memory: if the phone locks or you switch apps, it reconnects by itself when you come back.
 
@@ -110,7 +114,7 @@ The phone does not save the PIN. Each time you open PhoneMouse, type the PIN sho
 | Two-finger drag | Scroll (natural direction, both axes) |
 | Hold for about 0.4 s, then drag | Click-drag: select text, move windows. "Dragging" shows while it's active; lift your finger to release. |
 
-Bottom bar buttons: **Left**, **Right**, **Keys** (opens the on-screen keyboard; tap again to close), **Copy** (Ctrl+C), **Paste** (Ctrl+V), **Search** (Win+S), **Alt+Tab**, **Desktop** (Win+D), **Esc**. Under **Buttons on the bar** in settings, untick the ones you don't need; up to 7 fit in one row, more wrap into two.
+Bottom bar buttons: **Left**, **Right**, **Keys** (opens the on-screen keyboard; tap again to close), **Copy** (Ctrl+C), **Paste** (Ctrl+V), **Media** (opens volume −, mute, volume +, previous, play/pause and next; tap Media again or anywhere else to close), **Search** (Win+S), **Alt+Tab**, **Desktop** (Win+D), **Esc**. Under **Buttons on the bar** in settings, untick the ones you don't need; up to 7 fit in one row, more wrap into two.
 
 The gear icon opens settings for **cursor sensitivity**, **scroll speed**, the **scroll strip** and the **bar buttons**. These are saved on the phone. With the scroll strip turned on, a narrow bar appears to the right of the trackpad: drag one finger up or down on it to scroll.
 
@@ -164,6 +168,7 @@ If it already says **Private**, add the port rule from step 3. A dismissed firew
 - Every connection needs the PIN, which is random and changes on each start. After 5 wrong PINs from a device, that device is locked out for 60 seconds; after 10 wrong PINs from any devices combined, everyone is locked out for 60 seconds. Wrong PINs are shown in the PhoneMouse window.
 - Only PhoneMouse's own page can connect. Other websites open in a browser on your network can't connect to it or guess the PIN in the background, and the page can't be embedded in other sites.
 - The connection is unencrypted (`http`/`ws`), which is normal for a home network. Anyone **on your network who knows the current PIN** can control the PC, and someone on the same Wi-Fi with network-sniffing tools could read what you type. Don't run it on public or untrusted Wi-Fi, don't type passwords through it, and close the window when you're done.
+- The PhoneMouse window shows the PIN and a QR code that logs in with it. Close or minimise the window before you share your screen or stream.
 - Whoever is connected can also shut the PC down. When you run PhoneMouse as administrator (answer **Y** in `start.bat`), the phone can also control admin windows and open Task Manager with admin rights, so only do that on a network you trust.
 
 ## Testing
