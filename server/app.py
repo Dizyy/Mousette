@@ -91,6 +91,11 @@ def create_app(backend: InputBackend, pin: str, addresses: list[str] | None = No
     tricks from websites."""
     # Browsers leave out ":80", so accept that form too.
     allowed = None if addresses is None else {a for addr in addresses for a in (addr, addr.removesuffix(":80"))}
+    # The page may be opened under one of these and connect through another: after a long
+    # sleep the phone sometimes can't look up phonemouse.local, so it falls back to the IP.
+    own_origins = None if allowed is None else {f"http://{a}" for a in allowed}
+    direct = None if not addresses else addresses[-1].removesuffix(":80")  # the IP form
+    ok_fields = {"protocol": protocol.PROTOCOL_VERSION, **({"direct": direct} if direct else {})}
     app = FastAPI(title="PhoneMouse", docs_url=None, redoc_url=None, openapi_url=None)
     guard = PinGuard(pin)
     # Handed out after a correct PIN; valid until the server stops, like the PIN itself.
@@ -120,9 +125,10 @@ def create_app(backend: InputBackend, pin: str, addresses: list[str] | None = No
         # otherwise it keeps showing an old page after an update.
         response.headers["Cache-Control"] = "no-cache"
         # The page may only load its own files and talk to this server, and can't be framed.
+        sockets = " ".join(sorted(f"ws://{a}" for a in allowed or {host_header}))
         response.headers["Content-Security-Policy"] = (
             "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self'; "
-            f"connect-src 'self' ws://{host_header}; manifest-src 'self'; object-src 'none'; "
+            f"connect-src 'self' {sockets}; manifest-src 'self'; object-src 'none'; "
             "base-uri 'none'; form-action 'self'; frame-ancestors 'none'")
         response.headers["X-Frame-Options"] = "DENY"
         response.headers["X-Content-Type-Options"] = "nosniff"
@@ -158,7 +164,7 @@ def create_app(backend: InputBackend, pin: str, addresses: list[str] | None = No
                 await send(ws, protocol.make("auth_failed", reason="token_expired"))
                 await ws.close(CLOSE_AUTH_FAILED)
                 return False
-            await send(ws, protocol.make("auth_ok", protocol=protocol.PROTOCOL_VERSION))
+            await send(ws, protocol.make("auth_ok", **ok_fields))
             return True
 
         locked = guard.locked_for(host)
@@ -175,7 +181,7 @@ def create_app(backend: InputBackend, pin: str, addresses: list[str] | None = No
 
         token = secrets.token_hex(16)
         tokens.add(token)
-        await send(ws, protocol.make("auth_ok", protocol=protocol.PROTOCOL_VERSION, token=token))
+        await send(ws, protocol.make("auth_ok", **ok_fields, token=token))
         return True
 
     @app.websocket("/ws")
@@ -188,7 +194,8 @@ def create_app(backend: InputBackend, pin: str, addresses: list[str] | None = No
         # websites open in a browser on this network can't try PINs in the background.
         host_header = ws.headers.get("host")
         origin = ws.headers.get("origin")
-        if wrong_host(host_header) or (origin is not None and origin != f"http://{host_header}"):
+        own = own_origins if own_origins is not None else {f"http://{host_header}"}
+        if wrong_host(host_header) or (origin is not None and origin not in own):
             log.warning("Refused connection from %s (origin %s, host %s)", host, origin, host_header)
             await ws.close(CLOSE_BAD_ORIGIN)
             return
@@ -208,7 +215,7 @@ def create_app(backend: InputBackend, pin: str, addresses: list[str] | None = No
                 if type_ == "ping":
                     await send(ws, protocol.make("pong", id=fields["id"]))
                 elif type_ == "auth":
-                    await send(ws, protocol.make("auth_ok", protocol=protocol.PROTOCOL_VERSION))
+                    await send(ws, protocol.make("auth_ok", **ok_fields))
                 else:
                     try:
                         await loop.run_in_executor(executor, backend.execute, type_, fields)

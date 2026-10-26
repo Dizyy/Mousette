@@ -22,6 +22,9 @@ TYPE_ANY = 255
 CLASS_IN = 1
 CACHE_FLUSH = 0x8000
 TTL_S = 120
+# Repeat the announcement this often. A phone waking from sleep may have forgotten the name,
+# and its own lookups can be blocked (e.g. a firewall rule that only opens TCP ports).
+REANNOUNCE_S = 30
 
 
 def _encode_name(name: str) -> bytes:
@@ -155,7 +158,14 @@ class MdnsResponder:
 
     def _serve(self) -> None:
         self._sock.settimeout(1.0)
+        last_announce = time.monotonic()
         while not self._stop.is_set():
+            if time.monotonic() - last_announce >= REANNOUNCE_S:
+                last_announce = time.monotonic()
+                try:
+                    self._send(self._answer(0), (MDNS_GROUP, MDNS_PORT))
+                except OSError:
+                    pass
             try:
                 data, src = self._sock.recvfrom(9000)
                 msg_id, flags, questions, _ = _parse(data)

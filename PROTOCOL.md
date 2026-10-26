@@ -75,7 +75,7 @@ Examples:
 
 | type | fields | meaning |
 |---|---|---|
-| `auth_ok` | `protocol`: 1; `token`: string (only after a PIN) | Authenticated; input is accepted from now on. Keep `token` to log in again later: it is valid until the server stops. |
+| `auth_ok` | `protocol`: 1; `token`: string (only after a PIN); optional `direct`: the server's IP address and port | Authenticated; input is accepted from now on. Keep `token` to log in again later: it is valid until the server stops. If the page's host name (`phonemouse.local`) stops resolving, connect to `ws://<direct>/ws` instead: the server accepts its own page from any of its addresses. |
 | `auth_failed` | `reason`: `"wrong_pin"`, `"token_expired"` (the server restarted since the token was issued) or `"locked_out"`; `retry_after`: seconds (only when locked out) | The socket closes right after this. |
 | `pong` | `id`: the id from the ping, or null | Reply to `ping`. |
 | `action_ok` | `ref`: `"task_manager"`, `"shutdown"` or `"cancel_shutdown"` | The PC action was carried out. |

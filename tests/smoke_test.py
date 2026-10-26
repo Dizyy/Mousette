@@ -244,14 +244,16 @@ async def run(server: Server, port: int) -> None:
         await send(ws, {"type": "auth", "pin": server.pin})
         reply = await recv_json(ws)
         token = reply.pop("token", None)
-        check(reply == {"v": 1, "type": "auth_ok", "protocol": 1} and isinstance(token, str)
-              and len(token) == 32, f"correct PIN -> auth_ok with a token")
+        check(reply == {"v": 1, "type": "auth_ok", "protocol": 1, "direct": f"{HOST}:{port}"}
+              and isinstance(token, str) and len(token) == 32,
+              "correct PIN -> auth_ok with a token and the IP address")
 
     print("Token login (phone reloaded the page after being locked)")
     async with websockets.connect(url) as ws:
         await send(ws, {"type": "auth", "token": token})
         reply = await recv_json(ws)
-        check(reply == {"v": 1, "type": "auth_ok", "protocol": 1}, f"saved token -> {reply}")
+        check(reply == {"v": 1, "type": "auth_ok", "protocol": 1, "direct": f"{HOST}:{port}"},
+              f"saved token -> {reply}")
     async with websockets.connect(url) as ws:
         await send(ws, {"type": "auth", "token": "0" * 32})
         reply = await recv_json(ws)

@@ -31,6 +31,15 @@
   const setToken = (token) => store.set('pm.token', token);
   const forgetToken = () => store.remove('pm.token');
 
+  // The PC's IP address, from auth_ok. After a long sleep the phone sometimes can't look up
+  // phonemouse.local any more; then the connection goes to the IP address instead.
+  const getDirect = () => store.get('pm.direct');
+  let viaDirect = false;
+  function failedToOpen() {
+    const direct = getDirect();
+    if (direct && direct !== location.host) viaDirect = !viaDirect; // alternate name and IP
+  }
+
   // ---------- Connection ----------
   const statusEl = $('status');
   const statusText = $('status-text');
@@ -93,13 +102,22 @@
 
     setStatus(false, 'Connecting…');
     const proto = location.protocol === 'https:' ? 'wss:' : 'ws:';
-    const sock = new WebSocket(`${proto}//${location.host}/ws`);
+    const target = viaDirect && getDirect() ? getDirect() : location.host;
+    const sock = new WebSocket(`${proto}//${target}/ws`);
     ws = sock;
     let authRejected = false;
+    let opened = false;
     // After the phone wakes up, a new socket sometimes hangs without opening or failing.
-    setTimeout(() => { if (ws === sock && !authed && !authRejected) dropConnection(true); }, 6000);
+    setTimeout(() => {
+      if (ws !== sock || authed || authRejected) return;
+      if (!opened) failedToOpen();
+      dropConnection(true);
+    }, 6000);
 
-    sock.onopen = () => sock.send(JSON.stringify(token ? { v: V, type: 'auth', token } : { v: V, type: 'auth', pin }));
+    sock.onopen = () => {
+      opened = true;
+      sock.send(JSON.stringify(token ? { v: V, type: 'auth', token } : { v: V, type: 'auth', pin }));
+    };
     sock.onmessage = (event) => {
       let msg;
       try { msg = JSON.parse(event.data); } catch { return; }
@@ -107,6 +125,7 @@
         case 'auth_ok':
           authed = true;
           pinJustEntered = false;
+          if (msg.direct) store.set('pm.direct', msg.direct);
           if (msg.token) {
             setToken(msg.token);
             if (getToken() === msg.token) forgetPin(); // keep the PIN if storage is blocked
@@ -153,6 +172,7 @@
       if (authRejected) {
         setStatus(false, 'Not connected');
       } else {
+        if (!opened) failedToOpen();
         setStatus(false, 'Reconnecting…');
         scheduleReconnect();
       }

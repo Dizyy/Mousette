@@ -52,7 +52,7 @@ On the first run it creates a `.venv` folder and installs the packages from `req
 
 ```
 ==============================================
-  PhoneMouse 1.2.0 is running
+  PhoneMouse 1.2.1 is running
   Open on iPhone/iPad:  http://phonemouse.local
   Or:                   http://192.168.1.23
   PIN:                  482915
@@ -92,10 +92,11 @@ If you missed the prompt, or the phone can't connect:
 
 Also check that Windows treats your home network as **Private**: **Settings → Network & internet → Wi-Fi** (or **Ethernet**) **→ your network → Network profile type → Private network**.
 
-Instead of the app rule, you can add a rule for just this port. Run this in an **administrator** PowerShell:
+Instead of the app rule, you can add rules for just PhoneMouse's ports: TCP for the page, and UDP 5353 so the phone can find `phonemouse.local`. Run this in an **administrator** PowerShell:
 
 ```powershell
 New-NetFirewallRule -DisplayName "PhoneMouse" -Direction Inbound -Protocol TCP -LocalPort 80,8765 -Profile Private -Action Allow
+New-NetFirewallRule -DisplayName "PhoneMouse" -Direction Inbound -Protocol UDP -LocalPort 5353 -Profile Private -Action Allow
 ```
 
 ## 4. Open it on the iPhone or iPad
@@ -160,7 +161,9 @@ If you ticked **Allow access** for Python in step 3, that firewall entry belongs
 - Check that the phone is on the same network, not on mobile data or a guest Wi-Fi. Guest networks usually isolate devices from each other.
 - Check the firewall (step 3), including that the network is set to **Private**.
 - Type the address exactly as printed, starting with `http://`, not `https://`.
-- If `phonemouse.local` doesn't load but the **Or:** address does, your router or network blocks the name lookup (some mesh and guest networks do). Use the IP address; everything else works the same.
+- If `phonemouse.local` doesn't load but the **Or:** address does, your router or network blocks the name lookup (some mesh and guest networks do), or the firewall blocks UDP port 5353 (see step 3). Use the IP address; everything else works the same.
+
+**It reconnects after a short lock, but not after a longer one.** After a longer sleep the phone looks up `phonemouse.local` again. PhoneMouse then reconnects through the PC's IP address by itself; if the page itself was reloaded and Safari can't open it, wait up to 30 seconds and reload. For a permanent fix, allow UDP port 5353 in the firewall (step 3).
 
 **The page loads in a browser on the PC itself, but not on the phone.** The server works, but Windows is blocking connections from other devices. This usually happens on a new PC or after joining a new network, because Windows often sets the network to **Public**. Firewall rules for "Private networks" don't apply on a Public network.
 1. In PowerShell, run `Get-NetConnectionProfile` and look at **NetworkCategory**.
