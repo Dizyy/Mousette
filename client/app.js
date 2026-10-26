@@ -12,7 +12,8 @@
     remove(key) { try { localStorage.removeItem(key); } catch { /* ignore */ } },
   };
 
-  const DEFAULT_SETTINGS = { sens: 1.2, scroll: 1.0, strip: false };
+  // hiddenButtons: data-action names of bottom-bar buttons the user turned off.
+  const DEFAULT_SETTINGS = { sens: 1.2, scroll: 1.0, strip: false, hiddenButtons: [] };
   let settings = { ...DEFAULT_SETTINGS };
   try { settings = { ...DEFAULT_SETTINGS, ...JSON.parse(store.get('pm.settings') || '{}') }; } catch { /* keep defaults */ }
   const saveSettings = () => store.set('pm.settings', JSON.stringify(settings));
@@ -349,7 +350,8 @@
   // Block pinch-zoom and other Safari page gestures.
   document.addEventListener('gesturestart', (e) => e.preventDefault());
   document.addEventListener('touchmove', (e) => {
-    if (!e.target.closest('input[type="range"]')) e.preventDefault();
+    // Sliders and the settings card (it scrolls on small screens) keep their own touch moves.
+    if (!e.target.closest('input[type="range"], .sheet-card')) e.preventDefault();
   }, { passive: false });
 
   // ---------- Hidden keyboard input ----------
@@ -407,6 +409,8 @@
     left: () => send({ type: 'click', button: 'left' }),
     right: () => send({ type: 'click', button: 'right' }),
     keyboard: toggleKeyboard,
+    copy: () => send({ type: 'hotkey', keys: ['ctrl', 'c'] }),
+    paste: () => send({ type: 'hotkey', keys: ['ctrl', 'v'] }),
     search: () => send({ type: 'hotkey', keys: ['win', 's'] }),
     alttab: () => send({ type: 'hotkey', keys: ['alt', 'tab'] }),
     desktop: () => send({ type: 'hotkey', keys: ['win', 'd'] }),
@@ -454,8 +458,43 @@
   const scrollVal = $('scroll-val');
 
   const stripInput = $('strip');
+  const bar = document.querySelector('.bottombar');
+  const barButtons = [...document.querySelectorAll('.bar-btn')];
+
+  // One tick box per bottom-bar button, built from the bar itself so new buttons appear here too.
+  const barChoices = $('bar-choices');
+  for (const btn of barButtons) {
+    const label = document.createElement('label');
+    label.className = 'bar-choice';
+    const box = document.createElement('input');
+    box.type = 'checkbox';
+    box.dataset.action = btn.dataset.action;
+    box.addEventListener('change', () => {
+      const hidden = new Set(settings.hiddenButtons);
+      if (box.checked) hidden.delete(box.dataset.action); else hidden.add(box.dataset.action);
+      settings.hiddenButtons = [...hidden];
+      renderSettings();
+      saveSettings();
+    });
+    label.append(box, btn.querySelector('span').textContent);
+    barChoices.append(label);
+  }
+
+  function renderBar() {
+    const hidden = new Set(Array.isArray(settings.hiddenButtons) ? settings.hiddenButtons : []);
+    let shown = 0;
+    for (const btn of barButtons) {
+      btn.hidden = hidden.has(btn.dataset.action);
+      if (!btn.hidden) shown++;
+    }
+    for (const box of barChoices.querySelectorAll('input')) box.checked = !hidden.has(box.dataset.action);
+    // Up to 7 buttons fit in one row; more wrap into two even rows.
+    bar.style.setProperty('--bar-cols', shown <= 7 ? shown : Math.ceil(shown / 2));
+    bar.hidden = shown === 0;
+  }
 
   function renderSettings() {
+    renderBar();
     sensInput.value = settings.sens;
     scrollInput.value = settings.scroll;
     stripInput.checked = !!settings.strip;

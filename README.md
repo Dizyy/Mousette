@@ -100,9 +100,9 @@ The phone does not save the PIN. Each time you open PhoneMouse, type the PIN sho
 | Two-finger drag | Scroll (natural direction, both axes) |
 | Hold for about 0.4 s, then drag | Click-drag: select text, move windows. "Dragging" shows while it's active; lift your finger to release. |
 
-Bottom bar buttons: **Left**, **Right**, **Keys** (opens the on-screen keyboard; tap again to close), **Search** (Win+S), **Alt+Tab**, **Desktop** (Win+D), **Esc**.
+Bottom bar buttons: **Left**, **Right**, **Keys** (opens the on-screen keyboard; tap again to close), **Copy** (Ctrl+C), **Paste** (Ctrl+V), **Search** (Win+S), **Alt+Tab**, **Desktop** (Win+D), **Esc**. Under **Buttons on the bar** in settings, untick the ones you don't need; up to 7 fit in one row, more wrap into two.
 
-The gear icon opens settings for **cursor sensitivity**, **scroll speed** and the **scroll strip**. These are saved on the phone. With the scroll strip turned on, a narrow bar appears to the right of the trackpad: drag one finger up or down on it to scroll.
+The gear icon opens settings for **cursor sensitivity**, **scroll speed**, the **scroll strip** and the **bar buttons**. These are saved on the phone. With the scroll strip turned on, a narrow bar appears to the right of the trackpad: drag one finger up or down on it to scroll.
 
 The settings also have **PC** buttons:
 - **Task Manager** opens Task Manager. PhoneMouse must run as administrator: it then starts Task Manager itself, with admin rights, so Windows doesn't ask for your PIN or password. (Ctrl+Shift+Esc would let Windows start it, and if you set User Account Control to ask for a PIN, that prompt can only be answered on the PC.)

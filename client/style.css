@@ -144,7 +144,7 @@ svg { width: 24px; height: 24px; fill: currentColor; }
 /* Bottom bar */
 .bottombar {
   display: grid;
-  grid-template-columns: repeat(7, 1fr);
+  grid-template-columns: repeat(var(--bar-cols, 7), 1fr);
   gap: 4px;
   padding: 10px 8px calc(10px + env(safe-area-inset-bottom));
 }
@@ -163,6 +163,7 @@ svg { width: 24px; height: 24px; fill: currentColor; }
   padding: 4px 0;
 }
 .bar-btn svg { color: var(--text); }
+.bar-btn[hidden], .bottombar[hidden] { display: none; }
 .bar-btn:active, .bar-btn.pressed { background: var(--surface-2); }
 .bar-btn.on { background: color-mix(in srgb, var(--accent) 22%, var(--surface)); color: var(--text); }
 
@@ -222,6 +223,16 @@ input[type="range"] {
 .field.toggle span { align-items: center; }
 .field.toggle { display: flex; justify-content: space-between; align-items: center; min-height: 48px; }
 .field.toggle input { width: 28px; height: 28px; accent-color: var(--accent); }
+
+.bar-choices { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; margin-bottom: 14px; }
+.bar-choice {
+  display: flex; align-items: center; gap: 8px;
+  min-height: 44px; padding: 0 10px;
+  border-radius: 12px; background: var(--surface-2);
+  font-size: 14px; color: var(--muted);
+}
+.bar-choice input { width: 22px; height: 22px; margin: 0; accent-color: var(--accent); flex: none; }
+.sheet-card { max-height: calc(var(--app-height) - 32px); overflow-y: auto; overscroll-behavior: contain; }
 
 .section-title { margin: 8px 0 10px; font-size: 15px; color: var(--muted); font-weight: 600; }
 .pc-actions { display: flex; flex-wrap: wrap; gap: 8px; }
