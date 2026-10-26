@@ -1,0 +1,4 @@
+# Normalize line endings; batch files must keep CRLF or cmd.exe can mis-parse labels.
+* text=auto
+*.bat text eol=crlf
+*.png binary
