@@ -52,7 +52,7 @@ On the first run it creates a `.venv` folder and installs the packages from `req
 
 ```
 ==============================================
-  PhoneMouse 1.2.1 is running
+  PhoneMouse 1.2.2 is running
   Open on iPhone/iPad:  http://phonemouse.local
   Or:                   http://192.168.1.23
   PIN:                  482915

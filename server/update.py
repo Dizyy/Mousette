@@ -11,11 +11,11 @@ Exit codes: 0 = nothing to do (or the check failed; PhoneMouse then starts as it
 from __future__ import annotations
 
 import io
-import json
 import re
 import shutil
 import sys
 import tempfile
+import urllib.parse
 import urllib.request
 import zipfile
 from pathlib import Path
@@ -23,7 +23,9 @@ from pathlib import Path
 from . import __version__
 
 REPO = "Dizyy/PhoneMouse"
-LATEST_URL = f"https://api.github.com/repos/{REPO}/releases/latest"
+# Redirects to ".../releases/tag/<newest tag>". Unlike api.github.com, which allows only
+# 60 requests an hour per internet connection (and answers 403 after that), it has no such limit.
+LATEST_URL = f"https://github.com/{REPO}/releases/latest"
 ZIP_URL = f"https://github.com/{REPO}/archive/refs/tags/{{tag}}.zip"
 ROOT = Path(__file__).resolve().parent.parent
 TIMEOUT_S = 5
@@ -38,10 +40,14 @@ def parse_version(text: str) -> tuple[int, ...] | None:
 
 
 def latest_tag() -> str:
-    request = urllib.request.Request(LATEST_URL, headers={
-        "Accept": "application/vnd.github+json", "User-Agent": f"PhoneMouse/{__version__}"})
+    request = urllib.request.Request(LATEST_URL, method="HEAD",
+                                     headers={"User-Agent": f"PhoneMouse/{__version__}"})
     with urllib.request.urlopen(request, timeout=TIMEOUT_S) as response:
-        return json.load(response)["tag_name"]
+        final_url = response.geturl()
+    match = re.search(r"/releases/tag/([^/?#]+)$", final_url)
+    if not match:
+        raise ValueError(f"unexpected answer from GitHub: {final_url}")
+    return urllib.parse.unquote(match.group(1))
 
 
 def download(tag: str) -> bytes:
