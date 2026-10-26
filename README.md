@@ -16,7 +16,8 @@ In this guide, "phone" means your iPhone or iPad: both work the same way.
   - `protocol.py`: checks that incoming messages are valid
   - `input_backend.py`: real mouse/keyboard control, plus a dry-run mode that only logs
   - `app.py`: the `/ws` WebSocket endpoint and the web page hosting
-  - `__main__.py`: startup (finds the PC's network address, makes the PIN, prints the banner)
+  - `__main__.py`: startup (finds the PC's network address and a free port, makes the PIN, prints the banner)
+  - `mdns.py`: makes `phonemouse.local` point at this PC, so you don't need the IP address
 - `client/`: the web page for the iPhone/iPad (plain HTML/CSS/JS, no build step)
 - `PROTOCOL.md`: the messages the phone and the server exchange
 - `tests/smoke_test.py`: automated end-to-end test
@@ -42,20 +43,23 @@ On the first run it creates a `.venv` folder and installs the packages from `req
 ```
 ==============================================
   PhoneMouse is running
-  Open on iPhone/iPad:  http://192.168.1.23:8765
+  Open on iPhone/iPad:  http://phonemouse.local
+  Or:                   http://192.168.1.23
   PIN:                  482915
   Press Ctrl+C to stop.
 ==============================================
 ```
 
-Your address will be different: every home network gives out its own addresses, and PhoneMouse finds the right one by itself. Always use the address your window shows.
+Open **`http://phonemouse.local`** on the phone. It's the same on every PC and keeps working when the router gives the PC a new IP address. The **Or:** line is the PC's IP address, a backup in case the name doesn't work on your network; that one is different for everyone and PhoneMouse finds it by itself.
+
+PhoneMouse uses port 80, so no port number is needed. If another program already uses port 80, it switches to port 8765 by itself and the addresses end in `:8765`. If a second PC on your network also runs PhoneMouse, that one is called `phonemouse-2.local`. Always use the addresses your window shows.
 
 Keep this window open while you use the phone. The PIN is new every time the server starts.
 
 **To stop:** close the window, or press **Ctrl+C**. If Windows then asks *"Terminate batch job (Y/N)?"*, either answer is fine: the server has already stopped.
 
 Options (add them after `start.bat`, for example `start.bat --port 9000`):
-- `--port 9000`: use a different port (default 8765)
+- `--port 9000`: use a specific port (default: 80, or 8765 if 80 is taken)
 - `--host 192.168.x.x`: choose which network address to use, if the PC has several
 - `--dry-run`: log input instead of moving the real mouse (for testing)
 
@@ -78,13 +82,13 @@ Also check that Windows treats your home network as **Private**: **Settings → 
 Instead of the app rule, you can add a rule for just this port. Run this in an **administrator** PowerShell:
 
 ```powershell
-New-NetFirewallRule -DisplayName "PhoneMouse" -Direction Inbound -Protocol TCP -LocalPort 8765 -Profile Private -Action Allow
+New-NetFirewallRule -DisplayName "PhoneMouse" -Direction Inbound -Protocol TCP -LocalPort 80,8765 -Profile Private -Action Allow
 ```
 
 ## 4. Open it on the iPhone or iPad
 
 1. Make sure the iPhone or iPad is on the **same Wi-Fi** as the PC (the same router).
-2. In Safari, open the address your PhoneMouse window shows, for example `http://192.168.1.23:8765` (yours will be different).
+2. In Safari, open `http://phonemouse.local` (or the address on the **Or:** line of your PhoneMouse window).
 3. Enter the 6-digit PIN. The dot at the top turns **green** when you're connected.
 
 The phone does not save the PIN. Each time you open PhoneMouse, type the PIN shown in the PC window; the server makes a new one every time it starts. While the page stays open, it remembers the PIN in memory: if the phone locks or you switch apps, it reconnects by itself when you come back.
@@ -116,7 +120,7 @@ There is no Ctrl+Alt+Del button: Windows shows that screen on a protected deskto
 2. Tap the **Share** button (at the bottom on iPhone, at the top on iPad), then **Add to Home Screen**, then **Add**.
 3. Start PhoneMouse from its icon. It opens fullscreen without the Safari bars.
 
-The home-screen icon remembers the PC's address. If the PC gets a new address from the router (the start banner shows it), add the icon again. To avoid that, reserve a fixed IP address for the PC in your router's DHCP settings.
+Add the icon from `http://phonemouse.local`: it keeps working when the PC gets a new IP address. If you added it from the IP address instead and the PC's address changes, add the icon again.
 
 ## Troubleshooting
 
@@ -125,6 +129,7 @@ The home-screen icon remembers the PC's address. If the PC gets a new address fr
 - Check that the phone is on the same network, not on mobile data or a guest Wi-Fi. Guest networks usually isolate devices from each other.
 - Check the firewall (step 3), including that the network is set to **Private**.
 - Type the address exactly as printed, starting with `http://`, not `https://`.
+- If `phonemouse.local` doesn't load but the **Or:** address does, your router or network blocks the name lookup (some mesh and guest networks do). Use the IP address; everything else works the same.
 
 **The page loads in a browser on the PC itself, but not on the phone.** The server works, but Windows is blocking connections from other devices. This usually happens on a new PC or after joining a new network, because Windows often sets the network to **Public**. Firewall rules for "Private networks" don't apply on a Public network.
 1. In PowerShell, run `Get-NetConnectionProfile` and look at **NetworkCategory**.

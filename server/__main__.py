@@ -13,8 +13,26 @@ import uvicorn
 
 from .app import create_app, is_lan_address
 from .input_backend import DryRunBackend, PynputBackend, is_elevated
+from .mdns import MdnsResponder
 
-DEFAULT_PORT = 8765
+# Port 80 lets the phone open the address without ":port"; 8765 if something else has 80.
+PREFERRED_PORTS = (80, 8765)
+
+
+def port_is_free(host: str, port: int) -> bool:
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+        if hasattr(socket, "SO_EXCLUSIVEADDRUSE"):
+            # Without this, Windows lets us share a port another program listens on.
+            s.setsockopt(socket.SOL_SOCKET, socket.SO_EXCLUSIVEADDRUSE, 1)
+        try:
+            s.bind((host, port))
+        except OSError:
+            return False
+    return True
+
+
+def url(host: str, port: int) -> str:
+    return f"http://{host}" if port == 80 else f"http://{host}:{port}"
 
 
 def lan_ip_candidates() -> list[str]:
@@ -55,7 +73,8 @@ def lan_ip_candidates() -> list[str]:
 def main() -> int:
     parser = argparse.ArgumentParser(prog="phonemouse", description="PhoneMouse PC server")
     parser.add_argument("--host", help="address to bind (default: this PC's LAN IP)")
-    parser.add_argument("--port", type=int, default=DEFAULT_PORT)
+    parser.add_argument("--port", type=int,
+                        help="port to listen on (default: 80, or 8765 if 80 is taken)")
     parser.add_argument("--dry-run", action="store_true",
                         help="log input events instead of moving the real mouse/keyboard")
     args = parser.parse_args()
@@ -75,14 +94,27 @@ def main() -> int:
         print(f"Refusing to bind to {host}: PhoneMouse only listens on private/LAN addresses.")
         return 1
 
+    port = args.port or next((p for p in PREFERRED_PORTS if port_is_free(host, p)), None)
+    if port is None:
+        print(f"Ports {' and '.join(map(str, PREFERRED_PORTS))} are both in use. "
+              "Choose another, e.g.  start.bat --port 9000")
+        return 1
+
+    # The .local name only makes sense on a real network, not for local tests.
+    mdns = None if ipaddress.ip_address(host).is_loopback else MdnsResponder(host)
+    hostname = mdns.start() if mdns else None
+
     pin = f"{secrets.randbelow(1_000_000):06d}"
     backend = DryRunBackend() if args.dry_run else PynputBackend()
-    app = create_app(backend, pin, address=f"{host}:{args.port}")
+    names = [hostname, host] if hostname else [host]
+    app = create_app(backend, pin, addresses=[f"{name}:{port}" for name in names])
 
     bar = "=" * 46
     print(bar)
     print("  PhoneMouse is running" + ("  (DRY RUN - no real input)" if args.dry_run else ""))
-    print(f"  Open on iPhone/iPad:  http://{host}:{args.port}")
+    print(f"  Open on iPhone/iPad:  {url(names[0], port)}")
+    if hostname:
+        print(f"  Or:                   {url(host, port)}")
     print(f"  PIN:                  {pin}")
     if len(candidates) > 1:
         print(f"  Other addresses:      {', '.join(candidates[1:])}")
@@ -94,7 +126,11 @@ def main() -> int:
                         "window (Task Manager, On-Screen Keyboard, installers) is in front. "
                         "Restart with start.bat and answer Y to fix this.")
 
-    uvicorn.run(app, host=host, port=args.port, log_level="warning", ws_max_size=64 * 1024)
+    try:
+        uvicorn.run(app, host=host, port=port, log_level="warning", ws_max_size=64 * 1024)
+    finally:
+        if mdns:
+            mdns.stop()
     return 0
 
 

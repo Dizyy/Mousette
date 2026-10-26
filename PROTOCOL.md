@@ -4,7 +4,7 @@ This describes the messages between the PC server and the web page in `client/`.
 
 ## Transport
 
-- WebSocket at `ws://<pc-lan-ip>:8765/ws` (the port can be changed with `--port`).
+- WebSocket at `ws://phonemouse.local/ws` or `ws://<pc-lan-ip>/ws`. The port is 80, or 8765 when 80 is taken (choose another with `--port`).
 - Each WebSocket **text** frame holds one JSON object, UTF-8 encoded. Binary frames are not used.
 - Every message, in both directions, has `"v": 1` and a `"type"` string.
 - The server only accepts connections from private/LAN addresses (10/8, 172.16/12, 192.168/16, link-local, loopback).
@@ -14,7 +14,7 @@ This describes the messages between the PC server and the web page in `client/`.
 
 ```
 client                                   server
-  | --- connect ws://pc:8765/ws ---------> |
+  | --- connect ws://pc/ws --------------> |
   | --- {"v":1,"type":"auth","pin":"…"} -> |   must be the first message, within 10 s
   | <-- {"v":1,"type":"auth_ok",…} ------- |   or auth_failed + close
   | --- input messages / ping ----------->|

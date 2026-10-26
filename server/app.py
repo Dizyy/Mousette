@@ -84,17 +84,19 @@ class PinGuard:
         return False
 
 
-def create_app(backend: InputBackend, pin: str, address: str | None = None) -> FastAPI:
-    """`address` is the "ip:port" the phone opens. When given, requests naming any other
-    host are refused, which stops DNS-rebinding tricks from websites."""
+def create_app(backend: InputBackend, pin: str, addresses: list[str] | None = None) -> FastAPI:
+    """`addresses` are the "host:port" forms the phone may open (the .local name and the IP).
+    When given, requests naming any other host are refused, which stops DNS-rebinding
+    tricks from websites."""
+    # Browsers leave out ":80", so accept that form too.
+    allowed = None if addresses is None else {a for addr in addresses for a in (addr, addr.removesuffix(":80"))}
     app = FastAPI(title="PhoneMouse", docs_url=None, redoc_url=None, openapi_url=None)
     guard = PinGuard(pin)
     # One worker keeps input events strictly ordered and off the event loop.
     executor = ThreadPoolExecutor(max_workers=1, thread_name_prefix="input")
 
     def wrong_host(host_header: str | None) -> bool:
-        # Browsers leave out ":80", so accept that form too.
-        return address is not None and host_header not in (address, address.removesuffix(":80"))
+        return allowed is not None and (host_header or "").lower() not in allowed
 
     @app.middleware("http")
     async def lan_only(request: Request, call_next):
@@ -102,7 +104,8 @@ def create_app(backend: InputBackend, pin: str, address: str | None = None) -> F
             return PlainTextResponse("PhoneMouse only accepts local network clients.", status_code=403)
         host_header = request.headers.get("host")
         if wrong_host(host_header):
-            return PlainTextResponse(f"Open PhoneMouse at http://{address}", status_code=403)
+            return PlainTextResponse(f"Open PhoneMouse at http://{addresses[0].removesuffix(':80')}",
+                                     status_code=403)
         response = await call_next(request)
         # Make Safari check for a newer client on every load (a cheap 304 when nothing changed),
         # otherwise it keeps showing an old page after an update.
