@@ -1,0 +1,42 @@
+name: Bug report
+description: Something doesn't work as it should.
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for reporting! Please **don't** post your PIN, your IP address or screenshots that show them.
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened?
+      description: What did you do, what did you expect, and what happened instead?
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: PhoneMouse version
+      description: Shown at the top of the PhoneMouse window, e.g. 1.0.0.
+  - type: dropdown
+    id: device
+    attributes:
+      label: Device
+      options: [iPhone, iPad, Other]
+  - type: input
+    id: windows
+    attributes:
+      label: Windows version
+      placeholder: e.g. Windows 11 24H2
+  - type: dropdown
+    id: admin
+    attributes:
+      label: Running as administrator?
+      description: Did you answer Y when start.bat asked?
+      options: ["Yes", "No", "Not sure"]
+  - type: textarea
+    id: log
+    attributes:
+      label: Messages in the PhoneMouse window
+      description: Copy any error lines. Remove the PIN and addresses first.
+      render: text

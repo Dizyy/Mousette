@@ -42,7 +42,7 @@ On the first run it creates a `.venv` folder and installs the packages from `req
 
 ```
 ==============================================
-  PhoneMouse is running
+  PhoneMouse 1.0.0 is running
   Open on iPhone/iPad:  http://phonemouse.local
   Or:                   http://192.168.1.23
   PIN:                  482915
@@ -169,6 +169,14 @@ Automated test of the server. It runs in dry-run mode on 127.0.0.1, so your real
 ```
 
 It sends every message type, checks the server executed each one, and checks that wrong or missing PINs, malformed messages and the PIN lockout are rejected.
+
+## Feedback
+
+- **Found a bug?** [Report it](https://github.com/Dizyy/Phonemouse/issues/new?template=bug_report.yml).
+- **Want a new feature?** [Suggest it](https://github.com/Dizyy/Phonemouse/issues/new?template=feature_request.yml).
+- **Using PhoneMouse?** [Share a review or ask a question](https://github.com/Dizyy/Phonemouse/discussions), and give the repo a ⭐ if you like it.
+
+Please never post your PIN or IP address.
 
 ## License
 

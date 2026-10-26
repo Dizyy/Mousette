@@ -1,0 +1,16 @@
+name: Feature request
+description: Suggest something PhoneMouse should do.
+labels: [enhancement]
+body:
+  - type: textarea
+    id: idea
+    attributes:
+      label: What would you like?
+      description: For example a new button, gesture or setting.
+    validations:
+      required: true
+  - type: textarea
+    id: why
+    attributes:
+      label: How would you use it?
+      description: What are you trying to do that's hard or impossible today?

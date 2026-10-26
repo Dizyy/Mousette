@@ -11,6 +11,7 @@ import sys
 
 import uvicorn
 
+from . import __version__
 from .app import create_app, is_lan_address
 from .input_backend import DryRunBackend, PynputBackend, is_elevated
 from .mdns import MdnsResponder
@@ -111,7 +112,7 @@ def main() -> int:
 
     bar = "=" * 46
     print(bar)
-    print("  PhoneMouse is running" + ("  (DRY RUN - no real input)" if args.dry_run else ""))
+    print(f"  PhoneMouse {__version__} is running" + ("  (DRY RUN - no real input)" if args.dry_run else ""))
     print(f"  Open on iPhone/iPad:  {url(names[0], port)}")
     if hostname:
         print(f"  Or:                   {url(host, port)}")
