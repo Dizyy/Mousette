@@ -26,10 +26,12 @@ In this guide, "phone" means your iPhone or iPad: both work the same way.
   - `app.py`: the `/ws` WebSocket endpoint and the web page hosting
   - `__main__.py`: startup (finds the PC's network address and a free port, makes the PIN, prints the banner)
   - `mdns.py`: makes `phonemouse.local` point at this PC, so you don't need the IP address
+  - `update.py`: checks GitHub for a new version when PhoneMouse starts, and installs it
 - `client/`: the web page for the iPhone/iPad (plain HTML/CSS/JS, no build step)
 - `PROTOCOL.md`: the messages the phone and the server exchange
-- `tests/smoke_test.py`: automated end-to-end test
+- `tests/`: automated tests
 - `start.bat`: one-click start
+- `uninstall.bat`: removes PhoneMouse from the PC
 
 ## 1. Install
 
@@ -50,7 +52,7 @@ On the first run it creates a `.venv` folder and installs the packages from `req
 
 ```
 ==============================================
-  PhoneMouse 1.1.0 is running
+  PhoneMouse 1.2.0 is running
   Open on iPhone/iPad:  http://phonemouse.local
   Or:                   http://192.168.1.23
   PIN:                  482915
@@ -72,6 +74,7 @@ Options (add them after `start.bat`, for example `start.bat --port 9000`):
 - `--port 9000`: use a specific port (default: 80, or 8765 if 80 is taken)
 - `--host 192.168.x.x`: choose which network address to use, if the PC has several
 - `--dry-run`: log input instead of moving the real mouse (for testing)
+- `--no-update`: don't check for a new version this time
 
 ## 3. Allow Python through Windows Firewall (private networks only)
 
@@ -103,7 +106,7 @@ New-NetFirewallRule -DisplayName "PhoneMouse" -Direction Inbound -Protocol TCP -
 
 The dot at the top turns **green** when you're connected.
 
-The phone does not save the PIN. Each time you open PhoneMouse, type the PIN shown in the PC window; the server makes a new one every time it starts. While the page stays open, it remembers the PIN in memory: if the phone locks or you switch apps, it reconnects by itself when you come back.
+You only type the PIN once per server start. After that the phone stays logged in: if you lock and unlock it, switch apps, or close and reopen PhoneMouse, it reconnects by itself. When the server restarts, it makes a new PIN and the phone asks for it again.
 
 ### Gestures
 
@@ -134,6 +137,22 @@ There is no Ctrl+Alt+Del button: Windows shows that screen on a protected deskto
 
 Add the icon from `http://phonemouse.local`: it keeps working when the PC gets a new IP address. If you added it from the IP address instead and the PC's address changes, add the icon again.
 
+## Updates
+
+Each time you start `start.bat`, PhoneMouse checks GitHub for a new version. If there is one, it downloads it, replaces its files and restarts itself, which takes a few seconds. Your settings on the phone and the `.venv` folder are kept. Without internet it just starts the version you have.
+
+To skip the check once, start it with `start.bat --no-update`. A folder made with `git clone` is never updated automatically; run `git pull` there instead.
+
+Versions before 1.2.0 can't update themselves: download 1.2.0 once (step 1), and later versions arrive by themselves.
+
+## Uninstall
+
+1. Double-click **`uninstall.bat`** in the PhoneMouse folder and answer **Yes** in the Windows prompt.
+2. Press **Y** to confirm. It stops PhoneMouse, removes the `PhoneMouse` firewall rule if you added one in step 3, and deletes the whole PhoneMouse folder.
+3. On the iPhone/iPad, press and hold the PhoneMouse icon and choose **Remove App**.
+
+If you ticked **Allow access** for Python in step 3, that firewall entry belongs to your Python installation and stays. Remove it under **Start → "Allow an app through Windows Firewall"** if you no longer want it. Python itself stays installed too.
+
 ## Troubleshooting
 
 **The page doesn't load on the phone.**
@@ -154,7 +173,7 @@ If it already says **Private**, add the port rule from step 3. A dismissed firew
 
 **You use a VPN on the PC.** Many VPN apps block connections from your local network. Look for a setting like "Allow LAN access" or "Invisibility on LAN" and allow local devices. Also see the previous point about the address.
 
-**"Wrong PIN".** Check the 6 digits against the `start.bat` window. **"The PIN on the PC has changed"** means the server was restarted while the page was open: enter the new PIN.
+**"Wrong PIN".** Check the 6 digits against the `start.bat` window. **"PhoneMouse on the PC was restarted"** or **"The PIN on the PC has changed"** means the server was restarted: enter the new PIN.
 
 **"Too many wrong PINs".** After 5 wrong attempts, the phone has to wait 60 seconds.
 
@@ -167,7 +186,7 @@ If it already says **Private**, add the port rule from step 3. A dismissed firew
 ## Security
 
 - The server only listens on your **local network address**, and only accepts connections from local network devices. It isn't reachable from the internet, and you should **not** set up port forwarding for it.
-- Every connection needs the PIN, which is random and changes on each start. After 5 wrong PINs from a device, that device is locked out for 60 seconds; after 10 wrong PINs from any devices combined, everyone is locked out for 60 seconds. Wrong PINs are shown in the PhoneMouse window.
+- Every connection needs the PIN, which is random and changes on each start. After the PIN, the phone saves a random login token so it can reconnect after being locked; the token stops working when the server restarts. After 5 wrong PINs from a device, that device is locked out for 60 seconds; after 10 wrong PINs from any devices combined, everyone is locked out for 60 seconds. Wrong PINs are shown in the PhoneMouse window.
 - Only PhoneMouse's own page can connect. Other websites open in a browser on your network can't connect to it or guess the PIN in the background, and the page can't be embedded in other sites.
 - The connection is unencrypted (`http`/`ws`), which is normal for a home network. Anyone **on your network who knows the current PIN** can control the PC, and someone on the same Wi-Fi with network-sniffing tools could read what you type. Don't run it on public or untrusted Wi-Fi, don't type passwords through it, and close the window when you're done.
 - The PhoneMouse window shows the PIN and a QR code that logs in with it. Close or minimise the window before you share your screen or stream.
@@ -182,6 +201,12 @@ Automated test of the server. It runs in dry-run mode on 127.0.0.1, so your real
 ```
 
 It sends every message type, checks the server executed each one, and checks that wrong or missing PINs, malformed messages and the PIN lockout are rejected.
+
+The updater has its own test, which needs no network:
+
+```bat
+.venv\Scripts\python.exe tests\update_test.py
+```
 
 ## Feedback
 

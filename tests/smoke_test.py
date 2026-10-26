@@ -243,7 +243,25 @@ async def run(server: Server, port: int) -> None:
     async with websockets.connect(url) as ws:
         await send(ws, {"type": "auth", "pin": server.pin})
         reply = await recv_json(ws)
-        check(reply == {"v": 1, "type": "auth_ok", "protocol": 1}, f"correct PIN -> {reply}")
+        token = reply.pop("token", None)
+        check(reply == {"v": 1, "type": "auth_ok", "protocol": 1} and isinstance(token, str)
+              and len(token) == 32, f"correct PIN -> auth_ok with a token")
+
+    print("Token login (phone reloaded the page after being locked)")
+    async with websockets.connect(url) as ws:
+        await send(ws, {"type": "auth", "token": token})
+        reply = await recv_json(ws)
+        check(reply == {"v": 1, "type": "auth_ok", "protocol": 1}, f"saved token -> {reply}")
+    async with websockets.connect(url) as ws:
+        await send(ws, {"type": "auth", "token": "0" * 32})
+        reply = await recv_json(ws)
+        code = await expect_closed(ws)
+        check(reply == {"v": 1, "type": "auth_failed", "reason": "token_expired"} and code == 4003,
+              f"unknown token -> token_expired, closed (code {code})")
+
+    async with websockets.connect(url) as ws:
+        await send(ws, {"type": "auth", "pin": server.pin})
+        await recv_json(ws)
 
         print("Ping / pong")
         await send(ws, {"type": "ping", "id": 42})

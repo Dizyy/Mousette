@@ -34,7 +34,7 @@ The server only accepts requests whose `Host` header is the address it printed, 
 
 | type | fields | effect |
 |---|---|---|
-| `auth` | `pin`: string | Authenticate. Must be first. |
+| `auth` | `pin`: string, **or** `token`: string | Authenticate. Must be first. `token` is one an earlier `auth_ok` returned; it lets a client log in again without the PIN. |
 | `ping` | `id`: number or string, optional | Server replies `pong` with the same `id`. |
 | `move` | `dx`, `dy`: number (px, ±4000) | Move the cursor relative to where it is. Fractions are allowed; the server carries sub-pixel remainders over, so many small moves add up correctly. |
 | `click` | `button`: `"left"`, `"right"` or `"middle"` (default `"left"`) | Single click. |
@@ -75,8 +75,8 @@ Examples:
 
 | type | fields | meaning |
 |---|---|---|
-| `auth_ok` | `protocol`: 1 | Authenticated; input is accepted from now on. |
-| `auth_failed` | `reason`: `"wrong_pin"` or `"locked_out"`; `retry_after`: seconds (only when locked out) | The socket closes right after this. |
+| `auth_ok` | `protocol`: 1; `token`: string (only after a PIN) | Authenticated; input is accepted from now on. Keep `token` to log in again later: it is valid until the server stops. |
+| `auth_failed` | `reason`: `"wrong_pin"`, `"token_expired"` (the server restarted since the token was issued) or `"locked_out"`; `retry_after`: seconds (only when locked out) | The socket closes right after this. |
 | `pong` | `id`: the id from the ping, or null | Reply to `ping`. |
 | `action_ok` | `ref`: `"task_manager"`, `"shutdown"` or `"cancel_shutdown"` | The PC action was carried out. |
 | `error` | `code`, `message`, optional `ref` | The message was rejected. The connection stays open, except for `auth_required`. |
@@ -105,7 +105,7 @@ Examples:
 ## Behaviour notes for client authors
 
 - **Connection health:** send `ping` every ~2 s. If no `pong` arrives within ~6 s, treat the socket as dead and reconnect. Mobile operating systems often keep dead sockets "open" after the phone sleeps.
-- **Reconnecting:** use a new socket and authenticate again with the PIN entered earlier in the same session (the web client keeps it in memory only, never in storage). On `wrong_pin`, drop the PIN and ask the user for it again (the server has probably restarted).
+- **Reconnecting:** use a new socket and authenticate again with the `token` from `auth_ok`. The web client saves the token (never the PIN), because iOS often reloads the page after the phone was locked. On `token_expired` or `wrong_pin`, drop the token and ask the user for the PIN again (the server has restarted). Wrong tokens don't count towards the PIN lockout, and a token still works while the PIN is locked out.
 - **Coalescing:** batch `move`/`scroll` deltas and send at most once per display frame (~60 Hz). Before sending a discrete event such as `click`, flush any pending move so the order stays right.
 - **Drags:** always pair `mouse_down` with `mouse_up`. If the socket drops, the server releases any held buttons itself.
 - **Double-click:** the web client sends one `click` per tap. Two quick taps then reach Windows as a native double-click, with no extra wait on single taps. `double_click` is there for clients that want an explicit double-click.

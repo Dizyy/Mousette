@@ -3,6 +3,9 @@ setlocal
 cd /d "%~dp0"
 title PhoneMouse
 
+rem Restarted by the updater below: admin rights were already decided, the update is done.
+if defined PM_UPDATED goto :elevated
+
 rem --- Offer to run as administrator ---
 rem Windows drops input sent by a normal program into admin windows (Task Manager,
 rem On-Screen Keyboard, installers), so PhoneMouse needs admin rights to control them.
@@ -18,7 +21,7 @@ echo Could not start as administrator; continuing without admin rights.
 
 :elevated
 set "VENV_PY=.venv\Scripts\python.exe"
-if exist "%VENV_PY%" goto :deps
+if exist "%VENV_PY%" goto :update
 
 rem --- Find Python 3.11+ to create the virtual environment ---
 set "PY="
@@ -35,6 +38,18 @@ if not defined PY (
 
 echo Creating virtual environment in .venv ...
 %PY% -m venv .venv || (echo Failed to create the virtual environment. & pause & exit /b 1)
+
+:update
+rem --- Update to the latest release (skip with  start.bat --no-update) ---
+rem cmd reads the whole block before running it, so the update may replace this file.
+if not defined PM_UPDATED (
+    "%VENV_PY%" -m server.update %*
+    if errorlevel 3 (
+        set "PM_UPDATED=1"
+        call "%~f0" %*
+        exit /b
+    )
+)
 
 :deps
 "%VENV_PY%" -c "import fastapi, uvicorn, websockets, pynput, segno" >nul 2>nul

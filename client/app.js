@@ -18,13 +18,18 @@
   try { settings = { ...DEFAULT_SETTINGS, ...JSON.parse(store.get('pm.settings') || '{}') }; } catch { /* keep defaults */ }
   const saveSettings = () => store.set('pm.settings', JSON.stringify(settings));
 
-  // The PIN lives in memory only: the server makes a new one on every start,
-  // so each fresh open of the page asks for it. Older versions saved it; clear that.
+  // The PIN lives in memory only. Older versions saved it; clear that.
+  // After a correct PIN the server hands out a token instead, which is saved: iOS often
+  // reloads the page after the phone was locked, and the token logs in again without the PIN.
+  // It stops working when the server restarts, just like the PIN.
   store.remove('pm.pin');
   let currentPin = null;
   const getPin = () => currentPin;
   const setPin = (pin) => { currentPin = pin; };
   const forgetPin = () => { currentPin = null; };
+  const getToken = () => store.get('pm.token');
+  const setToken = (token) => store.set('pm.token', token);
+  const forgetToken = () => store.remove('pm.token');
 
   // ---------- Connection ----------
   const statusEl = $('status');
@@ -82,15 +87,19 @@
     clearTimeout(reconnectTimer);
     if (ws) return;
     const pin = getPin();
-    if (!pin) { setStatus(false, 'Enter PIN'); showPin(); return; }
+    // A freshly entered or scanned PIN wins over an old token.
+    const token = pin ? null : getToken();
+    if (!pin && !token) { setStatus(false, 'Enter PIN'); showPin(); return; }
 
     setStatus(false, 'Connecting…');
     const proto = location.protocol === 'https:' ? 'wss:' : 'ws:';
     const sock = new WebSocket(`${proto}//${location.host}/ws`);
     ws = sock;
     let authRejected = false;
+    // After the phone wakes up, a new socket sometimes hangs without opening or failing.
+    setTimeout(() => { if (ws === sock && !authed && !authRejected) dropConnection(true); }, 6000);
 
-    sock.onopen = () => sock.send(JSON.stringify({ v: V, type: 'auth', pin }));
+    sock.onopen = () => sock.send(JSON.stringify(token ? { v: V, type: 'auth', token } : { v: V, type: 'auth', pin }));
     sock.onmessage = (event) => {
       let msg;
       try { msg = JSON.parse(event.data); } catch { return; }
@@ -98,6 +107,10 @@
         case 'auth_ok':
           authed = true;
           pinJustEntered = false;
+          if (msg.token) {
+            setToken(msg.token);
+            if (getToken() === msg.token) forgetPin(); // keep the PIN if storage is blocked
+          }
           reconnectDelay = 500;
           lastPong = Date.now();
           setStatus(true, 'Connected');
@@ -106,9 +119,13 @@
           break;
         case 'auth_failed':
           authRejected = true;
-          if (msg.reason === 'locked_out') {
+          if (msg.reason === 'token_expired') {
+            forgetToken();
+            showPin('PhoneMouse on the PC was restarted. Enter the new PIN from the PhoneMouse window.');
+          } else if (msg.reason === 'locked_out') {
             showPin(`Too many wrong PINs. Try again in ${msg.retry_after || 60} s.`);
           } else {
+            forgetToken();
             forgetPin();
             showPin(pinJustEntered
               ? 'Wrong PIN. Check the PhoneMouse window on your PC.'
@@ -142,15 +159,26 @@
     };
   }
 
-  document.addEventListener('visibilitychange', () => {
+  // Coming back from a locked phone or another app: reconnect straight away instead of
+  // waiting for the backoff timer, and check an open socket really survived the sleep.
+  // iOS doesn't always send visibilitychange (home-screen app, back/forward cache),
+  // so pageshow, focus and online do the same.
+  let lastWake = 0;
+  function wake() {
     if (document.visibilityState !== 'visible') return;
+    const now = Date.now();
+    if (now - lastWake < 1000) return; // these events often fire together
+    lastWake = now;
     reconnectDelay = 500;
-    if (!ws) { if (getPin()) connect(); return; }
-    // Check the socket survived the phone sleeping.
-    const sentAt = Date.now();
+    if (!ws) { if (getPin() || getToken()) connect(); return; }
+    if (!authed) return; // still connecting
     rawSend({ type: 'ping', id: ++pingId });
-    setTimeout(() => { if (ws && lastPong < sentAt) dropConnection(true); }, 2000);
-  });
+    setTimeout(() => { if (ws && authed && lastPong < now) dropConnection(true); }, 2000);
+  }
+  document.addEventListener('visibilitychange', wake);
+  window.addEventListener('pageshow', wake);
+  window.addEventListener('focus', wake);
+  window.addEventListener('online', wake);
 
   // ---------- Outgoing input, with move/scroll coalesced per animation frame ----------
   const pendingMove = { dx: 0, dy: 0 };

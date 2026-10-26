@@ -7,6 +7,7 @@ import hmac
 import ipaddress
 import logging
 import mimetypes
+import secrets
 import time
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
@@ -92,6 +93,8 @@ def create_app(backend: InputBackend, pin: str, addresses: list[str] | None = No
     allowed = None if addresses is None else {a for addr in addresses for a in (addr, addr.removesuffix(":80"))}
     app = FastAPI(title="PhoneMouse", docs_url=None, redoc_url=None, openapi_url=None)
     guard = PinGuard(pin)
+    # Handed out after a correct PIN; valid until the server stops, like the PIN itself.
+    tokens: set[str] = set()
     # One worker keeps input events strictly ordered and off the event loop.
     executor = ThreadPoolExecutor(max_workers=1, thread_name_prefix="input")
 
@@ -149,6 +152,15 @@ def create_app(backend: InputBackend, pin: str, addresses: list[str] | None = No
             await ws.close(CLOSE_AUTH_REQUIRED)
             return False
 
+        if "token" in fields:
+            # Tokens are 128-bit random, so wrong ones aren't counted as PIN guesses.
+            if not any(hmac.compare_digest(fields["token"], t) for t in tokens):
+                await send(ws, protocol.make("auth_failed", reason="token_expired"))
+                await ws.close(CLOSE_AUTH_FAILED)
+                return False
+            await send(ws, protocol.make("auth_ok", protocol=protocol.PROTOCOL_VERSION))
+            return True
+
         locked = guard.locked_for(host)
         if locked:
             await send(ws, protocol.make("auth_failed", reason="locked_out", retry_after=round(locked)))
@@ -161,7 +173,9 @@ def create_app(backend: InputBackend, pin: str, addresses: list[str] | None = No
             await ws.close(CLOSE_AUTH_FAILED)
             return False
 
-        await send(ws, protocol.make("auth_ok", protocol=protocol.PROTOCOL_VERSION))
+        token = secrets.token_hex(16)
+        tokens.add(token)
+        await send(ws, protocol.make("auth_ok", protocol=protocol.PROTOCOL_VERSION, token=token))
         return True
 
     @app.websocket("/ws")

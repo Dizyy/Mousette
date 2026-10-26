@@ -33,6 +33,7 @@ MAX_SCROLL = 100         # wheel notches per message
 MAX_TEXT_LENGTH = 2000   # characters per type_text message
 MAX_HOTKEY_KEYS = 5
 MAX_PIN_LENGTH = 32
+MAX_TOKEN_LENGTH = 64
 
 
 class ProtocolError(Exception):
@@ -127,6 +128,13 @@ def _validate_no_fields(msg: dict) -> dict:
 
 
 def _validate_auth(msg: dict) -> dict:
+    # Either the PIN, or the token from an earlier auth_ok (lets the phone log in again
+    # after iOS reloaded the page, without asking for the PIN).
+    if "token" in msg and "pin" not in msg:
+        token = msg["token"]
+        if not isinstance(token, str) or not 0 < len(token) <= MAX_TOKEN_LENGTH:
+            raise ProtocolError("bad_field", "'token' must be a string")
+        return {"token": token}
     pin = msg.get("pin")
     if not isinstance(pin, str) or not 0 < len(pin) <= MAX_PIN_LENGTH:
         raise ProtocolError("bad_field", "'pin' must be a string")

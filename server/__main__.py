@@ -1,4 +1,4 @@
-"""Entry point: `python -m server [--host IP] [--port N] [--dry-run]`."""
+"""Entry point: `python -m server [--host IP] [--port N] [--dry-run] [--no-update]`."""
 
 from __future__ import annotations
 
@@ -84,6 +84,8 @@ def main() -> int:
                         help="port to listen on (default: 80, or 8765 if 80 is taken)")
     parser.add_argument("--dry-run", action="store_true",
                         help="log input events instead of moving the real mouse/keyboard")
+    parser.add_argument("--no-update", action="store_true",
+                        help="don't check for a new version (handled by start.bat)")
     args = parser.parse_args()
 
     for stream in (sys.stdout, sys.stderr):
