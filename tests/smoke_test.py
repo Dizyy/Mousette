@@ -123,6 +123,11 @@ class Server:
                 time.sleep(0.1)
         raise RuntimeError("server did not start listening")
 
+    async def wait_for_log(self, needle: str, timeout: float = 2.0) -> None:
+        deadline = time.monotonic() + timeout
+        while not self.log_count(needle) and time.monotonic() < deadline:
+            await asyncio.sleep(0.05)
+
     def log_count(self, needle: str) -> int:
         return sum(needle in line for line in self.lines)
 
@@ -237,6 +242,8 @@ async def run(server: Server, port: int) -> None:
                 break
         errors = [r for r in replies if r.get("type") == "error"]
         check(not errors, f"{len(INPUT_MESSAGES)} input messages, no error replies {errors or ''}")
+        # The pong can arrive before the server's last log lines are read from its output.
+        await server.wait_for_log(INPUT_MESSAGES[-1][1])
         for msg, needle in INPUT_MESSAGES:
             if needle:
                 check(server.log_count(needle) >= 1, f"{msg['type']:<12} executed: {needle[8:]}")
