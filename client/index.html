@@ -41,6 +41,27 @@
       </div>
     </div>
 
+    <div class="media-panel" id="media-panel" hidden>
+      <button class="media-btn" data-key="volume_down" aria-label="Volume down">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18.5 12A4.5 4.5 0 0 0 16 7.97v8.05A4.5 4.5 0 0 0 18.5 12ZM5 9v6h4l5 5V4L9 9H5Z"/></svg>
+      </button>
+      <button class="media-btn" data-key="volume_mute" aria-label="Mute">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M16.5 12A4.5 4.5 0 0 0 14 7.97v2.21l2.45 2.45c.03-.2.05-.41.05-.63Zm2.5 0c0 .94-.2 1.82-.54 2.64l1.51 1.51A8.8 8.8 0 0 0 21 12c0-4.28-2.99-7.86-7-8.77v2.06c2.89.86 5 3.54 5 6.71ZM4.27 3 3 4.27 7.73 9H3v6h4l5 5v-6.73l4.25 4.25c-.67.52-1.42.93-2.25 1.18v2.06a8.99 8.99 0 0 0 3.69-1.81L19.73 21 21 19.73l-9-9L4.27 3ZM12 4 9.91 6.09 12 8.18V4Z"/></svg>
+      </button>
+      <button class="media-btn" data-key="volume_up" aria-label="Volume up">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 9v6h4l5 5V4L7 9H3Zm13.5 3A4.5 4.5 0 0 0 14 7.97v8.05c1.48-.73 2.5-2.25 2.5-4.02ZM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77Z"/></svg>
+      </button>
+      <button class="media-btn" data-key="media_previous" aria-label="Previous track">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6h2v12H6V6Zm3.5 6 8.5 6V6l-8.5 6Z"/></svg>
+      </button>
+      <button class="media-btn" data-key="media_play_pause" aria-label="Play or pause">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 5v14l7-7-7-7Zm9 0h3v14h-3V5Zm5 0h3v14h-3V5Z"/></svg>
+      </button>
+      <button class="media-btn" data-key="media_next" aria-label="Next track">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 18l8.5-6L6 6v12ZM16 6v12h2V6h-2Z"/></svg>
+      </button>
+    </div>
+
     <nav class="bottombar">
       <button class="bar-btn" data-action="left" aria-label="Left click">
         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2a7 7 0 0 0-7 7v6a7 7 0 0 0 14 0V9a7 7 0 0 0-7-7Zm-1 2.08V10H7V9a5 5 0 0 1 4-4.92Z"/></svg>
@@ -61,6 +82,10 @@
       <button class="bar-btn" data-action="paste" aria-label="Paste (Ctrl+V)">
         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M19 3h-4.18A3 3 0 0 0 12 1a3 3 0 0 0-2.82 2H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V5a2 2 0 0 0-2-2Zm-7 0a1 1 0 1 1 0 2 1 1 0 0 1 0-2Zm7 16H5V5h2v3h10V5h2v14Z"/></svg>
         <span>Paste</span>
+      </button>
+      <button class="bar-btn" data-action="media" id="media-btn" aria-label="Media controls">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v10.55A4 4 0 1 0 14 17V7h4V3h-6Z"/></svg>
+        <span>Media</span>
       </button>
       <button class="bar-btn" data-action="search" aria-label="Search (Win+S)">
         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15.5 14h-.79l-.28-.27a6.5 6.5 0 1 0-.7.7l.27.28v.79l5 4.99L20.49 19l-4.99-5Zm-6 0a4.5 4.5 0 1 1 0-9 4.5 4.5 0 0 1 0 9Z"/></svg>

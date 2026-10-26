@@ -164,6 +164,25 @@ svg { width: 24px; height: 24px; fill: currentColor; }
 }
 .bar-btn svg { color: var(--text); }
 .bar-btn[hidden], .bottombar[hidden] { display: none; }
+
+/* Media panel: opens above the bar from the Media button */
+.media-panel {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 6px;
+  padding: 10px 8px 0;
+}
+.media-panel[hidden] { display: none; }
+.media-btn {
+  min-height: 56px;
+  border-radius: 14px;
+  background: var(--surface);
+  display: grid;
+  place-items: center;
+  color: var(--text);
+}
+.media-btn svg { width: 28px; height: 28px; }
+.media-btn:active, .media-btn.pressed { background: var(--surface-2); }
 .bar-btn:active, .bar-btn.pressed { background: var(--surface-2); }
 .bar-btn.on { background: color-mix(in srgb, var(--accent) 22%, var(--surface)); color: var(--text); }
 

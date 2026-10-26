@@ -411,6 +411,7 @@
     keyboard: toggleKeyboard,
     copy: () => send({ type: 'hotkey', keys: ['ctrl', 'c'] }),
     paste: () => send({ type: 'hotkey', keys: ['ctrl', 'v'] }),
+    media: () => setMediaPanel(mediaPanel.hidden),
     search: () => send({ type: 'hotkey', keys: ['win', 's'] }),
     alttab: () => send({ type: 'hotkey', keys: ['alt', 'tab'] }),
     desktop: () => send({ type: 'hotkey', keys: ['win', 'd'] }),
@@ -435,6 +436,31 @@
     btn.addEventListener('touchcancel', () => btn.classList.remove('pressed'));
     btn.addEventListener('click', run); // mouse / desktop browsers
   }
+
+  // ---------- Media panel (volume, playback) ----------
+  const mediaPanel = $('media-panel');
+  const mediaBtn = $('media-btn');
+
+  function setMediaPanel(open) {
+    mediaPanel.hidden = !open;
+    mediaBtn.classList.toggle('on', open);
+  }
+
+  for (const btn of mediaPanel.querySelectorAll('.media-btn')) {
+    const press = () => send({ type: 'key', name: btn.dataset.key });
+    // Same touch handling as the bar, so the panel stays open for repeated taps (volume).
+    btn.addEventListener('touchstart', (e) => { e.preventDefault(); btn.classList.add('pressed'); }, { passive: false });
+    btn.addEventListener('touchend', (e) => { e.preventDefault(); btn.classList.remove('pressed'); press(); }, { passive: false });
+    btn.addEventListener('touchcancel', () => btn.classList.remove('pressed'));
+    btn.addEventListener('click', press);
+  }
+
+  // Any touch outside the panel (trackpad, other buttons) closes it, without swallowing that touch.
+  const closeMediaOutside = (e) => {
+    if (!mediaPanel.hidden && !e.target.closest('#media-panel, #media-btn')) setMediaPanel(false);
+  };
+  document.addEventListener('touchstart', closeMediaOutside, { capture: true, passive: true });
+  document.addEventListener('mousedown', closeMediaOutside, true);
 
   // ---------- Keep layout above the iOS keyboard ----------
   const rootStyle = document.documentElement.style;
@@ -491,6 +517,7 @@
     // Up to 7 buttons fit in one row; more wrap into two even rows.
     bar.style.setProperty('--bar-cols', shown <= 7 ? shown : Math.ceil(shown / 2));
     bar.hidden = shown === 0;
+    if (mediaBtn.hidden) setMediaPanel(false);
   }
 
   function renderSettings() {
