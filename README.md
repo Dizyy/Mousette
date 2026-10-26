@@ -3,9 +3,11 @@
 Use your iPhone or iPad as a trackpad and keyboard for your Windows PC over your home network. Move the cursor, click, scroll, type (including accented letters like é ü ñ, and emoji), use shortcuts like Search and Alt+Tab, open Task Manager and shut the PC down, all from Safari on the phone or tablet. You don't need an app.
 
 <p align="center">
-  <img src="docs/screenshot-trackpad.png" width="260" alt="PhoneMouse trackpad with the scroll strip and the bottom bar buttons">
-  &nbsp;&nbsp;
-  <img src="docs/screenshot-settings.png" width="260" alt="PhoneMouse settings: sensitivity, scroll speed, scroll strip, bar buttons and PC actions">
+  <img src="docs/screenshot-trackpad.png" width="230" alt="PhoneMouse trackpad with the scroll strip and the bottom bar buttons">
+  &nbsp;
+  <img src="docs/screenshot-media.png" width="230" alt="PhoneMouse with the Media panel open: volume down, mute, volume up, previous, play/pause, next">
+  &nbsp;
+  <img src="docs/screenshot-settings.png" width="230" alt="PhoneMouse settings: sensitivity, scroll speed, scroll strip, bar buttons and PC actions">
 </p>
 
 In this guide, "phone" means your iPhone or iPad: both work the same way.
