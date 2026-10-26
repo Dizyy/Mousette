@@ -26,7 +26,10 @@ import websockets
 
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
+import segno  # noqa: E402
+from server.__main__ import connect_url  # noqa: E402
 from server.app import PinGuard  # noqa: E402
+from server.qr import qr_lines  # noqa: E402
 HOST = "127.0.0.1"
 
 # (message, substring expected in the server's dry-run log)
@@ -284,7 +287,29 @@ async def run(server: Server, port: int) -> None:
               f"correct PIN refused after 5 wrong guesses (code {code})")
 
 
+def check_qr() -> None:
+    print("QR code")
+    for args, expected in [(("phonemouse.local", 80, "123456"), "http://phonemouse.local/#pin=123456"),
+                           (("phonemouse.local", 8765, "123456"), "http://phonemouse.local:8765/#pin=123456"),
+                           (("192.168.1.23", 80, "123456"), "http://192.168.1.23/#pin=123456")]:
+        check(connect_url(*args) == expected, f"connect_url{args} -> {connect_url(*args)}")
+
+    # Decode the drawn QR back into modules: each text line holds two module rows.
+    url = "http://phonemouse.local/#pin=123456"
+    halves = {"█": (True, True), "▀": (True, False), "▄": (False, True), " ": (False, False)}  # True = light
+    rows: list[list[bool]] = []
+    for line in qr_lines(url):
+        top, bottom = zip(*(halves[c] for c in line))
+        rows += [list(top), list(bottom)]
+    border = 4
+    drawn = [[not light for light in row[border:-border]] for row in rows[border:border + len(rows) - 2 * border]]
+    expected_matrix = [[bool(m) for m in row] for row in segno.make(url, error="m", boost_error=False).matrix]
+    drawn = drawn[:len(expected_matrix)]
+    check(drawn == expected_matrix, f"QR drawing matches the code for {url} ({len(expected_matrix)} modules)")
+
+
 def main() -> int:
+    check_qr()
     port = free_port()
     server = Server(port)
     try:

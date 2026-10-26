@@ -15,6 +15,7 @@ from . import __version__
 from .app import create_app, is_lan_address
 from .input_backend import DryRunBackend, PynputBackend, is_elevated
 from .mdns import MdnsResponder
+from .qr import qr_lines
 
 # Port 80 lets the phone open the address without ":port"; 8765 if something else has 80.
 PREFERRED_PORTS = (80, 8765)
@@ -34,6 +35,11 @@ def port_is_free(host: str, port: int) -> bool:
 
 def url(host: str, port: int) -> str:
     return f"http://{host}" if port == 80 else f"http://{host}:{port}"
+
+
+def connect_url(name: str, port: int, pin: str) -> str:
+    """Address for the QR code. The PIN goes after "#", which browsers never send to the server."""
+    return f"{url(name, port)}/#pin={pin}"
 
 
 def lan_ip_candidates() -> list[str]:
@@ -117,6 +123,13 @@ def main() -> int:
     if hostname:
         print(f"  Or:                   {url(host, port)}")
     print(f"  PIN:                  {pin}")
+    try:
+        lines = qr_lines(connect_url(names[0], port, pin))
+        print("  Or scan with the iPhone/iPad camera:")
+        for line in lines:
+            print("  " + line)
+    except UnicodeEncodeError:
+        pass  # the console can't show it; the address and PIN above still work
     if len(candidates) > 1:
         print(f"  Other addresses:      {', '.join(candidates[1:])}")
         print("  (if the iPhone/iPad can't connect, try  start.bat --host <address>)")

@@ -37,7 +37,7 @@ echo Creating virtual environment in .venv ...
 %PY% -m venv .venv || (echo Failed to create the virtual environment. & pause & exit /b 1)
 
 :deps
-"%VENV_PY%" -c "import fastapi, uvicorn, websockets, pynput" >nul 2>nul
+"%VENV_PY%" -c "import fastapi, uvicorn, websockets, pynput, segno" >nul 2>nul
 if errorlevel 1 (
     echo Installing requirements ...
     "%VENV_PY%" -m pip install --disable-pip-version-check -r requirements.txt || (echo Failed to install requirements. & pause & exit /b 1)
