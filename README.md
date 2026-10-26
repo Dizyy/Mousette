@@ -150,8 +150,9 @@ If it already says **Private**, add the port rule from step 3. A dismissed firew
 ## Security
 
 - The server only listens on your **local network address**, and only accepts connections from local network devices. It isn't reachable from the internet, and you should **not** set up port forwarding for it.
-- Every connection needs the PIN, which changes on each start. After 5 wrong PINs from a device, that device is locked out for 60 seconds.
-- The connection is unencrypted (`http`/`ws`), which is normal for a home network. Anyone **on your network who knows the current PIN** can control the PC. Don't run it on public or untrusted Wi-Fi, and close the window when you're done.
+- Every connection needs the PIN, which is random and changes on each start. After 5 wrong PINs from a device, that device is locked out for 60 seconds; after 10 wrong PINs from any devices combined, everyone is locked out for 60 seconds. Wrong PINs are shown in the PhoneMouse window.
+- Only PhoneMouse's own page can connect. Other websites open in a browser on your network can't connect to it or guess the PIN in the background, and the page can't be embedded in other sites.
+- The connection is unencrypted (`http`/`ws`), which is normal for a home network. Anyone **on your network who knows the current PIN** can control the PC, and someone on the same Wi-Fi with network-sniffing tools could read what you type. Don't run it on public or untrusted Wi-Fi, don't type passwords through it, and close the window when you're done.
 - Whoever is connected can also shut the PC down. When you run PhoneMouse as administrator (answer **Y** in `start.bat`), the phone can also control admin windows and open Task Manager with admin rights, so only do that on a network you trust.
 
 ## Testing

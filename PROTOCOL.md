@@ -26,7 +26,9 @@ client                                   server
 3. On success the server replies `auth_ok`. All other message types are accepted only after this.
 4. The server does **not** acknowledge input messages, which keeps latency low. It replies only to `ping` (with `pong`), to rejected messages (with `error`), and to successful PC actions (`task_manager`, `shutdown`, `cancel_shutdown`, with `action_ok`). Messages are processed strictly in the order they arrive. So a `pong` also means every message sent before its `ping` has been handled.
 
-The PIN is a random 6-digit string. The server prints it at startup, and it changes every time the server restarts. After 5 wrong PINs from one IP address, that address is locked out for 60 s.
+The PIN is a random 6-digit string. The server prints it at startup, and it changes every time the server restarts. After 5 wrong PINs from one IP address, that address is locked out for 60 s. After 10 wrong PINs from all addresses together within 60 s, every address is locked out until that window has passed.
+
+The server only accepts requests whose `Host` header is the address it printed, and refuses WebSocket handshakes whose `Origin` is not that same address (close code 4031). This stops other websites and DNS-rebinding tricks from reaching it through a browser.
 
 ## Client → server messages
 
@@ -98,6 +100,7 @@ Examples:
 | 4003 | Wrong PIN. |
 | 4029 | Too many wrong PINs; wait `retry_after` seconds. |
 | 4030 | The connection did not come from a local network address. |
+| 4031 | The connection came from another website's page, or used a different host name. |
 
 ## Behaviour notes for client authors
 

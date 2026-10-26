@@ -24,6 +24,8 @@ CLIENT_DIR = Path(__file__).resolve().parent.parent / "client"
 
 AUTH_TIMEOUT_S = 10
 MAX_FAILED_PINS = 5
+# Also counted across all addresses, so changing IP address doesn't allow more guesses.
+MAX_FAILED_PINS_TOTAL = 10
 LOCKOUT_S = 60
 
 # WebSocket close codes (4000-4999 are reserved for applications).
@@ -31,6 +33,7 @@ CLOSE_AUTH_REQUIRED = 4001
 CLOSE_AUTH_FAILED = 4003
 CLOSE_LOCKED_OUT = 4029
 CLOSE_NOT_LAN = 4030
+CLOSE_BAD_ORIGIN = 4031
 
 # Windows' registry sometimes maps .js to text/plain, which browsers refuse to run.
 mimetypes.add_type("text/javascript", ".js")
@@ -49,20 +52,26 @@ def is_lan_address(host: str | None) -> bool:
 
 
 class PinGuard:
-    """Checks the PIN and locks out an address after repeated wrong guesses."""
+    """Checks the PIN and locks out guessing: per address, and for everyone after
+    too many wrong PINs in total (so switching IP addresses doesn't help)."""
 
     def __init__(self, pin: str):
         self.pin = pin
         self._failures: dict[str, tuple[int, float]] = {}
+        self._recent: list[float] = []  # times of wrong PINs from any address
 
     def locked_for(self, host: str) -> float:
+        now = time.monotonic()
+        self._recent = [t for t in self._recent if t > now - LOCKOUT_S]
+        remaining = 0.0
+        if len(self._recent) >= MAX_FAILED_PINS_TOTAL:
+            remaining = self._recent[0] + LOCKOUT_S - now
         count, since = self._failures.get(host, (0, 0.0))
-        if count < MAX_FAILED_PINS:
-            return 0.0
-        remaining = since + LOCKOUT_S - time.monotonic()
-        if remaining <= 0:
-            self._failures.pop(host, None)
-            return 0.0
+        if count >= MAX_FAILED_PINS:
+            if since + LOCKOUT_S - now <= 0:
+                self._failures.pop(host, None)
+            else:
+                remaining = max(remaining, since + LOCKOUT_S - now)
         return remaining
 
     def check(self, host: str, pin: str) -> bool:
@@ -71,23 +80,41 @@ class PinGuard:
             return True
         count, _ = self._failures.get(host, (0, 0.0))
         self._failures[host] = (count + 1, time.monotonic())
+        self._recent.append(time.monotonic())
         return False
 
 
-def create_app(backend: InputBackend, pin: str) -> FastAPI:
+def create_app(backend: InputBackend, pin: str, address: str | None = None) -> FastAPI:
+    """`address` is the "ip:port" the phone opens. When given, requests naming any other
+    host are refused, which stops DNS-rebinding tricks from websites."""
     app = FastAPI(title="PhoneMouse", docs_url=None, redoc_url=None, openapi_url=None)
     guard = PinGuard(pin)
     # One worker keeps input events strictly ordered and off the event loop.
     executor = ThreadPoolExecutor(max_workers=1, thread_name_prefix="input")
 
+    def wrong_host(host_header: str | None) -> bool:
+        # Browsers leave out ":80", so accept that form too.
+        return address is not None and host_header not in (address, address.removesuffix(":80"))
+
     @app.middleware("http")
     async def lan_only(request: Request, call_next):
         if not is_lan_address(request.client.host if request.client else None):
             return PlainTextResponse("PhoneMouse only accepts local network clients.", status_code=403)
+        host_header = request.headers.get("host")
+        if wrong_host(host_header):
+            return PlainTextResponse(f"Open PhoneMouse at http://{address}", status_code=403)
         response = await call_next(request)
         # Make Safari check for a newer client on every load (a cheap 304 when nothing changed),
         # otherwise it keeps showing an old page after an update.
         response.headers["Cache-Control"] = "no-cache"
+        # The page may only load its own files and talk to this server, and can't be framed.
+        response.headers["Content-Security-Policy"] = (
+            "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self'; "
+            f"connect-src 'self' ws://{host_header}; manifest-src 'self'; object-src 'none'; "
+            "base-uri 'none'; form-action 'self'; frame-ancestors 'none'")
+        response.headers["X-Frame-Options"] = "DENY"
+        response.headers["X-Content-Type-Options"] = "nosniff"
+        response.headers["Referrer-Policy"] = "no-referrer"
         return response
 
     async def send(ws: WebSocket, msg: dict) -> None:
@@ -133,6 +160,14 @@ def create_app(backend: InputBackend, pin: str) -> FastAPI:
         host = ws.client.host if ws.client else None
         if not is_lan_address(host):
             await ws.close(CLOSE_NOT_LAN)
+            return
+        # Browsers always send Origin. Only PhoneMouse's own page may connect, so other
+        # websites open in a browser on this network can't try PINs in the background.
+        host_header = ws.headers.get("host")
+        origin = ws.headers.get("origin")
+        if wrong_host(host_header) or (origin is not None and origin != f"http://{host_header}"):
+            log.warning("Refused connection from %s (origin %s, host %s)", host, origin, host_header)
+            await ws.close(CLOSE_BAD_ORIGIN)
             return
         await ws.accept()
         try:

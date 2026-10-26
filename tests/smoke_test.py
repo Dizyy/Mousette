@@ -18,12 +18,15 @@ import subprocess
 import sys
 import threading
 import time
+import urllib.error
 import urllib.request
 from pathlib import Path
 
 import websockets
 
 ROOT = Path(__file__).resolve().parent.parent
+sys.path.insert(0, str(ROOT))
+from server.app import PinGuard  # noqa: E402
 HOST = "127.0.0.1"
 
 # (message, substring expected in the server's dry-run log)
@@ -159,6 +162,35 @@ async def run(server: Server, port: int) -> None:
             check(r.status == 200 and ctype in r.headers["content-type"]
                   and r.headers.get("cache-control") == "no-cache",
                   f"GET {path} -> {r.status} {r.headers['content-type']}, {r.headers.get('cache-control')}")
+    with urllib.request.urlopen(f"http://{HOST}:{port}/") as r:
+        csp = r.headers.get("content-security-policy", "")
+        check("frame-ancestors 'none'" in csp and "script-src 'self'" in csp
+              and r.headers.get("x-content-type-options") == "nosniff",
+              "security headers set (CSP, nosniff)")
+
+    print("Other websites and host names are refused")
+    try:
+        async with websockets.connect(url, origin="http://evil.example") as ws:
+            await recv_json(ws)
+        refused = False
+    except Exception as exc:  # handshake rejected (HTTP 403) or closed with 4031
+        refused = "403" in str(exc) or "4031" in str(exc)
+    check(refused, "WebSocket from another website's page is refused")
+    async with websockets.connect(url, origin=f"http://{HOST}:{port}") as ws:
+        await send(ws, {"type": "ping"})
+        check((await recv_json(ws)).get("code") == "auth_required", "WebSocket from PhoneMouse's own page is accepted")
+    try:
+        urllib.request.urlopen(urllib.request.Request(f"http://{HOST}:{port}/", headers={"Host": "evil.example"}))
+        status = 200
+    except urllib.error.HTTPError as exc:
+        status = exc.code
+    check(status == 403, f"page requested under another host name is refused ({status})")
+
+    print("Wrong PINs are limited across all addresses")
+    guard = PinGuard("123456")
+    for i in range(10):
+        guard.check(f"192.168.0.{i + 10}", "000000")  # 10 addresses, one guess each
+    check(guard.locked_for("192.168.0.99") > 0, "an 11th address is locked out too")
 
     print("Authentication")
     async with websockets.connect(url) as ws:

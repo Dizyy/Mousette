@@ -77,7 +77,7 @@ def main() -> int:
 
     pin = f"{secrets.randbelow(1_000_000):06d}"
     backend = DryRunBackend() if args.dry_run else PynputBackend()
-    app = create_app(backend, pin)
+    app = create_app(backend, pin, address=f"{host}:{args.port}")
 
     bar = "=" * 46
     print(bar)
