@@ -1,4 +1,4 @@
-// CouchPad web client. Speaks protocol v1 (see PROTOCOL.md) over /ws.
+// Mousette web client. Speaks protocol v1 (see PROTOCOL.md) over /ws.
 (() => {
   'use strict';
 
@@ -40,7 +40,7 @@
   // The QR code carries the PC's key after "#", so it never travels over the network.
   // With it, each connection agrees on a session key and every frame is encrypted and
   // numbered (NaCl secretbox via tweetnacl.js). A typed PIN alone connects unencrypted.
-  const SESSION_LABEL = new TextEncoder().encode('CouchPad session v1');
+  const SESSION_LABEL = new TextEncoder().encode('Mousette session v1');
   const FROM_CLIENT = 0;
   const FROM_SERVER = 1;
   const canEncrypt = typeof nacl !== 'undefined';
@@ -86,7 +86,7 @@
   }
 
   // The PC's IP address, from auth_ok. After a long sleep the phone sometimes can't look up
-  // couchpad.local any more; then the connection goes to the IP address instead.
+  // mousette.local any more; then the connection goes to the IP address instead.
   const getDirect = () => store.get('pm.direct');
   let viaDirect = false;
   function failedToOpen() {
@@ -222,15 +222,15 @@
           authRejected = true;
           if (msg.reason === 'token_expired') {
             forgetToken();
-            showPin('CouchPad on the PC was restarted. Enter the new PIN from the CouchPad window.');
+            showPin('Mousette on the PC was restarted. Enter the new PIN from the Mousette window.');
           } else if (msg.reason === 'locked_out') {
             showPin(`Too many wrong PINs. Try again in ${msg.retry_after || 60} s.`);
           } else {
             forgetToken();
             forgetPin();
             showPin(pinJustEntered
-              ? 'Wrong PIN. Check the CouchPad window on your PC.'
-              : 'The PIN on the PC has changed. Enter the new PIN from the CouchPad window.');
+              ? 'Wrong PIN. Check the Mousette window on your PC.'
+              : 'The PIN on the PC has changed. Enter the new PIN from the Mousette window.');
           }
           pinJustEntered = false;
           break;
@@ -241,7 +241,7 @@
           onActionOk(msg.ref);
           break;
         case 'error':
-          console.warn('CouchPad server error:', msg.code, msg.message);
+          console.warn('Mousette server error:', msg.code, msg.message);
           if (PC_ACTIONS.includes(msg.ref)) showToast(msg.message, { bad: true });
           break;
       }
@@ -255,7 +255,7 @@
         // The PC has a different key now (a new key, or another PC): pair again.
         forgetKey();
         authRejected = true;
-        showPin('CouchPad has a new encryption key. Scan the QR code on the PC again, or enter the PIN to connect without encryption.');
+        showPin('Mousette has a new encryption key. Scan the QR code on the PC again, or enter the PIN to connect without encryption.');
       }
       if (authRejected) {
         setStatus(false, 'Not connected');
@@ -926,10 +926,10 @@
     connect();
   });
 
-  // Opened from the QR code in the CouchPad window: the PIN (and the encryption key) come
+  // Opened from the QR code in the Mousette window: the PIN (and the encryption key) come
   // after "#", which the browser never sends anywhere. Use it, then wipe it so it isn't kept in history or an icon.
   // Pages linked from other websites arrive as /?from=link (see server/app.py): there the
-  // PIN is ignored, so a website can't make CouchPad try wrong PINs.
+  // PIN is ignored, so a website can't make Mousette try wrong PINs.
   // Returns true when a PIN from the QR code was taken.
   function takePinFromQr() {
     if (!location.hash) return false;
@@ -944,7 +944,7 @@
     return true;
   }
 
-  // Scanning again while CouchPad is already open only changes the "#" part.
+  // Scanning again while Mousette is already open only changes the "#" part.
   window.addEventListener('hashchange', () => {
     if (takePinFromQr()) {
       dropConnection(false);

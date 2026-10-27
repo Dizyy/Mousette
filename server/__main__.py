@@ -80,7 +80,7 @@ def lan_ip_candidates() -> list[str]:
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(prog="couchpad", description="CouchPad PC server")
+    parser = argparse.ArgumentParser(prog="mousette", description="Mousette PC server")
     parser.add_argument("--host", help="address to bind (default: this PC's LAN IP)")
     parser.add_argument("--port", type=int,
                         help="port to listen on (default: 80, or 8765 if 80 is taken)")
@@ -106,7 +106,7 @@ def main() -> int:
         print("You can pass one explicitly, e.g.  --host 192.168.x.x")
         return 1
     if not is_lan_address(host):
-        print(f"Refusing to bind to {host}: CouchPad only listens on private/LAN addresses.")
+        print(f"Refusing to bind to {host}: Mousette only listens on private/LAN addresses.")
         return 1
 
     port = args.port or next((p for p in PREFERRED_PORTS if port_is_free(host, p)), None)
@@ -127,7 +127,7 @@ def main() -> int:
 
     bar = "=" * 46
     print(bar)
-    print(f"  CouchPad {__version__} is running" + ("  (DRY RUN - no real input)" if args.dry_run else ""))
+    print(f"  Mousette {__version__} is running" + ("  (DRY RUN - no real input)" if args.dry_run else ""))
     print(f"  Open on your phone:    {url(names[0], port)}")
     if hostname:
         print(f"  Or:                   {url(host, port)}")
@@ -141,13 +141,13 @@ def main() -> int:
         pass  # the console can't show it; the address and PIN above still work
     if len(candidates) > 1:
         print(f"  Other addresses:      {', '.join(candidates[1:])}")
-        print("  (if the phone can't connect, start CouchPad with  --host <address>)")
+        print("  (if the phone can't connect, start Mousette with  --host <address>)")
     print("  Press Ctrl+C to stop.")
     print(bar, flush=True)
     if sys.platform == "win32" and not is_elevated():
         logging.warning("Not running as administrator: Windows will ignore the phone while an admin "
                         "window (Task Manager, On-Screen Keyboard, installers) is in front. "
-                        "Restart CouchPad and answer Y to fix this.")
+                        "Restart Mousette and answer Y to fix this.")
 
     try:
         uvicorn.run(app, host=host, port=port, log_level="warning", ws_max_size=512 * 1024)  # room for a long paste_text

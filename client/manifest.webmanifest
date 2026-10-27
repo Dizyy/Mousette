@@ -1,6 +1,6 @@
 {
-  "name": "CouchPad",
-  "short_name": "CouchPad",
+  "name": "Mousette",
+  "short_name": "Mousette",
   "start_url": "/",
   "scope": "/",
   "display": "fullscreen",

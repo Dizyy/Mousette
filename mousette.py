@@ -1,4 +1,4 @@
-"""Entry point of the single-file CouchPad.exe (made by build.py).
+"""Entry point of the single-file Mousette.exe (made by build.py).
 
 Does what start.bat does for the source version: offer to run as administrator and
 install updates, then start the server. The source version runs `python -m server`.
@@ -21,12 +21,12 @@ ADMIN_QUESTION_S = 10
 def offer_admin(argv: list[str]) -> None:
     """Windows drops input sent by a normal program into admin windows (Task Manager,
     installers), so ask once whether to restart with admin rights. No answer means no."""
-    if sys.platform != "win32" or is_elevated() or os.environ.get("COUCHPAD_UPDATED"):
+    if sys.platform != "win32" or is_elevated() or os.environ.get("MOUSETTE_UPDATED"):
         return
     import ctypes
     import msvcrt
 
-    print("Run as administrator so CouchPad can control Task Manager and other admin windows? "
+    print("Run as administrator so Mousette can control Task Manager and other admin windows? "
           f"[y/N] ({ADMIN_QUESTION_S} s) ", end="", flush=True)
     answer = ""
     deadline = time.monotonic() + ADMIN_QUESTION_S

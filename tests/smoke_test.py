@@ -170,7 +170,7 @@ class EncryptedClient:
         await send(self.ws, {"type": "enc_hello", "nonce": base64.urlsafe_b64encode(client_nonce).decode().rstrip("=")})
         challenge = await recv_json(self.ws)
         server_nonce = base64.urlsafe_b64decode(challenge["nonce"] + "==")
-        session_key = hashlib.sha512(b"CouchPad session v1" + self.key + server_nonce + client_nonce).digest()[:32]
+        session_key = hashlib.sha512(b"Mousette session v1" + self.key + server_nonce + client_nonce).digest()[:32]
         self.box = SecretBox(session_key)
 
     def frame(self, msg: dict) -> bytes:
@@ -243,7 +243,7 @@ async def run(server: Server, port: int) -> None:
     check(refused, "WebSocket from another website's page is refused")
     async with websockets.connect(url, origin=f"http://{HOST}:{port}") as ws:
         await send(ws, {"type": "ping"})
-        check((await recv_json(ws)).get("code") == "auth_required", "WebSocket from CouchPad's own page is accepted")
+        check((await recv_json(ws)).get("code") == "auth_required", "WebSocket from Mousette's own page is accepted")
     try:
         urllib.request.urlopen(urllib.request.Request(f"http://{HOST}:{port}/", headers={"Host": "evil.example"}))
         status = 200
@@ -426,21 +426,21 @@ async def run(server: Server, port: int) -> None:
 def check_qr() -> None:
     print("QR code")
     key = bytes(range(32))
-    with_key = connect_url("couchpad.local", 80, "123456", key)
-    check(with_key == "http://couchpad.local/#pin=123456&key=AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8",
+    with_key = connect_url("mousette.local", 80, "123456", key)
+    check(with_key == "http://mousette.local/#pin=123456&key=AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8",
           f"connect_url with the key -> {with_key}")
     with tempfile.TemporaryDirectory() as tmp:
         key_file = Path(tmp) / "sub" / "key"
         first = load_key(key_file)
         check(len(first) == 32 and load_key(key_file) == first, "encryption key is made once, then reused")
         check(load_key(key_file, new=True) != first, "--new-key replaces it")
-    for args, expected in [(("couchpad.local", 80, "123456"), "http://couchpad.local/#pin=123456"),
-                           (("couchpad.local", 8765, "123456"), "http://couchpad.local:8765/#pin=123456"),
+    for args, expected in [(("mousette.local", 80, "123456"), "http://mousette.local/#pin=123456"),
+                           (("mousette.local", 8765, "123456"), "http://mousette.local:8765/#pin=123456"),
                            (("192.168.1.23", 80, "123456"), "http://192.168.1.23/#pin=123456")]:
         check(connect_url(*args) == expected, f"connect_url{args} -> {connect_url(*args)}")
 
     # Decode the drawn QR back into modules: each text line holds two module rows.
-    url = "http://couchpad.local/#pin=123456"
+    url = "http://mousette.local/#pin=123456"
     halves = {"█": (True, True), "▀": (True, False), "▄": (False, True), " ": (False, False)}  # True = light
     rows: list[list[bool]] = []
     for line in qr_lines(url):

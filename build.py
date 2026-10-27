@@ -1,4 +1,4 @@
-"""Builds the single-file download: dist/CouchPad.exe on Windows (dist/CouchPad elsewhere).
+"""Builds the single-file download: dist/Mousette.exe on Windows (dist/Mousette elsewhere).
 
 Run with the project's Python:  .venv\\Scripts\\python.exe build.py
 Attach the result to the GitHub release; the .exe updater downloads it from there.
@@ -28,21 +28,21 @@ def main() -> int:
     subprocess.run([sys.executable, "-m", "pip", "install", "--disable-pip-version-check", "-q",
                     "-r", str(ROOT / "requirements.txt"), "pyinstaller"], check=True)
     BUILD.mkdir(exist_ok=True)
-    icon = BUILD / "couchpad.ico"
+    icon = BUILD / "mousette.ico"
     png_to_ico(ROOT / "client" / "icons" / "icon-192.png", icon)
     sep = ";" if sys.platform == "win32" else ":"
     subprocess.run([
         sys.executable, "-m", "PyInstaller", "--noconfirm", "--clean", "--onefile",
-        "--name", "CouchPad", "--icon", str(icon),
+        "--name", "Mousette", "--icon", str(icon),
         "--add-data", f"{ROOT / 'client'}{sep}client",
         # Both pick their backends at runtime, which PyInstaller can't see on its own.
         "--collect-submodules", "uvicorn", "--collect-submodules", "pynput",
         # PyNaCl loads libsodium through cffi's compiled backend, also unseen.
         "--hidden-import", "_cffi_backend", "--collect-binaries", "nacl",
         "--distpath", str(ROOT / "dist"), "--workpath", str(BUILD), "--specpath", str(BUILD),
-        str(ROOT / "couchpad.py"),
+        str(ROOT / "mousette.py"),
     ], check=True)
-    print(f"Built {ROOT / 'dist' / ('CouchPad.exe' if sys.platform == 'win32' else 'CouchPad')}")
+    print(f"Built {ROOT / 'dist' / ('Mousette.exe' if sys.platform == 'win32' else 'Mousette')}")
     return 0
 
 

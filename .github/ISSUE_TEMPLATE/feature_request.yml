@@ -1,5 +1,5 @@
 name: Feature request
-description: Suggest something CouchPad should do.
+description: Suggest something Mousette should do.
 labels: [enhancement]
 body:
   - type: textarea

@@ -1,4 +1,4 @@
-"""CouchPad wire protocol, version 1.
+"""Mousette wire protocol, version 1.
 
 Pure validation logic with no dependency on FastAPI, pynput or the web client.
 See PROTOCOL.md for the human-readable specification.

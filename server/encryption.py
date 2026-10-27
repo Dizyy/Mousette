@@ -1,4 +1,4 @@
-"""End-to-end encryption between the phone and CouchPad (see PROTOCOL.md, "Encryption").
+"""End-to-end encryption between the phone and Mousette (see PROTOCOL.md, "Encryption").
 
 The PC keeps one random 32-byte key, saved so phones stay paired across restarts. The QR
 code carries it after "#", so it reaches the phone through the camera and never travels over
@@ -21,7 +21,7 @@ from nacl.secret import SecretBox
 
 KEY_BYTES = 32
 NONCE_BYTES = 16          # random value each side contributes per connection
-SESSION_LABEL = b"CouchPad session v1"
+SESSION_LABEL = b"Mousette session v1"
 FROM_CLIENT, FROM_SERVER = 0, 1
 
 
@@ -32,29 +32,49 @@ class BadFrame(Exception):
 def default_key_file() -> Path:
     if sys.platform == "win32":
         base = Path(os.environ.get("APPDATA") or Path.home())
-        return base / "CouchPad" / "key"
+        return base / "Mousette" / "key"
     if sys.platform == "darwin":
-        return Path.home() / "Library" / "Application Support" / "CouchPad" / "key"
+        return Path.home() / "Library" / "Application Support" / "Mousette" / "key"
     base = Path(os.environ.get("XDG_CONFIG_HOME") or Path.home() / ".config")
-    return base / "couchpad" / "key"
+    return base / "mousette" / "key"
+
+
+def legacy_key_file() -> Path:
+    """Where Mousette kept the key when it was called CouchPad (1.5.x)."""
+    default = default_key_file()
+    return default.parent.parent / ("couchpad" if default.parent.name == "mousette" else "CouchPad") / "key"
 
 
 def load_key(path: Path, new: bool = False) -> bytes:
-    """The saved key, or a fresh one (saved) when there is none or `new` is set."""
+    """The saved key, or a fresh one (saved) when there is none or `new` is set.
+
+    The first time the default location is used, a key saved under the old name CouchPad is
+    taken over, so phones paired with CouchPad stay paired.
+    """
     if not new:
-        try:
-            key = path.read_bytes()
+        sources = [path]
+        if path == default_key_file():
+            sources.append(legacy_key_file())
+        for source in sources:
+            try:
+                key = source.read_bytes()
+            except OSError:
+                continue
             if len(key) == KEY_BYTES:
+                if source != path:
+                    _save(path, key)
                 return key
-        except OSError:
-            pass
     key = os.urandom(KEY_BYTES)
+    _save(path, key)
+    return key
+
+
+def _save(path: Path, key: bytes) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     # Readable by this user only (on Windows the user's AppData folder already is).
     fd = os.open(path, os.O_WRONLY | os.O_CREAT | os.O_TRUNC | getattr(os, "O_BINARY", 0), 0o600)
     with os.fdopen(fd, "wb") as f:
         f.write(key)
-    return key
 
 
 def b64encode(data: bytes) -> str:

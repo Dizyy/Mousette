@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Starts CouchPad on macOS or Linux: the same steps as start.bat on Windows.
+# Starts Mousette on macOS or Linux: the same steps as start.bat on Windows.
 set -u
 cd "$(dirname "$0")"
 

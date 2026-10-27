@@ -20,7 +20,7 @@ from fastapi.staticfiles import StaticFiles
 from . import encryption, protocol
 from .input_backend import InputBackend
 
-log = logging.getLogger("couchpad")
+log = logging.getLogger("mousette")
 
 CLIENT_DIR = Path(__file__).resolve().parent.parent / "client"
 
@@ -126,11 +126,11 @@ def create_app(backend: InputBackend, pin: str, addresses: list[str] | None = No
     # Browsers leave out ":80", so accept that form too.
     allowed = None if addresses is None else {a for addr in addresses for a in (addr, addr.removesuffix(":80"))}
     # The page may be opened under one of these and connect through another: after a long
-    # sleep the phone sometimes can't look up couchpad.local, so it falls back to the IP.
+    # sleep the phone sometimes can't look up mousette.local, so it falls back to the IP.
     own_origins = None if allowed is None else {f"http://{a}" for a in allowed}
     direct = None if not addresses else addresses[-1].removesuffix(":80")  # the IP form
     ok_fields = {"protocol": protocol.PROTOCOL_VERSION, **({"direct": direct} if direct else {})}
-    app = FastAPI(title="CouchPad", docs_url=None, redoc_url=None, openapi_url=None)
+    app = FastAPI(title="Mousette", docs_url=None, redoc_url=None, openapi_url=None)
     guard = PinGuard(pin)
     # Handed out after a correct PIN; valid until the server stops, like the PIN itself.
     tokens: set[str] = set()
@@ -143,10 +143,10 @@ def create_app(backend: InputBackend, pin: str, addresses: list[str] | None = No
     @app.middleware("http")
     async def lan_only(request: Request, call_next):
         if not is_lan_address(request.client.host if request.client else None):
-            return PlainTextResponse("CouchPad only accepts local network clients.", status_code=403)
+            return PlainTextResponse("Mousette only accepts local network clients.", status_code=403)
         host_header = request.headers.get("host")
         if wrong_host(host_header):
-            return PlainTextResponse(f"Open CouchPad at http://{addresses[0].removesuffix(':80')}",
+            return PlainTextResponse(f"Open Mousette at http://{addresses[0].removesuffix(':80')}",
                                      status_code=403)
         # Another website linking to the page could put a PIN after "#" and make it try wrong
         # PINs until everyone is locked out. Such links land on /?from=link, where the page
@@ -241,7 +241,7 @@ def create_app(backend: InputBackend, pin: str, addresses: list[str] | None = No
         if not is_lan_address(host):
             await ws.close(CLOSE_NOT_LAN)
             return
-        # Browsers always send Origin. Only CouchPad's own page may connect, so other
+        # Browsers always send Origin. Only Mousette's own page may connect, so other
         # websites open in a browser on this network can't try PINs in the background.
         host_header = ws.headers.get("host")
         origin = ws.headers.get("origin")

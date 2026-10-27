@@ -13,7 +13,7 @@ import sys
 import threading
 import time
 
-log = logging.getLogger("couchpad.input")
+log = logging.getLogger("mousette.input")
 
 SHUTDOWN_DELAY_S = 5
 ERROR_NO_SHUTDOWN_IN_PROGRESS = 1116
@@ -205,10 +205,10 @@ class PynputBackend(InputBackend):
                     subprocess.Popen([app])
                     return
             raise RuntimeError("No system monitor app found on this PC.")
-        # Started by an admin CouchPad, Task Manager inherits admin rights, so Windows
+        # Started by an admin Mousette, Task Manager inherits admin rights, so Windows
         # shows no UAC prompt (which the phone could not answer: it runs on the secure desktop).
         if not is_elevated():
-            raise RuntimeError("Start CouchPad as administrator first (answer Y when it starts). "
+            raise RuntimeError("Start Mousette as administrator first (answer Y when it starts). "
                                "Otherwise Windows asks for your PIN on the PC.")
         subprocess.Popen(["taskmgr.exe"])
 
