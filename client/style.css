@@ -131,7 +131,14 @@ svg { width: 24px; height: 24px; fill: currentColor; flex: none; }
   pointer-events: none;
 }
 #trackpad.dragging .drag-badge { opacity: 1; }
-#trackpad.dragging { box-shadow: inset 0 2px 10px rgba(0, 0, 0, .35), inset 0 0 0 2px var(--accent); }
+/* Holding to drag: a thick neon line in the accent colour along the edges (a bright core
+   on a coloured tube), so it's clear the button is held down. */
+#trackpad.dragging {
+  box-shadow: inset 0 0 0 2px color-mix(in srgb, var(--accent) 45%, white),
+              inset 0 0 0 5px var(--accent),
+              inset 0 0 4px 6px color-mix(in srgb, var(--accent) 70%, transparent);
+  transition: box-shadow .15s;
+}
 
 #scroll-strip {
   width: 44px;
@@ -272,12 +279,12 @@ input[type="range"] {
 .field.toggle { display: flex; justify-content: space-between; align-items: center; min-height: 48px; }
 .field.toggle input { width: 28px; height: 28px; accent-color: var(--accent); }
 
-.swatches { display: grid; grid-template-columns: repeat(8, 1fr); gap: 6px; margin-bottom: 14px; }
+.swatches { display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; margin-bottom: 14px; }
 .swatch { aspect-ratio: 1; min-height: 36px; border-radius: 50%; background: var(--c); position: relative; }
 .swatch::after { content: ""; position: absolute; inset: -4px; border-radius: 50%; border: 2px solid transparent; }
 .swatch[aria-checked="true"]::after { border-color: var(--text); }
 @media (max-width: 400px) {
-  .swatches { grid-template-columns: repeat(4, 1fr); gap: 10px; }
+  .swatches { gap: 8px; }
   .swatch { width: 100%; max-width: 52px; justify-self: center; }
 }
 

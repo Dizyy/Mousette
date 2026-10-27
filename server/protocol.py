@@ -165,6 +165,16 @@ def _validate_enc_hello(msg: dict) -> dict:
     return {"nonce": raw}
 
 
+def _validate_accent(msg: dict) -> dict:
+    # The accent colour picked in the phone app, as "#rrggbb"; the PC window colours its
+    # QR code to match.
+    color = msg.get("color")
+    if not (isinstance(color, str) and len(color) == 7 and color[0] == "#"
+            and all(c in "0123456789abcdefABCDEF" for c in color[1:])):
+        raise ProtocolError("bad_field", "'color' must be a colour like '#9cc5a1'")
+    return {"color": color.lower()}
+
+
 def _validate_ping(msg: dict) -> dict:
     # "id" is optional and echoed back verbatim in the pong.
     if "id" in msg and not isinstance(msg["id"], (int, float, str)):
@@ -176,6 +186,7 @@ _VALIDATORS = {
     "auth": _validate_auth,
     "enc_hello": _validate_enc_hello,
     "ping": _validate_ping,
+    "accent": _validate_accent,
     "move": _validate_move,
     "click": _validate_button,
     "double_click": _validate_double_click,
@@ -192,7 +203,7 @@ _VALIDATORS = {
 }
 
 MESSAGE_TYPES = tuple(_VALIDATORS)
-INPUT_TYPES = tuple(t for t in MESSAGE_TYPES if t not in ("auth", "enc_hello", "ping"))
+INPUT_TYPES = tuple(t for t in MESSAGE_TYPES if t not in ("auth", "enc_hello", "ping", "accent"))
 # Actions the server confirms with "action_ok", so the client can show feedback.
 ACTION_TYPES = ("task_manager", "shutdown", "cancel_shutdown", "paste_text")
 

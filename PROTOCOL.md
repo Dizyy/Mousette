@@ -38,6 +38,7 @@ The server only accepts requests whose `Host` header is the address it printed, 
 | `auth` | `pin`: string, **or** `token`: string | Authenticate. Must be first (or first after the encryption handshake). `token` is one an earlier `auth_ok` returned; it lets a client log in again without the PIN. |
 | `enc_hello` | `nonce`: 16 random bytes, base64url without padding | Start an encrypted connection. Only allowed as the very first message; see [Encryption](#encryption). |
 | `ping` | `id`: number or string, optional | Server replies `pong` with the same `id`. |
+| `accent` | `color`: `"#rrggbb"` | The accent colour picked in the web client. The PC window colours its QR code to match when it is one of the client's accent presets. The client sends it after `auth_ok` and whenever the user picks another colour. No reply. |
 | `move` | `dx`, `dy`: number (px, ±4000) | Move the cursor relative to where it is. Fractions are allowed; the server carries sub-pixel remainders over, so many small moves add up correctly. |
 | `click` | `button`: `"left"`, `"right"` or `"middle"` (default `"left"`) | Single click. |
 | `double_click` | `button` (default `"left"`) | Double click. |
@@ -82,6 +83,7 @@ Examples:
 | `auth_ok` | `protocol`: 1; `token`: string (only after a PIN); optional `direct`: the server's IP address and port | Authenticated; input is accepted from now on. Keep `token` to log in again later: it is valid until the server stops. If the page's host name (`mousette.local`) stops resolving, connect to `ws://<direct>/ws` instead: the server accepts its own page from any of its addresses. |
 | `auth_failed` | `reason`: `"wrong_pin"`, `"token_expired"` (the server restarted since the token was issued) or `"locked_out"`; `retry_after`: seconds (only when locked out) | The socket closes right after this. |
 | `pong` | `id`: the id from the ping, or null | Reply to `ping`. |
+| `accent` | `color`: `"#rrggbb"` | The accent colour picked in the PC window, sent to every logged-in client. The web client takes it when it is one of its presets. |
 | `action_ok` | `ref`: `"task_manager"`, `"shutdown"`, `"cancel_shutdown"` or `"paste_text"` | The action was carried out. |
 | `error` | `code`, `message`, optional `ref` | The message was rejected. The connection stays open, except for `auth_required`. |
 

@@ -121,11 +121,14 @@ class Channel:
 
 def create_app(backend: InputBackend, pin: str, addresses: list[str] | None = None,
                key: bytes | None = None,
-               on_clients: Callable[[list[tuple[str, bool]]], None] | None = None) -> FastAPI:
+               on_clients: Callable[[list[tuple[str, bool]]], None] | None = None,
+               on_accent: Callable[[str], None] | None = None) -> FastAPI:
     """`addresses` are the "host:port" forms the phone may open (the .local name and the IP).
     When given, requests naming any other host are refused, which stops DNS-rebinding
     tricks from websites. `key` enables encrypted connections (see encryption.py).
-    `on_clients` gets the logged-in phones as (address, encrypted) whenever they change."""
+    `on_clients` gets the logged-in phones as (address, encrypted) whenever they change.
+    `on_accent` gets the accent colour ("#rrggbb") whenever a phone sends one;
+    `app.state.send_accent(color)` sends one to every phone."""
     # Browsers leave out ":80", so accept that form too.
     allowed = None if addresses is None else {a for addr in addresses for a in (addr, addr.removesuffix(":80"))}
     # The page may be opened under one of these and connect through another: after a long
@@ -141,6 +144,14 @@ def create_app(backend: InputBackend, pin: str, addresses: list[str] | None = No
     # Handed out after a correct PIN; valid until the server stops, like the PIN itself.
     tokens: set[str] = set()
     clients: dict[int, tuple[str, bool]] = {}  # id(channel) -> (address, encrypted)
+    channels: dict[int, Channel] = {}  # the logged-in phones, to send them the accent colour
+    loops: list[asyncio.AbstractEventLoop] = []  # the server's event loop, once a phone connects
+
+    def send_accent(color: str) -> None:
+        """Tells every phone the accent colour picked on the PC. Safe to call from any thread."""
+        if loops:
+            for ch in list(channels.values()):
+                asyncio.run_coroutine_threadsafe(ch.send(protocol.make("accent", color=color)), loops[0])
 
     def clients_changed() -> None:
         if on_clients:
@@ -275,8 +286,10 @@ def create_app(backend: InputBackend, pin: str, addresses: list[str] | None = No
                 return
             log.info("Client connected: %s%s", host, " (encrypted)" if ch.session else "")
             clients[id(ch)] = (host, ch.session is not None)
+            channels[id(ch)] = ch
             clients_changed()
             loop = asyncio.get_running_loop()
+            loops[:] = [loop]
             while True:
                 raw = await ch.recv()
                 try:
@@ -290,6 +303,9 @@ def create_app(backend: InputBackend, pin: str, addresses: list[str] | None = No
                     await ch.send(protocol.make("auth_ok", **ok_fields))
                 elif type_ == "enc_hello":
                     await ch.send(protocol.error("bad_state", "enc_hello must be the first message"))
+                elif type_ == "accent":
+                    if on_accent:
+                        on_accent(fields["color"])
                 else:
                     try:
                         await loop.run_in_executor(executor, backend.execute, type_, fields)
@@ -307,6 +323,7 @@ def create_app(backend: InputBackend, pin: str, addresses: list[str] | None = No
             log.warning("Closed connection from %s: %s", host, exc)
             await ws.close(CLOSE_BAD_FRAME)
         finally:
+            channels.pop(id(ch), None)
             if clients.pop(id(ch), None):
                 clients_changed()
             log.info("Client disconnected: %s", host)
@@ -317,4 +334,5 @@ def create_app(backend: InputBackend, pin: str, addresses: list[str] | None = No
         return JSONResponse({"name": local_name})
 
     app.mount("/", StaticFiles(directory=CLIENT_DIR, html=True), name="client")
+    app.state.send_accent = send_accent
     return app

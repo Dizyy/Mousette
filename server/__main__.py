@@ -135,9 +135,11 @@ def setup_logging() -> None:
 
 
 def prepare(args: argparse.Namespace,
-            on_clients: Callable[[list[tuple[str, bool]]], None] | None = None) -> Setup:
+            on_clients: Callable[[list[tuple[str, bool]]], None] | None = None,
+            on_accent: Callable[[str], None] | None = None) -> Setup:
     """Picks the address, port and PIN and builds the app. `on_clients` gets the phones logged
-    in right now as (address, encrypted) whenever that changes."""
+    in right now as (address, encrypted) whenever that changes; `on_accent` gets the phone
+    app's accent colour."""
     candidates = [] if args.host else lan_ip_candidates()
     host = args.host or (candidates[0] if candidates else None)
     if host is None:
@@ -160,7 +162,7 @@ def prepare(args: argparse.Namespace,
     backend = DryRunBackend() if args.dry_run else PynputBackend()
     names = [hostname, host] if hostname else [host]
     app = create_app(backend, pin, addresses=[f"{name}:{port}" for name in names], key=key,
-                     on_clients=on_clients)
+                     on_clients=on_clients, on_accent=on_accent)
     return Setup(args, host, port, pin, key, hostname, candidates, mdns, app)
 
 

@@ -9,6 +9,7 @@ from __future__ import annotations
 import base64
 import ctypes
 import io
+import json
 import logging
 import os
 import queue
@@ -35,6 +36,33 @@ LOG_MAX_BYTES = 1_000_000
 # Comfort theme, as on the phone.
 BG, SURFACE, BORDER = "#1a1916", "#24221e", "#36332d"
 TEXT, MUTED, ACCENT, BAD = "#ece6da", "#a39a8a", "#9cc5a1", "#e3796a"
+# Inverted QR code (light squares on black) so it sits in the dark window. Most phone
+# cameras read inverted codes; switch back to dark=BG, light=TEXT if one does not.
+QR_LIGHT = "#000000"
+# Colours for the QR squares, picked in the window: the phone app's accent colours
+# (ACCENTS in client/app.js), all light enough to scan on black.
+QR_COLORS = {"Sage": ACCENT, "Blue": "#7fb8e0", "Violet": "#b5a3e0", "Amber": "#e3b866",
+             "Rose": "#e3a0b4", "Coral": "#e39a8a", "Teal": "#7cc7bd", "Sand": "#d6c7a8",
+             "Lime": "#b5d66e", "Sky": "#8fd0ec", "Orchid": "#d79be0", "Peach": "#f0b48a",
+             "Slate": "#a9b4c2", "Cream": TEXT}
+SETTINGS_FILE = LOG_FILE.with_name("settings.json")
+
+
+def load_settings() -> dict:
+    try:
+        return json.loads(SETTINGS_FILE.read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return {}
+
+
+def save_setting(name: str, value) -> None:
+    settings = load_settings()
+    settings[name] = value
+    try:
+        SETTINGS_FILE.parent.mkdir(parents=True, exist_ok=True)
+        SETTINGS_FILE.write_text(json.dumps(settings, indent=2), encoding="utf-8")
+    except OSError as exc:
+        log.warning("Could not save settings: %s", exc)
 
 _kernel32 = ctypes.WinDLL("kernel32", use_last_error=True)
 _kernel32.CreateMutexW.restype = wintypes.HANDLE
@@ -109,12 +137,14 @@ class TrayApp:
         self.icon = None
         self.quitting = False
         self.told_about_tray = False
+        self.pick_qr_color = None  # set once the window is built
 
     # ---------- start and stop ----------
 
     def run(self) -> int:
         try:
-            self.setup = prepare(self.args, on_clients=lambda c: self.events.put(("clients", c)))
+            self.setup = prepare(self.args, on_clients=lambda c: self.events.put(("clients", c)),
+                                 on_accent=lambda c: self.events.put(("accent", c)))
         except StartupError as exc:
             messagebox.showerror("Mousette", str(exc))
             return 1
@@ -155,6 +185,11 @@ class TrayApp:
                 break
             if kind == "clients":
                 self.show_clients(value)
+            elif kind == "accent":
+                # The phone app's accent colour changed: colour the QR code to match.
+                name = next((n for n, c in QR_COLORS.items() if c == value), None)
+                if name and self.pick_qr_color:
+                    self.pick_qr_color(name)
             elif kind == "show":
                 self.show()
             elif kind == "admin":
@@ -243,19 +278,63 @@ class TrayApp:
         self.status.pack(anchor="w", pady=(2, 14))
         self.show_clients([])
 
-        card = tk.Frame(root, bg="#ffffff", padx=6, pady=6)
+        # The QR code holds the encryption key, so it stays hidden until asked for.
+        qr_area = tk.Frame(root, bg=BG)
+        qr_area.pack(pady=(0, 12))
+        qr_box = tk.Frame(qr_area, bg=BG)
+        card = tk.Frame(qr_box, bg=QR_LIGHT, padx=6, pady=6)
         card.pack()
-        buffer = io.BytesIO()
-        segno.make(s.qr_url, error="l", boost_error=False).save(
-            buffer, kind="png", scale=round(6 * scale), border=3, dark="#000000", light="#ffffff")
-        self.qr_image = tk.PhotoImage(data=base64.b64encode(buffer.getvalue()))
-        tk.Label(card, image=self.qr_image, bg="#ffffff", bd=0).pack()
-        label(root, "Scan with the phone camera (encrypted connection)", 10, MUTED).pack(pady=(8, 12))
+        qr = segno.make(s.qr_url, error="l", boost_error=False)
+        qr_label = tk.Label(card, bg=QR_LIGHT, bd=0)
+        qr_label.pack()
+        label(qr_box, "Scan with the phone camera (encrypted connection)", 10, MUTED).pack(pady=(8, 0))
+
+        color_row = tk.Frame(qr_area, bg=BG)
+        color_row.pack(pady=(0, 10))
+        swatches = {}
+
+        def set_color(name):
+            buffer = io.BytesIO()
+            qr.save(buffer, kind="png", scale=round(6 * scale), border=3,
+                    dark=QR_COLORS[name], light=QR_LIGHT)
+            self.qr_image = tk.PhotoImage(data=base64.b64encode(buffer.getvalue()))
+            qr_label.config(image=self.qr_image)
+            for other, swatch in swatches.items():
+                swatch.config(highlightbackground=TEXT if other == name else BORDER)
+            pin_value.config(fg=QR_COLORS[name])  # the PIN shows the accent colour too
+
+        def pick_color(name):
+            set_color(name)
+            save_setting("qr_color", name)
+            # Phones take the same accent colour, so the PC and the phone app always match.
+            s.app.state.send_accent(QR_COLORS[name])
+
+        for i, (name, color) in enumerate(QR_COLORS.items()):
+            swatches[name] = tk.Button(
+                color_row, bg=color, activebackground=color, relief="flat", bd=0, cursor="hand2",
+                width=2, highlightthickness=2, command=lambda n=name: pick_color(n))
+            swatches[name].grid(row=i // 7, column=i % 7, padx=3, pady=3)
+        self.pick_qr_color = pick_color
+
+        def toggle_qr():
+            if qr_box.winfo_manager():
+                qr_box.pack_forget()
+                qr_button.config(text="Show QR encryption code")
+            else:
+                qr_box.pack(pady=(10, 0))
+                qr_button.config(text="Hide QR encryption code")
+
+        qr_button = self.button(qr_area, "Show QR encryption code", toggle_qr)
+        qr_button.config(font=("Segoe UI", 12, "bold"), padx=24, pady=10)
+        qr_button.pack()
 
         pin_row = tk.Frame(root, bg=BG)
         pin_row.pack(pady=(0, 14))
         label(pin_row, "PIN", 11, MUTED).pack(side="left", padx=(0, 12))
-        label(pin_row, f"{s.pin[:3]} {s.pin[3:]}", 26, bold=True).pack(side="left")
+        pin_value = label(pin_row, f"{s.pin[:3]} {s.pin[3:]}", 26, bold=True)
+        pin_value.pack(side="left")
+        saved = load_settings().get("qr_color")
+        set_color(saved if saved in QR_COLORS else "Sage")
 
         rows = [("Open on your phone", url(s.host, s.port))]
         if s.hostname:

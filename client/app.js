@@ -221,6 +221,7 @@
             showToast('Not encrypted. Scan the QR code on the PC to encrypt the connection.', { ms: 6000 });
           }
           hidePin();
+          sendAccent();
           startPing();
           maybeShowHomeTip();
           break;
@@ -245,6 +246,13 @@
           break;
         case 'action_ok':
           onActionOk(msg.ref);
+          break;
+        case 'accent': // picked in the PC window
+          if (ACCENTS.some(([, c]) => c === msg.color) && settings.accent !== msg.color) {
+            settings.accent = msg.color;
+            renderSettings();
+            saveSettings();
+          }
           break;
         case 'error':
           console.warn('Mousette server error:', msg.code, msg.message);
@@ -671,6 +679,8 @@
   const ACCENTS = [
     ['Sage', '#9cc5a1'], ['Blue', '#7fb8e0'], ['Violet', '#b5a3e0'], ['Amber', '#e3b866'],
     ['Rose', '#e3a0b4'], ['Coral', '#e39a8a'], ['Teal', '#7cc7bd'], ['Sand', '#d6c7a8'],
+    ['Lime', '#b5d66e'], ['Sky', '#8fd0ec'], ['Orchid', '#d79be0'], ['Peach', '#f0b48a'],
+    ['Slate', '#a9b4c2'], ['Cream', '#ece6da'],
   ];
   const swatches = $('swatches');
   for (const [name, color] of ACCENTS) {
@@ -680,9 +690,12 @@
     swatch.setAttribute('aria-label', name);
     swatch.style.setProperty('--c', color);
     swatch.dataset.color = color;
-    swatch.addEventListener('click', () => { settings.accent = color; renderSettings(); saveSettings(); });
+    swatch.addEventListener('click', () => { settings.accent = color; renderSettings(); saveSettings(); sendAccent(); });
     swatches.append(swatch);
   }
+
+  // The PC window colours its QR code to match the accent.
+  function sendAccent() { rawSend({ type: 'accent', color: settings.accent }); }
 
   function renderAccent() {
     const accent = ACCENTS.some(([, c]) => c === settings.accent) ? settings.accent : DEFAULT_SETTINGS.accent;

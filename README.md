@@ -58,7 +58,7 @@ On Windows, avoid very deeply nested folders: Windows has a 260-character path l
 ## 2. Start it
 
 **`Mousette.exe`:** double-click it. The Mousette window opens and shows:
-- the QR code and the PIN
+- the QR code (click **Show QR encryption code**: it holds the encryption key, so it stays hidden until you ask) and the PIN
 - the addresses to open on the phone
 - whether a phone is connected, and whether the connection is encrypted
 
@@ -74,7 +74,7 @@ To control admin windows such as Task Manager, the On-Screen Keyboard and instal
 
 ```
 ==============================================
-  Mousette 1.7.0 is running
+  Mousette 1.8.0 is running
   Open on your phone:    http://192.168.1.23
   iPhone/iPad also:      http://mousette.local
   PIN:                  482915
@@ -131,7 +131,7 @@ New-NetFirewallRule -DisplayName "Mousette" -Direction Inbound -Protocol UDP -Lo
 ## 4. Open it on the phone
 
 1. Make sure the phone is on the **same Wi-Fi** as the PC (the same router).
-2. **Easiest, and encrypted:** open the **Camera** app (on Android, the camera, or **Google Lens** if the camera doesn't react), point it at the QR code in the Mousette window and tap the link. Mousette opens and connects by itself, no typing, and the connection is encrypted.
+2. **Easiest, and encrypted:** open the **Camera** app (on Android, the camera, or **Google Lens** if the camera doesn't react), click **Show QR encryption code** in the Mousette window, point the camera at the QR code and tap the link. Mousette opens and connects by itself, no typing, and the connection is encrypted.
 3. **Or type it:** in the browser (Safari on iPhone/iPad, Chrome on Android), open the address from **Open on your phone** (on iPhone/iPad also `http://mousette.local`) and enter the 6-digit PIN. This connects **without** encryption; scan the QR code once to encrypt it.
 
 The dot at the top turns **green** when you're connected, and it says **Connected · encrypted** when the connection is encrypted.
@@ -153,7 +153,7 @@ Bottom bar buttons: **Left**, **Right**, **Keys** (opens the on-screen keyboard;
 
 **Send text from your phone:** copy something on the phone, tap **Send**, paste it into the box and tap **Paste on PC**. It's pasted where the cursor is on the PC, in one go, line breaks included. You can also paste while **Keys** is open (for example from the keyboard's clipboard on Android): it's pasted on the PC the same way.
 
-The gear icon opens settings for **cursor sensitivity**, **scroll speed**, the **scroll strip**, the **accent color** and the **bar buttons**. These are saved on the phone. With the scroll strip turned on, a narrow bar appears to the right of the trackpad: drag one finger up or down on it to scroll.
+The gear icon opens settings for **cursor sensitivity**, **scroll speed**, the **scroll strip**, the **accent color** and the **bar buttons**. These are saved on the phone. The accent color also colors the QR code in the Mousette window, and the color dots above **Show QR encryption code** change it on the phone: the PC and the phone always match. With the scroll strip turned on, a narrow bar appears to the right of the trackpad: drag one finger up or down on it to scroll.
 
 The settings also have **PC** buttons:
 - **Task Manager** opens Task Manager. Mousette must run as administrator: it then starts Task Manager itself, with admin rights, so Windows doesn't ask for your PIN or password. (Ctrl+Shift+Esc would let Windows start it, and if you set User Account Control to ask for a PIN, that prompt can only be answered on the PC.)
