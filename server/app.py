@@ -10,6 +10,7 @@ import logging
 import mimetypes
 import secrets
 import time
+from collections.abc import Callable
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
@@ -119,10 +120,12 @@ class Channel:
 
 
 def create_app(backend: InputBackend, pin: str, addresses: list[str] | None = None,
-               key: bytes | None = None) -> FastAPI:
+               key: bytes | None = None,
+               on_clients: Callable[[list[tuple[str, bool]]], None] | None = None) -> FastAPI:
     """`addresses` are the "host:port" forms the phone may open (the .local name and the IP).
     When given, requests naming any other host are refused, which stops DNS-rebinding
-    tricks from websites. `key` enables encrypted connections (see encryption.py)."""
+    tricks from websites. `key` enables encrypted connections (see encryption.py).
+    `on_clients` gets the logged-in phones as (address, encrypted) whenever they change."""
     # Browsers leave out ":80", so accept that form too.
     allowed = None if addresses is None else {a for addr in addresses for a in (addr, addr.removesuffix(":80"))}
     # The page may be opened under one of these and connect through another: after a long
@@ -137,6 +140,11 @@ def create_app(backend: InputBackend, pin: str, addresses: list[str] | None = No
     guard = PinGuard(pin)
     # Handed out after a correct PIN; valid until the server stops, like the PIN itself.
     tokens: set[str] = set()
+    clients: dict[int, tuple[str, bool]] = {}  # id(channel) -> (address, encrypted)
+
+    def clients_changed() -> None:
+        if on_clients:
+            on_clients(list(clients.values()))
     # One worker keeps input events strictly ordered and off the event loop.
     executor = ThreadPoolExecutor(max_workers=1, thread_name_prefix="input")
 
@@ -266,6 +274,8 @@ def create_app(backend: InputBackend, pin: str, addresses: list[str] | None = No
             if not await authenticate(ch, host):
                 return
             log.info("Client connected: %s%s", host, " (encrypted)" if ch.session else "")
+            clients[id(ch)] = (host, ch.session is not None)
+            clients_changed()
             loop = asyncio.get_running_loop()
             while True:
                 raw = await ch.recv()
@@ -297,6 +307,8 @@ def create_app(backend: InputBackend, pin: str, addresses: list[str] | None = No
             log.warning("Closed connection from %s: %s", host, exc)
             await ws.close(CLOSE_BAD_FRAME)
         finally:
+            if clients.pop(id(ch), None):
+                clients_changed()
             log.info("Client disconnected: %s", host)
             await asyncio.get_running_loop().run_in_executor(executor, backend.release_all)
 

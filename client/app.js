@@ -23,6 +23,11 @@
   try { settings = { ...DEFAULT_SETTINGS, ...JSON.parse(store.get('pm.settings') || '{}') }; } catch { /* keep defaults */ }
   const saveSettings = () => store.set('pm.settings', JSON.stringify(settings));
 
+  const appleTouch = /iPhone|iPad|iPod/.test(navigator.userAgent)
+    || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+  const homeScreenApp = navigator.standalone === true
+    || matchMedia('(display-mode: standalone), (display-mode: fullscreen)').matches;
+
   // The PIN lives in memory only. Older versions saved it; clear that.
   // After a correct PIN the server hands out a token instead, which is saved: iOS often
   // reloads the page after the phone was locked, and the token logs in again without the PIN.
@@ -217,6 +222,7 @@
           }
           hidePin();
           startPing();
+          maybeShowHomeTip();
           break;
         case 'auth_failed':
           authRejected = true;
@@ -254,6 +260,7 @@
       if (event.code === CLOSE_BAD_FRAME && key) {
         // The PC has a different key now (a new key, or another PC): pair again.
         forgetKey();
+        cleanAddress();
         authRejected = true;
         showPin('Mousette has a new encryption key. Scan the QR code on the PC again, or enter the PIN to connect without encryption.');
       }
@@ -612,6 +619,15 @@
   function fitViewport() {
     const vv = window.visualViewport;
     if (!vv) return;
+    // iOS can leave a home-screen app's page short of the screen bottom (by about the status bar
+    // height), and the page can't draw there. That strip already clears the home bar, so the
+    // bottom bar then needs no gap of its own. A shorter page with the keyboard open doesn't count.
+    if (appleTouch && homeScreenApp) {
+      const full = matchMedia('(orientation: landscape)').matches
+        ? Math.min(screen.width, screen.height) : Math.max(screen.width, screen.height);
+      const missing = full - vv.height;
+      document.documentElement.classList.toggle('short-screen', missing > 20 && missing < 150);
+    }
     rootStyle.setProperty('--app-height', `${vv.height}px`);
     rootStyle.setProperty('--app-top', `${vv.offsetTop}px`);
   }
@@ -930,19 +946,33 @@
   // after "#", which the browser never sends anywhere. Use it, then wipe it so it isn't kept in history or an icon.
   // Pages linked from other websites arrive as /?from=link (see server/app.py): there the
   // PIN is ignored, so a website can't make Mousette try wrong PINs.
-  // Returns true when a PIN from the QR code was taken.
+  // A home-screen icon opens "#k=…" (see cleanAddress): the key only, no PIN.
+  // Returns true when a PIN or key from the address was taken.
   function takePinFromQr() {
-    if (!location.hash) return false;
+    if (!location.hash) { cleanAddress(); return false; }
     // "#p=…&k=…" (the long "#pin=…&key=…" from 1.5/1.6 works too).
     const fromQr = /^#p(?:in)?=(\d{6})(?:&k(?:ey)?=([A-Za-z0-9_-]{43}))?$/.exec(location.hash);
+    const keyOnly = /^#k=([A-Za-z0-9_-]{43})$/.exec(location.hash);
     const trusted = !new URLSearchParams(location.search).has('from');
     history.replaceState(null, '', location.pathname);
-    if (!fromQr || !trusted) return false;
-    setPin(fromQr[1]);
-    if (fromQr[2]) setKey(fromQr[2]);
-    // Not "just entered": a QR code from an earlier start then says the PIN has changed.
-    pinJustEntered = false;
-    return true;
+    if (trusted && keyOnly) setKey(keyOnly[1]);
+    if (trusted && fromQr) {
+      setPin(fromQr[1]);
+      if (fromQr[2]) setKey(fromQr[2]);
+      // Not "just entered": a QR code from an earlier start then says the PIN has changed.
+      pinJustEntered = false;
+    }
+    cleanAddress();
+    return trusted && Boolean(fromQr || keyOnly);
+  }
+
+  // iPhone gives a home-screen app its own empty storage, and the camera always opens Safari, so
+  // the app could never get the key. In Safari the address therefore keeps "#k=<key>" (never the
+  // PIN): an icon added from there carries the key over. Like the QR code, "#" never leaves the phone.
+  function cleanAddress() {
+    const key = store.get('pm.key');
+    const keep = appleTouch && !homeScreenApp && canEncrypt && key;
+    history.replaceState(null, '', location.pathname + (keep ? `#k=${key}` : ''));
   }
 
   // Scanning again while Mousette is already open only changes the "#" part.
@@ -958,8 +988,6 @@
   // the PC a new IP address (so does a home-screen icon added there). The QR code uses the IP
   // address so that every phone can open it; an iPhone moves over to the name when it answers.
   // The "#" part, with the PIN and key, comes along and still never leaves the phone.
-  const appleTouch = /iPhone|iPad|iPod/.test(navigator.userAgent)
-    || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
   async function moveToLocalName() {
     if (!appleTouch || !/^\d+\.\d+\.\d+\.\d+$/.test(location.hostname) || !/^#p(?:in)?=/.test(location.hash)
         || new URLSearchParams(location.search).has('from')) return false;
@@ -976,6 +1004,28 @@
     } catch {
       return false;
     }
+  }
+
+  // Opened in the browser: suggest adding Mousette to the home screen (full screen, no address
+  // bar). Shown once per page load on up to 3 visits, or until "Got it". Waits a few seconds so it
+  // doesn't cover the "Not encrypted" message.
+  const android = /Android/.test(navigator.userAgent);
+  let homeTipShown = false;
+  function maybeShowHomeTip() {
+    if (homeTipShown || homeScreenApp || !(appleTouch || android)) return;
+    // Without the key an icon would connect unencrypted; the "Not encrypted" message says to scan.
+    if (appleTouch && !getKey()) return;
+    const shown = Number(store.get('pm.hometip')) || 0;
+    if (shown >= 3) return;
+    homeTipShown = true;
+    setTimeout(() => {
+      if (!toast.hidden) return;
+      store.set('pm.hometip', String(shown + 1));
+      const how = appleTouch ? 'tap Share, then Add to Home Screen' : 'tap ⋮, then Add to Home screen';
+      showToast(`Tip: ${how} to open Mousette full screen.`, {
+        ms: 15000, button: 'Got it', onButton: () => store.set('pm.hometip', '3'),
+      });
+    }, 7000);
   }
 
   renderSettings();

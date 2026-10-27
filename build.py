@@ -2,12 +2,12 @@
 
 Run with the project's Python:  .venv\\Scripts\\python.exe build.py
 Attach the result to the GitHub release; the .exe updater downloads it from there.
-PyInstaller is only needed for building, so it is not in requirements.txt.
+PyInstaller, Pillow (the .exe icon) and pystray (the Windows tray) are only needed for building,
+so they are not in requirements.txt.
 """
 
 from __future__ import annotations
 
-import struct
 import subprocess
 import sys
 from pathlib import Path
@@ -17,23 +17,26 @@ BUILD = ROOT / "build"
 
 
 def png_to_ico(png: Path, ico: Path) -> None:
-    """Windows icons may hold a PNG as-is, so no image library is needed."""
-    data = png.read_bytes()
-    width, height = struct.unpack(">II", data[16:24])
-    entry = struct.pack("<BBBBHHII", width % 256, height % 256, 0, 0, 1, 32, len(data), 6 + 16)
-    ico.write_bytes(struct.pack("<HHH", 0, 1, 1) + entry + data)
+    """Every size Windows asks for (taskbar, Explorer, title bar), so it never scales a big one down."""
+    from PIL import Image
+
+    Image.open(png).save(ico, sizes=[(n, n) for n in (16, 20, 24, 32, 40, 48, 64, 128, 256)])
 
 
 def main() -> int:
     subprocess.run([sys.executable, "-m", "pip", "install", "--disable-pip-version-check", "-q",
-                    "-r", str(ROOT / "requirements.txt"), "pyinstaller"], check=True)
+                    "-r", str(ROOT / "requirements.txt"), "pyinstaller",
+                    # The Windows .exe lives in the tray (server/tray.py).
+                    "pillow", *(["pystray"] if sys.platform == "win32" else [])], check=True)
     BUILD.mkdir(exist_ok=True)
     icon = BUILD / "mousette.ico"
-    png_to_ico(ROOT / "client" / "icons" / "icon-192.png", icon)
+    png_to_ico(ROOT / "client" / "icons" / "icon-512.png", icon)
     sep = ";" if sys.platform == "win32" else ":"
     subprocess.run([
         sys.executable, "-m", "PyInstaller", "--noconfirm", "--clean", "--onefile",
         "--name", "Mousette", "--icon", str(icon),
+        # Windows: no console window; pystray picks its backend at runtime.
+        *(["--windowed", "--collect-submodules", "pystray"] if sys.platform == "win32" else []),
         "--add-data", f"{ROOT / 'client'}{sep}client",
         # Both pick their backends at runtime, which PyInstaller can't see on its own.
         "--collect-submodules", "uvicorn", "--collect-submodules", "pynput",

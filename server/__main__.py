@@ -8,9 +8,12 @@ import logging
 import secrets
 import socket
 import sys
+from collections.abc import Callable
+from dataclasses import dataclass
 from pathlib import Path
 
 import uvicorn
+from fastapi import FastAPI
 
 from . import __version__, encryption
 from .app import create_app, is_lan_address
@@ -80,7 +83,29 @@ def lan_ip_candidates() -> list[str]:
     return sorted((ip for ip in ips if usable(ip)), key=lambda ip: (rank(ip), ip))
 
 
-def main() -> int:
+class StartupError(Exception):
+    """Mousette can't start; the message says why and what to do."""
+
+
+@dataclass
+class Setup:
+    """Everything decided before the server starts: shown in the console or the window."""
+    args: argparse.Namespace
+    host: str
+    port: int
+    pin: str
+    key: bytes | None
+    hostname: str | None
+    candidates: list[str]
+    mdns: MdnsResponder | None
+    app: FastAPI
+
+    @property
+    def qr_url(self) -> str:
+        return connect_url(self.host, self.port, self.pin, self.key)
+
+
+def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(prog="mousette", description="Mousette PC server")
     parser.add_argument("--host", help="address to bind (default: this PC's LAN IP)")
     parser.add_argument("--port", type=int,
@@ -93,28 +118,38 @@ def main() -> int:
                         help="make a new encryption key: phones must scan the QR code again")
     parser.add_argument("--key-file", type=Path, default=None,
                         help=f"where the encryption key is kept (default: {encryption.default_key_file()})")
-    args = parser.parse_args()
+    # Mousette.exe restarting itself (as administrator): wait for the old copy to close.
+    parser.add_argument("--replace", action="store_true", help=argparse.SUPPRESS)
+    return parser.parse_args(argv)
 
+
+def setup_logging() -> None:
     for stream in (sys.stdout, sys.stderr):
         stream.reconfigure(encoding="utf-8", errors="replace", line_buffering=True)
     logging.basicConfig(level=logging.INFO, format="%(asctime)s %(message)s",
                         datefmt="%H:%M:%S", stream=sys.stdout)
+    # On Windows, asyncio prints a traceback when a phone drops its connection (locked, app
+    # closed): ConnectionResetError while closing a socket that is already gone. Nothing is wrong.
+    logging.getLogger("asyncio").addFilter(
+        lambda record: not (record.exc_info and isinstance(record.exc_info[1], ConnectionResetError)))
 
+
+def prepare(args: argparse.Namespace,
+            on_clients: Callable[[list[tuple[str, bool]]], None] | None = None) -> Setup:
+    """Picks the address, port and PIN and builds the app. `on_clients` gets the phones logged
+    in right now as (address, encrypted) whenever that changes."""
     candidates = [] if args.host else lan_ip_candidates()
     host = args.host or (candidates[0] if candidates else None)
     if host is None:
-        print("Could not find a local network address. Is this PC connected to Wi-Fi/Ethernet?")
-        print("You can pass one explicitly, e.g.  --host 192.168.x.x")
-        return 1
+        raise StartupError("Could not find a local network address. Is this PC connected to "
+                           "Wi-Fi/Ethernet?\nYou can pass one explicitly, e.g.  --host 192.168.x.x")
     if not is_lan_address(host):
-        print(f"Refusing to bind to {host}: Mousette only listens on private/LAN addresses.")
-        return 1
+        raise StartupError(f"Refusing to bind to {host}: Mousette only listens on private/LAN addresses.")
 
     port = args.port or next((p for p in PREFERRED_PORTS if port_is_free(host, p)), None)
     if port is None:
-        print(f"Ports {' and '.join(map(str, PREFERRED_PORTS))} are both in use. "
-              "Choose another, e.g.  --port 9000")
-        return 1
+        raise StartupError(f"Ports {' and '.join(map(str, PREFERRED_PORTS))} are both in use. "
+                           "Choose another, e.g.  --port 9000")
 
     # The .local name only makes sense on a real network, not for local tests.
     mdns = None if ipaddress.ip_address(host).is_loopback else MdnsResponder(host)
@@ -124,38 +159,58 @@ def main() -> int:
     key = encryption.load_key(args.key_file or encryption.default_key_file(), new=args.new_key)
     backend = DryRunBackend() if args.dry_run else PynputBackend()
     names = [hostname, host] if hostname else [host]
-    app = create_app(backend, pin, addresses=[f"{name}:{port}" for name in names], key=key)
+    app = create_app(backend, pin, addresses=[f"{name}:{port}" for name in names], key=key,
+                     on_clients=on_clients)
+    return Setup(args, host, port, pin, key, hostname, candidates, mdns, app)
 
+
+def print_banner(s: Setup) -> None:
     bar = "=" * 46
     print(bar)
-    print(f"  Mousette {__version__} is running" + ("  (DRY RUN - no real input)" if args.dry_run else ""))
+    print(f"  Mousette {__version__} is running" + ("  (DRY RUN - no real input)" if s.args.dry_run else ""))
     # Android browsers can't open .local names, so the IP address comes first and is in the QR.
-    print(f"  Open on your phone:    {url(host, port)}")
-    if hostname:
-        print(f"  iPhone/iPad also:      {url(hostname, port)}")
-    print(f"  PIN:                  {pin}")
+    print(f"  Open on your phone:    {url(s.host, s.port)}")
+    if s.hostname:
+        print(f"  iPhone/iPad also:      {url(s.hostname, s.port)}")
+    print(f"  PIN:                  {s.pin}")
     try:
-        lines = qr_lines(connect_url(host, port, pin, key))
+        lines = qr_lines(s.qr_url)
         print("  Or scan with the phone camera (encrypted connection):")
         for line in lines:
             print("  " + line)
     except UnicodeEncodeError:
         pass  # the console can't show it; the address and PIN above still work
-    if len(candidates) > 1:
-        print(f"  Other addresses:      {', '.join(candidates[1:])}")
+    if len(s.candidates) > 1:
+        print(f"  Other addresses:      {', '.join(s.candidates[1:])}")
         print("  (if the phone can't connect, start Mousette with  --host <address>)")
     print("  Press Ctrl+C to stop.")
     print(bar, flush=True)
+
+
+def make_server(s: Setup, **config) -> uvicorn.Server:
+    # ws_max_size: room for a long paste_text.
+    return uvicorn.Server(uvicorn.Config(s.app, host=s.host, port=s.port, log_level="warning",
+                                         ws_max_size=512 * 1024, **config))
+
+
+def main() -> int:
+    args = parse_args()
+    setup_logging()
+    try:
+        s = prepare(args)
+    except StartupError as exc:
+        print(exc)
+        return 1
+    print_banner(s)
     if sys.platform == "win32" and not is_elevated():
         logging.warning("Not running as administrator: Windows will ignore the phone while an admin "
                         "window (Task Manager, On-Screen Keyboard, installers) is in front. "
                         "Restart Mousette and answer Y to fix this.")
-
     try:
-        uvicorn.run(app, host=host, port=port, log_level="warning", ws_max_size=512 * 1024)  # room for a long paste_text
+        make_server(s).run()
     finally:
-        if mdns:
-            mdns.stop()
+        if s.mdns:
+            s.mdns.stop()
     return 0
 
 

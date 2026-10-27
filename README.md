@@ -56,13 +56,13 @@ On Windows, avoid very deeply nested folders: Windows has a 260-character path l
 
 Double-click **`Mousette.exe`**. From source, double-click **`start.bat`** on Windows, or run `bash start.sh` on macOS and Linux.
 
-On Windows it first asks **"Run as administrator…?"**. Answer **Y** (then **Yes** in the Windows prompt) if you want the phone to work in admin windows such as Task Manager, the On-Screen Keyboard and installers; Windows ignores input from a normal program while one of those is in front. Answer **N**, or wait 10 seconds, to run without admin rights. Without them Mousette logs a warning at startup.
+**`Mousette.exe`** opens the Mousette window with the QR code, the PIN, the addresses and whether a phone is connected (and encrypted). Mousette also sits in the tray, next to the clock: closing the window keeps it running there, and clicking the tray icon shows the window again. To work in admin windows such as Task Manager, the On-Screen Keyboard and installers, click **Restart as administrator** in the window or the tray menu (then **Yes** in the Windows prompt); Windows ignores input from a normal program while one of those is in front.
 
-From source, the first run creates a `.venv` folder and installs the packages from `requirements.txt` into it. This takes a minute and needs internet. Later runs start straight away. Then it prints something like:
+**From source**, `start.bat` first asks **"Run as administrator…?"**. Answer **Y** (then **Yes** in the Windows prompt) for admin windows, or **N** (or wait 10 seconds) to run without admin rights. Without them Mousette logs a warning at startup. The first run creates a `.venv` folder and installs the packages from `requirements.txt` into it. This takes a minute and needs internet. Later runs start straight away. Then it prints something like:
 
 ```
 ==============================================
-  Mousette 1.6.1 is running
+  Mousette 1.7.0 is running
   Open on your phone:    http://192.168.1.23
   iPhone/iPad also:      http://mousette.local
   PIN:                  482915
@@ -76,9 +76,9 @@ Scan the QR code with the phone (step 4), or open the address from **Open on you
 
 Mousette uses port 80, so no port number is needed. If another program already uses port 80, it switches to port 8765 by itself and the addresses end in `:8765`. If a second PC on your network also runs Mousette, that one is called `mousette-2.local`. Always use the addresses your window shows.
 
-Keep this window open while you use the phone. The PIN is new every time Mousette starts.
+Keep Mousette running while you use the phone. The PIN is new every time Mousette starts.
 
-**To stop:** close the window, or press **Ctrl+C**. If Windows then asks *"Terminate batch job (Y/N)?"*, either answer is fine: Mousette has already stopped.
+**To stop:** `Mousette.exe`: click **Quit Mousette** in the window, or right-click the tray icon and choose **Quit Mousette**. From source: close the window, or press **Ctrl+C**. If Windows then asks *"Terminate batch job (Y/N)?"*, either answer is fine: Mousette has already stopped.
 
 Options (add them after the command, for example `start.bat --port 9000` or `Mousette.exe --port 9000` in a command prompt):
 - `--port 9000`: use a specific port (default: 80, or 8765 if 80 is taken)
@@ -151,7 +151,7 @@ There is no Ctrl+Alt+Del button: Windows shows that screen on a protected deskto
 
 ## 5. Add to Home Screen (fullscreen app)
 
-1. Open the Mousette page in **Safari** (iPhone/iPad) or **Chrome** (Android).
+1. Open the Mousette page in **Safari** (iPhone/iPad) or **Chrome** (Android). On iPhone/iPad, open it by scanning the QR code: the icon then keeps the encryption key, and the app only asks for the PIN.
 2. iPhone/iPad: tap the **Share** button (at the bottom on iPhone, at the top on iPad), then **Add to Home Screen**, then **Add**. Android: tap the **⋮** menu, then **Add to Home screen**.
 3. Start Mousette from its icon. It opens fullscreen without the browser bars.
 
@@ -169,7 +169,7 @@ Mousette used to be called CouchPad, and before that PhoneMouse. PhoneMouse 1.2.
 
 ## Uninstall
 
-**`Mousette.exe`:** delete the file (and `Mousette.exe.old` next to it, if there is one). If you allowed it through the firewall in step 3, remove that entry under **Start → "Allow an app through Windows Firewall"**. On the phone, remove the home-screen icon.
+**`Mousette.exe`:** quit it (tray icon → **Quit Mousette**), then delete the file (and `Mousette.exe.old` next to it, if there is one), and the folder `%APPDATA%\Mousette` with the encryption key and log. If you allowed it through the firewall in step 3, remove that entry under **Start → "Allow an app through Windows Firewall"**. On the phone, remove the home-screen icon.
 
 **From source on Windows:**
 
@@ -183,7 +183,7 @@ If you ticked **Allow access** for Python in step 3, that firewall entry belongs
 
 **The page doesn't load on the phone, or stays black.**
 - If you started a new copy of `Mousette.exe` from another folder, Windows treats it as a new program and blocks it until you allow it (step 3). Its prompt can hide behind other windows.
-- Check that the Mousette window is still open and shows the banner.
+- Check that Mousette is still running: its icon is in the tray (from source: the window still shows the banner).
 - Check that the phone is on the same network, not on mobile data or a guest Wi-Fi. Guest networks usually isolate devices from each other.
 - Check the firewall (step 3), including that the network is set to **Private**.
 - Type the address exactly as printed, starting with `http://`, not `https://`.
@@ -211,19 +211,19 @@ If it already says **Private**, add the port rule from step 3. A dismissed firew
 
 **Typing does nothing.** First click into a text field on the PC (tap the trackpad), then tap **Keys**.
 
-**The phone stops working after opening Task Manager or the On-Screen Keyboard.** Windows doesn't let normal programs control windows that run as administrator. While such a window is in front, all input from the phone is ignored, until you click another window with the real mouse. Start Mousette and answer **Y** to run as administrator. Even then, User Account Control prompts ("Do you want to allow…", or a PIN/password request) and the lock screen can't be controlled remotely: Windows shows them on a protected screen that only accepts the real keyboard and mouse. Use the **Task Manager** button in Settings rather than Ctrl+Shift+Esc to avoid that prompt.
+**The phone stops working after opening Task Manager or the On-Screen Keyboard.** Windows doesn't let normal programs control windows that run as administrator. While such a window is in front, all input from the phone is ignored, until you click another window with the real mouse. Click **Restart as administrator** in the Mousette window (from source: answer **Y** when `start.bat` starts). Even then, User Account Control prompts ("Do you want to allow…", or a PIN/password request) and the lock screen can't be controlled remotely: Windows shows them on a protected screen that only accepts the real keyboard and mouse. Use the **Task Manager** button in Settings rather than Ctrl+Shift+Esc to avoid that prompt.
 
 ## Security
 
 - The server only listens on your **local network address**, and only accepts connections from local network devices. It isn't reachable from the internet, and you should **not** set up port forwarding for it.
-- Every connection needs the PIN, which is random and changes on each start. After the PIN, the phone saves a random login token so it can reconnect after being locked; the token stops working when the server restarts. After 5 wrong PINs from a device, that device is locked out for 60 seconds; after 10 wrong PINs from any devices combined, everyone is locked out for 60 seconds. Wrong PINs are shown in the Mousette window.
+- Every connection needs the PIN, which is random and changes on each start. After the PIN, the phone saves a random login token so it can reconnect after being locked; the token stops working when the server restarts. After 5 wrong PINs from a device, that device is locked out for 60 seconds; after 10 wrong PINs from any devices combined, everyone is locked out for 60 seconds. Wrong PINs are logged: in the window from source, in `%APPDATA%\Mousette\mousette.log` for `Mousette.exe`.
 - Only Mousette's own page can connect. Other websites open in a browser on your network can't connect to it or guess the PIN in the background, and the page can't be embedded in other sites.
 - **Encryption:** when you connect by scanning the QR code, everything between the phone and the PC is encrypted, including the PIN and everything you type or paste. Someone else on your Wi-Fi can't read it, and recorded traffic can't be replayed. The QR code carries a secret key that never travels over the network. The phone keeps it, so it stays encrypted after the PC restarts (you still enter the new PIN). If you **type** the PIN instead of scanning, the connection is **not** encrypted, and the page tells you so: someone on the same Wi-Fi with network-sniffing tools could then read what you type. Details: [PROTOCOL.md](PROTOCOL.md#encryption).
 - The key is saved on the PC (`%APPDATA%\Mousette\key` on Windows). To unpair all phones, start Mousette with `--new-key` and scan the new QR code.
-- Don't run Mousette on public or untrusted Wi-Fi, and close the window when you're done. Anyone **on your network who knows the current PIN** can control the PC.
+- Don't run Mousette on public or untrusted Wi-Fi, and quit Mousette when you're done. Anyone **on your network who knows the current PIN** can control the PC.
 - Text you send with **Send** goes onto the PC clipboard. On Windows it is marked so it stays out of clipboard history (Win+V) and isn't synced to your other devices through the cloud clipboard. It stays on the clipboard itself until you copy something else.
-- The Mousette window shows the PIN and a QR code that logs in with it and carries the encryption key. Close or minimise the window before you share your screen or stream.
-- Whoever is connected can also shut the PC down. When you run Mousette as administrator (answer **Y** when it starts), the phone can also control admin windows and open Task Manager with admin rights, so only do that on a network you trust.
+- The Mousette window shows the PIN and a QR code that logs in with it and carries the encryption key. Close or minimise the window before you share your screen or stream (`Mousette.exe` keeps running in the tray).
+- Whoever is connected can also shut the PC down. When you run Mousette as administrator, the phone can also control admin windows and open Task Manager with admin rights, so only do that on a network you trust.
 
 ## Testing
 

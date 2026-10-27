@@ -33,7 +33,8 @@ sys.path.insert(0, str(ROOT))
 import segno  # noqa: E402
 from nacl.secret import SecretBox  # noqa: E402
 from server.__main__ import connect_url  # noqa: E402
-from server.app import PinGuard  # noqa: E402
+from server.app import PinGuard, create_app  # noqa: E402
+from server.input_backend import DryRunBackend  # noqa: E402
 from server.encryption import load_key  # noqa: E402
 from server.qr import qr_lines  # noqa: E402
 HOST = "127.0.0.1"
@@ -467,8 +468,46 @@ def check_qr() -> None:
     check(drawn == expected_matrix, f"QR drawing matches the code for {url} ({len(expected_matrix)} modules)")
 
 
+def check_clients() -> None:
+    """The Mousette window learns which phones are logged in, and whether they're encrypted."""
+    import uvicorn
+
+    print("Connected phones (for the Mousette window)")
+    events: list[list[tuple[str, bool]]] = []
+    key = os.urandom(32)
+    port = free_port()
+    app = create_app(DryRunBackend(), "123456", key=key, on_clients=events.append)
+    server = uvicorn.Server(uvicorn.Config(app, host=HOST, port=port, log_level="warning"))
+    thread = threading.Thread(target=server.run, daemon=True)
+    thread.start()
+    while not server.started:
+        time.sleep(0.05)
+
+    async def phones() -> None:
+        url = f"ws://{HOST}:{port}/ws"
+        async with websockets.connect(url) as ws:
+            await send(ws, {"type": "auth", "pin": "123456"})
+            await recv_json(ws)
+            async with websockets.connect(url) as enc_ws:
+                enc = EncryptedClient(enc_ws, key)
+                await enc.handshake()
+                await enc.send({"type": "auth", "pin": "123456"})
+                await enc.recv()
+        for _ in range(40):
+            if len(events) >= 4:
+                break
+            await asyncio.sleep(0.05)
+
+    asyncio.run(phones())
+    server.should_exit = True
+    thread.join(5)
+    check(events == [[(HOST, False)], [(HOST, False), (HOST, True)], [(HOST, False)], []],
+          f"phones logged in, then out: {events}")
+
+
 def main() -> int:
     check_qr()
+    check_clients()
     port = free_port()
     server = Server(port)
     try:

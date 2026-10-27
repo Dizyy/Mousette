@@ -63,8 +63,8 @@ svg { width: 24px; height: 24px; fill: currentColor; flex: none; }
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 4px 8px 4px 16px;
-  min-height: 60px;
+  padding: 2px 8px 2px 16px;
+  min-height: 52px;
 }
 .status { display: flex; align-items: center; gap: 10px; color: var(--muted); font-size: 16px; }
 .status.connected { color: var(--text); }
@@ -152,12 +152,14 @@ svg { width: 24px; height: 24px; fill: currentColor; flex: none; }
   display: grid;
   grid-template-columns: repeat(var(--bar-cols, 7), minmax(0, 1fr));
   gap: 6px;
-  margin: 12px 10px calc(10px + env(safe-area-inset-bottom));
+  /* On iPhones with a home bar, sit partly in its safe area: the home bar line still has room. */
+  margin: 10px 10px max(8px, calc(env(safe-area-inset-bottom) - 14px));
   padding: 8px;
   border-radius: 28px;
   background: var(--surface);
   box-shadow: 0 -1px 0 rgba(255, 255, 255, .03), 0 10px 30px rgba(0, 0, 0, .35);
 }
+.short-screen .bottombar { margin-bottom: 6px; }
 .bottombar[data-align="left"],
 .bottombar[data-align="center"],
 .bottombar[data-align="right"] { grid-template-columns: repeat(var(--bar-cols, 7), minmax(0, 60px)); }
@@ -340,7 +342,7 @@ input[type="range"] {
 }
 .toast[hidden] { display: none; }
 .toast.bad { border-color: var(--bad); }
-.toast-btn { min-height: 40px; padding: 0 14px; border-radius: 12px; background: var(--accent); color: var(--on-accent); font-weight: 600; }
+.toast-btn { flex: none; white-space: nowrap; min-height: 40px; padding: 0 14px; border-radius: 12px; background: var(--accent); color: var(--on-accent); font-weight: 600; }
 .toast-btn[hidden] { display: none; }
 
 #pin-input {
