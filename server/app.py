@@ -5,6 +5,7 @@ from __future__ import annotations
 import asyncio
 import hmac
 import ipaddress
+import json
 import logging
 import mimetypes
 import secrets
@@ -16,7 +17,7 @@ from fastapi import FastAPI, Request, WebSocket, WebSocketDisconnect
 from fastapi.responses import PlainTextResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 
-from . import protocol
+from . import encryption, protocol
 from .input_backend import InputBackend
 
 log = logging.getLogger("couchpad")
@@ -35,6 +36,7 @@ CLOSE_AUTH_FAILED = 4003
 CLOSE_LOCKED_OUT = 4029
 CLOSE_NOT_LAN = 4030
 CLOSE_BAD_ORIGIN = 4031
+CLOSE_BAD_FRAME = 4032
 
 # Windows' registry sometimes maps .js to text/plain, which browsers refuse to run.
 mimetypes.add_type("text/javascript", ".js")
@@ -85,10 +87,42 @@ class PinGuard:
         return False
 
 
-def create_app(backend: InputBackend, pin: str, addresses: list[str] | None = None) -> FastAPI:
+class Channel:
+    """A WebSocket that switches to encrypted binary frames once an enc_hello handshake is done.
+
+    Before that, messages are JSON text frames. After it, every frame in both directions is
+    encrypted, and a text frame (or one that doesn't decrypt) ends the connection.
+    """
+
+    def __init__(self, ws: WebSocket) -> None:
+        self.ws = ws
+        self.session: encryption.Session | None = None
+
+    async def recv(self) -> str:
+        message = await self.ws.receive()
+        if message["type"] == "websocket.disconnect":
+            raise WebSocketDisconnect(message.get("code", 1000))
+        if self.session is None:
+            if message.get("text") is None:
+                raise encryption.BadFrame("binary frame before the encryption handshake")
+            return message["text"]
+        if message.get("bytes") is None:
+            raise encryption.BadFrame("unencrypted frame in an encrypted connection")
+        return self.session.decrypt(message["bytes"])
+
+    async def send(self, msg: dict) -> None:
+        text = json.dumps(msg, separators=(",", ":"), ensure_ascii=False)
+        if self.session is None:
+            await self.ws.send_text(text)
+        else:
+            await self.ws.send_bytes(self.session.encrypt(text))
+
+
+def create_app(backend: InputBackend, pin: str, addresses: list[str] | None = None,
+               key: bytes | None = None) -> FastAPI:
     """`addresses` are the "host:port" forms the phone may open (the .local name and the IP).
     When given, requests naming any other host are refused, which stops DNS-rebinding
-    tricks from websites."""
+    tricks from websites. `key` enables encrypted connections (see encryption.py)."""
     # Browsers leave out ":80", so accept that form too.
     allowed = None if addresses is None else {a for addr in addresses for a in (addr, addr.removesuffix(":80"))}
     # The page may be opened under one of these and connect through another: after a long
@@ -135,53 +169,70 @@ def create_app(backend: InputBackend, pin: str, addresses: list[str] | None = No
         response.headers["Referrer-Policy"] = "no-referrer"
         return response
 
-    async def send(ws: WebSocket, msg: dict) -> None:
-        await ws.send_json(msg)
-
-    async def authenticate(ws: WebSocket, host: str) -> bool:
+    async def first_message(ch: Channel) -> tuple[str, dict] | None:
+        """The next message before login, or None after replying with an error and closing."""
         try:
-            raw = await asyncio.wait_for(ws.receive_text(), AUTH_TIMEOUT_S)
+            raw = await asyncio.wait_for(ch.recv(), AUTH_TIMEOUT_S)
         except asyncio.TimeoutError:
-            await send(ws, protocol.error("auth_required", "send an auth message first"))
-            await ws.close(CLOSE_AUTH_REQUIRED)
-            return False
-
+            await ch.send(protocol.error("auth_required", "send an auth message first"))
+            await ch.ws.close(CLOSE_AUTH_REQUIRED)
+            return None
         try:
-            type_, fields = protocol.parse(raw)
+            return protocol.parse(raw)
         except protocol.ProtocolError as exc:
-            await send(ws, protocol.error(exc.code, exc.message))
-            await ws.close(CLOSE_AUTH_REQUIRED)
+            await ch.send(protocol.error(exc.code, exc.message))
+            await ch.ws.close(CLOSE_AUTH_REQUIRED)
+            return None
+
+    async def authenticate(ch: Channel, host: str) -> bool:
+        ws = ch.ws
+        message = await first_message(ch)
+        if message is None:
             return False
+        type_, fields = message
+
+        if type_ == "enc_hello":
+            if key is None:
+                await ch.send(protocol.error("no_encryption", "this server has no encryption key"))
+                await ws.close(CLOSE_AUTH_REQUIRED)
+                return False
+            server_nonce = secrets.token_bytes(encryption.NONCE_BYTES)
+            await ch.send(protocol.make("enc_challenge", nonce=encryption.b64encode(server_nonce)))
+            ch.session = encryption.Session(key, server_nonce, fields["nonce"])
+            message = await first_message(ch)  # encrypted from here on
+            if message is None:
+                return False
+            type_, fields = message
 
         if type_ != "auth":
-            await send(ws, protocol.error("auth_required", f"'{type_}' rejected: not authenticated"))
+            await ch.send(protocol.error("auth_required", f"'{type_}' rejected: not authenticated"))
             await ws.close(CLOSE_AUTH_REQUIRED)
             return False
 
         if "token" in fields:
             # Tokens are 128-bit random, so wrong ones aren't counted as PIN guesses.
             if not any(hmac.compare_digest(fields["token"], t) for t in tokens):
-                await send(ws, protocol.make("auth_failed", reason="token_expired"))
+                await ch.send(protocol.make("auth_failed", reason="token_expired"))
                 await ws.close(CLOSE_AUTH_FAILED)
                 return False
-            await send(ws, protocol.make("auth_ok", **ok_fields))
+            await ch.send(protocol.make("auth_ok", **ok_fields))
             return True
 
         locked = guard.locked_for(host)
         if locked:
-            await send(ws, protocol.make("auth_failed", reason="locked_out", retry_after=round(locked)))
+            await ch.send(protocol.make("auth_failed", reason="locked_out", retry_after=round(locked)))
             await ws.close(CLOSE_LOCKED_OUT)
             return False
 
         if not guard.check(host, fields["pin"]):
             log.warning("Wrong PIN from %s", host)
-            await send(ws, protocol.make("auth_failed", reason="wrong_pin"))
+            await ch.send(protocol.make("auth_failed", reason="wrong_pin"))
             await ws.close(CLOSE_AUTH_FAILED)
             return False
 
         token = secrets.token_hex(16)
         tokens.add(token)
-        await send(ws, protocol.make("auth_ok", **ok_fields, token=token))
+        await ch.send(protocol.make("auth_ok", **ok_fields, token=token))
         return True
 
     @app.websocket("/ws")
@@ -200,34 +251,41 @@ def create_app(backend: InputBackend, pin: str, addresses: list[str] | None = No
             await ws.close(CLOSE_BAD_ORIGIN)
             return
         await ws.accept()
+        ch = Channel(ws)
         try:
-            if not await authenticate(ws, host):
+            if not await authenticate(ch, host):
                 return
-            log.info("Client connected: %s", host)
+            log.info("Client connected: %s%s", host, " (encrypted)" if ch.session else "")
             loop = asyncio.get_running_loop()
             while True:
-                raw = await ws.receive_text()
+                raw = await ch.recv()
                 try:
                     type_, fields = protocol.parse(raw)
                 except protocol.ProtocolError as exc:
-                    await send(ws, protocol.error(exc.code, exc.message))
+                    await ch.send(protocol.error(exc.code, exc.message))
                     continue
                 if type_ == "ping":
-                    await send(ws, protocol.make("pong", id=fields["id"]))
+                    await ch.send(protocol.make("pong", id=fields["id"]))
                 elif type_ == "auth":
-                    await send(ws, protocol.make("auth_ok", **ok_fields))
+                    await ch.send(protocol.make("auth_ok", **ok_fields))
+                elif type_ == "enc_hello":
+                    await ch.send(protocol.error("bad_state", "enc_hello must be the first message"))
                 else:
                     try:
                         await loop.run_in_executor(executor, backend.execute, type_, fields)
                     except Exception as exc:  # keep the connection alive on injection errors
                         log.exception("Input injection failed for %s", type_)
-                        await send(ws, protocol.error("input_failed", str(exc), ref=type_))
+                        await ch.send(protocol.error("input_failed", str(exc), ref=type_))
                     else:
                         if type_ in protocol.ACTION_TYPES:
                             log.info("PC action from %s: %s", host, type_)
-                            await send(ws, protocol.make("action_ok", ref=type_))
+                            await ch.send(protocol.make("action_ok", ref=type_))
         except WebSocketDisconnect:
             pass
+        except encryption.BadFrame as exc:
+            # Wrong key, tampering or a replayed frame. Nothing it carried was used.
+            log.warning("Closed connection from %s: %s", host, exc)
+            await ws.close(CLOSE_BAD_FRAME)
         finally:
             log.info("Client disconnected: %s", host)
             await asyncio.get_running_loop().run_in_executor(executor, backend.release_all)

@@ -10,6 +10,8 @@ Run:  .venv\\Scripts\\python.exe tests\\smoke_test.py
 from __future__ import annotations
 
 import asyncio
+import base64
+import hashlib
 import http.client
 import json
 import os
@@ -17,6 +19,7 @@ import re
 import socket
 import subprocess
 import sys
+import tempfile
 import threading
 import time
 import urllib.error
@@ -28,8 +31,10 @@ import websockets
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
 import segno  # noqa: E402
+from nacl.secret import SecretBox  # noqa: E402
 from server.__main__ import connect_url  # noqa: E402
 from server.app import PinGuard  # noqa: E402
+from server.encryption import load_key  # noqa: E402
 from server.qr import qr_lines  # noqa: E402
 HOST = "127.0.0.1"
 
@@ -99,8 +104,14 @@ def free_port() -> int:
 class Server:
     def __init__(self, port: int):
         env = {**os.environ, "PYTHONIOENCODING": "utf-8", "PYTHONUNBUFFERED": "1"}
+        # A known key in a temporary file, so the test never touches the real one.
+        self._key_dir = tempfile.TemporaryDirectory()
+        self.key = os.urandom(32)
+        key_file = Path(self._key_dir.name) / "key"
+        key_file.write_bytes(self.key)
         self.proc = subprocess.Popen(
-            [sys.executable, "-m", "server", "--host", HOST, "--port", str(port), "--dry-run"],
+            [sys.executable, "-m", "server", "--host", HOST, "--port", str(port), "--dry-run",
+             "--key-file", str(key_file)],
             cwd=ROOT, env=env, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
             text=True, encoding="utf-8",
         )
@@ -139,6 +150,46 @@ class Server:
     def stop(self) -> None:
         self.proc.terminate()
         self.proc.wait(5)
+        self._key_dir.cleanup()
+
+
+class EncryptedClient:
+    """The phone's side of an encrypted connection, written from PROTOCOL.md (not server code)."""
+
+    def __init__(self, ws, key: bytes):
+        self.ws, self.key = ws, key
+        self.box = None
+        self.sent = self.received = 0
+
+    @staticmethod
+    def nonce(direction: int, counter: int) -> bytes:
+        return bytes([direction]) + counter.to_bytes(8, "little") + bytes(15)
+
+    async def handshake(self) -> None:
+        client_nonce = os.urandom(16)
+        await send(self.ws, {"type": "enc_hello", "nonce": base64.urlsafe_b64encode(client_nonce).decode().rstrip("=")})
+        challenge = await recv_json(self.ws)
+        server_nonce = base64.urlsafe_b64decode(challenge["nonce"] + "==")
+        session_key = hashlib.sha512(b"CouchPad session v1" + self.key + server_nonce + client_nonce).digest()[:32]
+        self.box = SecretBox(session_key)
+
+    def frame(self, msg: dict) -> bytes:
+        text = json.dumps({"v": 1, **msg}, ensure_ascii=False).encode()
+        frame = self.box.encrypt(text, self.nonce(0, self.sent)).ciphertext
+        self.sent += 1
+        return frame
+
+    async def send(self, msg: dict) -> bytes:
+        frame = self.frame(msg)
+        await self.ws.send(frame)
+        return frame
+
+    async def recv(self) -> dict:
+        data = await asyncio.wait_for(self.ws.recv(), 3)
+        assert isinstance(data, bytes), f"expected an encrypted frame, got {data!r}"
+        msg = json.loads(self.box.decrypt(data, self.nonce(1, self.received)))
+        self.received += 1
+        return msg
 
 
 async def recv_json(ws, timeout=3.0) -> dict:
@@ -306,6 +357,43 @@ async def run(server: Server, port: int) -> None:
         await server.wait_for_log("DRY-RUN paste_text")
         check(server.log_count(f"DRY-RUN paste_text text={paste!r}") == 1, "paste_text      executed with the exact text")
 
+        print("Encrypted connection (key from the QR code)")
+        async with websockets.connect(url) as enc_ws:
+            enc = EncryptedClient(enc_ws, server.key)
+            await enc.handshake()
+            await enc.send({"type": "auth", "pin": server.pin})
+            reply = await enc.recv()
+            check(reply.get("type") == "auth_ok" and "token" in reply, "encrypted PIN login -> encrypted auth_ok")
+            secret = "my password 🙂"
+            paste_frame = await enc.send({"type": "paste_text", "text": secret})
+            check((await enc.recv()) == {"v": 1, "type": "action_ok", "ref": "paste_text"}, "encrypted paste_text -> action_ok")
+            await server.wait_for_log("DRY-RUN paste_text text='my password")
+            check(server.log_count(f"DRY-RUN paste_text text={secret!r}") == 1, "encrypted paste_text executed once")
+            check(secret.encode() not in paste_frame and b"paste_text" not in paste_frame, "the frame on the wire doesn't show the text")
+            await enc_ws.send(paste_frame)  # someone on the network replays a recorded frame
+            code = await expect_closed(enc_ws)
+            check(code == 4032 and server.log_count(f"DRY-RUN paste_text text={secret!r}") == 1,
+                  f"replayed frame -> closed (code {code}), not executed again")
+
+        async with websockets.connect(url) as enc_ws:
+            enc = EncryptedClient(enc_ws, os.urandom(32))
+            await enc.handshake()
+            await enc.send({"type": "auth", "pin": server.pin})
+            code = await expect_closed(enc_ws)
+            check(code == 4032, f"wrong key -> closed (code {code}) without logging in")
+
+        async with websockets.connect(url) as enc_ws:
+            enc = EncryptedClient(enc_ws, server.key)
+            await enc.handshake()
+            await send(enc_ws, {"type": "auth", "pin": server.pin})
+            code = await expect_closed(enc_ws)
+            check(code == 4032, f"unencrypted message after the handshake -> closed (code {code})")
+
+        async with websockets.connect(url) as enc_ws:
+            await send(enc_ws, {"type": "enc_hello", "nonce": "short"})
+            reply = await recv_json(enc_ws)
+            check(reply.get("code") == "bad_field", "enc_hello with a bad nonce -> bad_field")
+
         print("Invalid messages get an error reply, connection stays open")
         for raw, expected_code in BAD_MESSAGES:
             await ws.send(raw)
@@ -337,6 +425,15 @@ async def run(server: Server, port: int) -> None:
 
 def check_qr() -> None:
     print("QR code")
+    key = bytes(range(32))
+    with_key = connect_url("couchpad.local", 80, "123456", key)
+    check(with_key == "http://couchpad.local/#pin=123456&key=AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8",
+          f"connect_url with the key -> {with_key}")
+    with tempfile.TemporaryDirectory() as tmp:
+        key_file = Path(tmp) / "sub" / "key"
+        first = load_key(key_file)
+        check(len(first) == 32 and load_key(key_file) == first, "encryption key is made once, then reused")
+        check(load_key(key_file, new=True) != first, "--new-key replaces it")
     for args, expected in [(("couchpad.local", 80, "123456"), "http://couchpad.local/#pin=123456"),
                            (("couchpad.local", 8765, "123456"), "http://couchpad.local:8765/#pin=123456"),
                            (("192.168.1.23", 80, "123456"), "http://192.168.1.23/#pin=123456")]:

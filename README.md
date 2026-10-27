@@ -32,7 +32,8 @@ The phone and the PC must be on the **same home network** (the PC can be on Wi-F
   - `mdns.py`: makes `couchpad.local` point at this PC, so you don't need the IP address
   - `update.py`: checks GitHub for a new version when CouchPad starts, and installs it
   - `clipboard.py`: puts text from the phone on the PC clipboard
-- `client/`: the web page for the phone (plain HTML/CSS/JS, no build step)
+  - `encryption.py`: the encryption key and encrypted connections (PyNaCl)
+- `client/`: the web page for the phone (plain HTML/CSS/JS, no build step); `client/vendor/` holds [tweetnacl.js](https://github.com/dchest/tweetnacl-js) 1.0.3 (public domain) for encryption
 - `PROTOCOL.md`: the messages the phone and the server exchange
 - `tests/`: automated tests
 - `start.bat` / `start.sh`: one-click start from source (Windows / macOS and Linux)
@@ -61,11 +62,11 @@ From source, the first run creates a `.venv` folder and installs the packages fr
 
 ```
 ==============================================
-  CouchPad 1.4.0 is running
+  CouchPad 1.5.0 is running
   Open on your phone:    http://couchpad.local
   Or:                   http://192.168.1.23
   PIN:                  482915
-  Or scan with the phone camera:
+  Or scan with the phone camera (encrypted connection):
   (a QR code appears here)
   Press Ctrl+C to stop.
 ==============================================
@@ -84,6 +85,7 @@ Options (add them after the command, for example `start.bat --port 9000` or `Cou
 - `--host 192.168.x.x`: choose which network address to use, if the PC has several
 - `--dry-run`: log input instead of moving the real mouse (for testing)
 - `--no-update`: don't check for a new version this time
+- `--new-key`: make a new encryption key, so every phone has to scan the QR code again (see [Security](#security))
 
 ## 3. Allow CouchPad through the firewall (private networks only)
 
@@ -117,10 +119,10 @@ New-NetFirewallRule -DisplayName "CouchPad" -Direction Inbound -Protocol UDP -Lo
 ## 4. Open it on the phone
 
 1. Make sure the phone is on the **same Wi-Fi** as the PC (the same router).
-2. **Easiest:** open the **Camera** app (on Android, the camera or Google Lens), point it at the QR code in the CouchPad window and tap the link. CouchPad opens and connects by itself, no typing.
-3. **Or type it:** in the browser (Safari on iPhone/iPad, Chrome on Android), open `http://couchpad.local` (or the address on the **Or:** line) and enter the 6-digit PIN.
+2. **Easiest, and encrypted:** open the **Camera** app (on Android, the camera or Google Lens), point it at the QR code in the CouchPad window and tap the link. CouchPad opens and connects by itself, no typing, and the connection is encrypted.
+3. **Or type it:** in the browser (Safari on iPhone/iPad, Chrome on Android), open `http://couchpad.local` (or the address on the **Or:** line) and enter the 6-digit PIN. This connects **without** encryption; scan the QR code once to encrypt it.
 
-The dot at the top turns **green** when you're connected.
+The dot at the top turns **green** when you're connected, and it says **Connected · encrypted** when the connection is encrypted.
 
 You only type the PIN once per server start. After that the phone stays logged in: if you lock and unlock it, switch apps, or close and reopen CouchPad, it reconnects by itself. When the server restarts, it makes a new PIN and the phone asks for it again.
 
@@ -214,8 +216,11 @@ If it already says **Private**, add the port rule from step 3. A dismissed firew
 - The server only listens on your **local network address**, and only accepts connections from local network devices. It isn't reachable from the internet, and you should **not** set up port forwarding for it.
 - Every connection needs the PIN, which is random and changes on each start. After the PIN, the phone saves a random login token so it can reconnect after being locked; the token stops working when the server restarts. After 5 wrong PINs from a device, that device is locked out for 60 seconds; after 10 wrong PINs from any devices combined, everyone is locked out for 60 seconds. Wrong PINs are shown in the CouchPad window.
 - Only CouchPad's own page can connect. Other websites open in a browser on your network can't connect to it or guess the PIN in the background, and the page can't be embedded in other sites.
-- The connection is unencrypted (`http`/`ws`), which is normal for a home network. Anyone **on your network who knows the current PIN** can control the PC, and someone on the same Wi-Fi with network-sniffing tools could read what you type. Don't run it on public or untrusted Wi-Fi, don't type or paste passwords through it, and close the window when you're done.
-- The CouchPad window shows the PIN and a QR code that logs in with it. Close or minimise the window before you share your screen or stream.
+- **Encryption:** when you connect by scanning the QR code, everything between the phone and the PC is encrypted, including the PIN and everything you type or paste. Someone else on your Wi-Fi can't read it, and recorded traffic can't be replayed. The QR code carries a secret key that never travels over the network. The phone keeps it, so it stays encrypted after the PC restarts (you still enter the new PIN). If you **type** the PIN instead of scanning, the connection is **not** encrypted, and the page tells you so: someone on the same Wi-Fi with network-sniffing tools could then read what you type. Details: [PROTOCOL.md](PROTOCOL.md#encryption).
+- The key is saved on the PC (`%APPDATA%\CouchPad\key` on Windows). To unpair all phones, start CouchPad with `--new-key` and scan the new QR code.
+- Don't run CouchPad on public or untrusted Wi-Fi, and close the window when you're done. Anyone **on your network who knows the current PIN** can control the PC.
+- Text you send with **Send** goes onto the PC clipboard. On Windows it is marked so it stays out of clipboard history (Win+V) and isn't synced to your other devices through the cloud clipboard. It stays on the clipboard itself until you copy something else.
+- The CouchPad window shows the PIN and a QR code that logs in with it and carries the encryption key. Close or minimise the window before you share your screen or stream.
 - Whoever is connected can also shut the PC down. When you run CouchPad as administrator (answer **Y** when it starts), the phone can also control admin windows and open Task Manager with admin rights, so only do that on a network you trust.
 
 ## Testing

@@ -52,7 +52,7 @@ if not defined PM_UPDATED (
 )
 
 :deps
-"%VENV_PY%" -c "import fastapi, uvicorn, websockets, pynput, segno" >nul 2>nul
+"%VENV_PY%" -c "import fastapi, uvicorn, websockets, pynput, segno, nacl" >nul 2>nul
 if errorlevel 1 (
     echo Installing requirements ...
     "%VENV_PY%" -m pip install --disable-pip-version-check -r requirements.txt || (echo Failed to install requirements. & pause & exit /b 1)

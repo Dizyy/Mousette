@@ -36,6 +36,55 @@
   const setToken = (token) => store.set('pm.token', token);
   const forgetToken = () => store.remove('pm.token');
 
+  // ---------- Encryption (see server/encryption.py and PROTOCOL.md) ----------
+  // The QR code carries the PC's key after "#", so it never travels over the network.
+  // With it, each connection agrees on a session key and every frame is encrypted and
+  // numbered (NaCl secretbox via tweetnacl.js). A typed PIN alone connects unencrypted.
+  const SESSION_LABEL = new TextEncoder().encode('CouchPad session v1');
+  const FROM_CLIENT = 0;
+  const FROM_SERVER = 1;
+  const canEncrypt = typeof nacl !== 'undefined';
+
+  function b64encode(bytes) {
+    let s = '';
+    for (const b of bytes) s += String.fromCharCode(b);
+    return btoa(s).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+  }
+  function b64decode(text) {
+    const s = atob(text.replace(/-/g, '+').replace(/_/g, '/') + '==='.slice((text.length + 3) % 4));
+    return Uint8Array.from(s, (c) => c.charCodeAt(0));
+  }
+  function getKey() {
+    const saved = store.get('pm.key');
+    if (!saved || !canEncrypt) return null;
+    try { const key = b64decode(saved); return key.length === 32 ? key : null; } catch { return null; }
+  }
+  const setKey = (text) => store.set('pm.key', text);
+  const forgetKey = () => store.remove('pm.key');
+
+  function frameNonce(direction, counter) {
+    const nonce = new Uint8Array(24);
+    nonce[0] = direction;
+    for (let i = 1; i <= 8; i++) { nonce[i] = counter % 256; counter = Math.floor(counter / 256); }
+    return nonce;
+  }
+  function makeSession(key, serverNonce, clientNonce) {
+    const all = new Uint8Array(SESSION_LABEL.length + key.length + serverNonce.length + clientNonce.length);
+    all.set(SESSION_LABEL, 0);
+    all.set(key, SESSION_LABEL.length);
+    all.set(serverNonce, SESSION_LABEL.length + key.length);
+    all.set(clientNonce, SESSION_LABEL.length + key.length + serverNonce.length);
+    return { key: nacl.hash(all).subarray(0, 32), sent: 0, received: 0 };
+  }
+
+  // Sends on one socket, encrypted once its handshake is done.
+  function sockSend(sock, msg) {
+    const text = JSON.stringify({ v: V, ...msg });
+    if (!sock.session) { sock.send(text); return; }
+    const s = sock.session;
+    sock.send(nacl.secretbox(new TextEncoder().encode(text), frameNonce(FROM_CLIENT, s.sent++), s.key));
+  }
+
   // The PC's IP address, from auth_ok. After a long sleep the phone sometimes can't look up
   // couchpad.local any more; then the connection goes to the IP address instead.
   const getDirect = () => store.get('pm.direct');
@@ -56,6 +105,8 @@
   let lastPong = 0;
   let pingId = 0;
   let pinJustEntered = false; // typed just now, rather than reused for a reconnect
+  let warnedUnencrypted = false;
+  const CLOSE_BAD_FRAME = 4032; // the server couldn't decrypt what we sent
 
   function setStatus(connected, text) {
     statusEl.classList.toggle('connected', connected);
@@ -64,7 +115,7 @@
 
   function rawSend(msg) {
     if (ws && authed && ws.readyState === WebSocket.OPEN) {
-      ws.send(JSON.stringify({ v: V, ...msg }));
+      sockSend(ws, msg);
       return true;
     }
     return false;
@@ -109,7 +160,11 @@
     const proto = location.protocol === 'https:' ? 'wss:' : 'ws:';
     const target = viaDirect && getDirect() ? getDirect() : location.host;
     const sock = new WebSocket(`${proto}//${target}/ws`);
+    sock.binaryType = 'arraybuffer';
     ws = sock;
+    const key = getKey();
+    let clientNonce = null;
+    const sendAuth = () => sockSend(sock, token ? { type: 'auth', token } : { type: 'auth', pin });
     let authRejected = false;
     let opened = false;
     // After the phone wakes up, a new socket sometimes hangs without opening or failing.
@@ -121,11 +176,29 @@
 
     sock.onopen = () => {
       opened = true;
-      sock.send(JSON.stringify(token ? { v: V, type: 'auth', token } : { v: V, type: 'auth', pin }));
+      if (!key) { sendAuth(); return; }
+      clientNonce = nacl.randomBytes(16);
+      sockSend(sock, { type: 'enc_hello', nonce: b64encode(clientNonce) });
     };
     sock.onmessage = (event) => {
+      let text = event.data;
+      if (typeof text !== 'string') {
+        if (!sock.session) return;
+        const s = sock.session;
+        const plain = nacl.secretbox.open(new Uint8Array(text), frameNonce(FROM_SERVER, s.received++), s.key);
+        if (!plain) { if (ws === sock) dropConnection(true); return; } // tampered or out of order
+        text = new TextDecoder().decode(plain);
+      } else if (sock.session) {
+        return; // never trust an unencrypted message on an encrypted connection
+      }
       let msg;
-      try { msg = JSON.parse(event.data); } catch { return; }
+      try { msg = JSON.parse(text); } catch { return; }
+      if (msg.type === 'enc_challenge') {
+        if (!clientNonce || sock.session) return;
+        sock.session = makeSession(key, b64decode(msg.nonce), clientNonce);
+        sendAuth();
+        return;
+      }
       switch (msg.type) {
         case 'auth_ok':
           authed = true;
@@ -137,7 +210,11 @@
           }
           reconnectDelay = 500;
           lastPong = Date.now();
-          setStatus(true, 'Connected');
+          setStatus(true, sock.session ? 'Connected · encrypted' : 'Connected');
+          if (!sock.session && !warnedUnencrypted) {
+            warnedUnencrypted = true;
+            showToast('Not encrypted. Scan the QR code on the PC to encrypt the connection.', { ms: 6000 });
+          }
           hidePin();
           startPing();
           break;
@@ -169,11 +246,17 @@
           break;
       }
     };
-    sock.onclose = () => {
+    sock.onclose = (event) => {
       if (ws !== sock) return; // already dropped
       ws = null;
       authed = false;
       stopPing();
+      if (event.code === CLOSE_BAD_FRAME && key) {
+        // The PC has a different key now (a new key, or another PC): pair again.
+        forgetKey();
+        authRejected = true;
+        showPin('CouchPad has a new encryption key. Scan the QR code on the PC again, or enter the PIN to connect without encryption.');
+      }
       if (authRejected) {
         setStatus(false, 'Not connected');
       } else {
@@ -843,18 +926,19 @@
     connect();
   });
 
-  // Opened from the QR code in the CouchPad window: the PIN comes after "#", which the
-  // browser never sends anywhere. Use it, then wipe it so it isn't kept in history or an icon.
+  // Opened from the QR code in the CouchPad window: the PIN (and the encryption key) come
+  // after "#", which the browser never sends anywhere. Use it, then wipe it so it isn't kept in history or an icon.
   // Pages linked from other websites arrive as /?from=link (see server/app.py): there the
   // PIN is ignored, so a website can't make CouchPad try wrong PINs.
   // Returns true when a PIN from the QR code was taken.
   function takePinFromQr() {
     if (!location.hash) return false;
-    const fromQr = /^#pin=(\d{6})$/.exec(location.hash);
+    const fromQr = /^#pin=(\d{6})(?:&key=([A-Za-z0-9_-]{43}))?$/.exec(location.hash);
     const trusted = !new URLSearchParams(location.search).has('from');
     history.replaceState(null, '', location.pathname);
     if (!fromQr || !trusted) return false;
     setPin(fromQr[1]);
+    if (fromQr[2]) setKey(fromQr[2]);
     // Not "just entered": a QR code from an earlier start then says the PIN has changed.
     pinJustEntered = false;
     return true;

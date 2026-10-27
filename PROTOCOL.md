@@ -5,10 +5,10 @@ This describes the messages between the PC server and the web page in `client/`.
 ## Transport
 
 - WebSocket at `ws://couchpad.local/ws` or `ws://<pc-lan-ip>/ws`. The port is 80, or 8765 when 80 is taken (choose another with `--port`).
-- Each WebSocket **text** frame holds one JSON object, UTF-8 encoded. Binary frames are not used.
+- Each WebSocket **text** frame holds one JSON object, UTF-8 encoded. On an encrypted connection (see [Encryption](#encryption)), every frame after the handshake is a **binary** frame holding one encrypted JSON object instead.
 - Every message, in both directions, has `"v": 1` and a `"type"` string.
 - The server only accepts connections from private/LAN addresses (10/8, 172.16/12, 192.168/16, link-local, loopback).
-- A frame can be at most 64 KB.
+- A frame can be at most 512 KB.
 
 ## Session flow
 
@@ -34,7 +34,8 @@ The server only accepts requests whose `Host` header is the address it printed, 
 
 | type | fields | effect |
 |---|---|---|
-| `auth` | `pin`: string, **or** `token`: string | Authenticate. Must be first. `token` is one an earlier `auth_ok` returned; it lets a client log in again without the PIN. |
+| `auth` | `pin`: string, **or** `token`: string | Authenticate. Must be first (or first after the encryption handshake). `token` is one an earlier `auth_ok` returned; it lets a client log in again without the PIN. |
+| `enc_hello` | `nonce`: 16 random bytes, base64url without padding | Start an encrypted connection. Only allowed as the very first message; see [Encryption](#encryption). |
 | `ping` | `id`: number or string, optional | Server replies `pong` with the same `id`. |
 | `move` | `dx`, `dy`: number (px, ±4000) | Move the cursor relative to where it is. Fractions are allowed; the server carries sub-pixel remainders over, so many small moves add up correctly. |
 | `click` | `button`: `"left"`, `"right"` or `"middle"` (default `"left"`) | Single click. |
@@ -76,6 +77,7 @@ Examples:
 
 | type | fields | meaning |
 |---|---|---|
+| `enc_challenge` | `nonce`: 16 random bytes, base64url without padding | Reply to `enc_hello`, sent unencrypted. Everything after it is encrypted in both directions. |
 | `auth_ok` | `protocol`: 1; `token`: string (only after a PIN); optional `direct`: the server's IP address and port | Authenticated; input is accepted from now on. Keep `token` to log in again later: it is valid until the server stops. If the page's host name (`couchpad.local`) stops resolving, connect to `ws://<direct>/ws` instead: the server accepts its own page from any of its addresses. |
 | `auth_failed` | `reason`: `"wrong_pin"`, `"token_expired"` (the server restarted since the token was issued) or `"locked_out"`; `retry_after`: seconds (only when locked out) | The socket closes right after this. |
 | `pong` | `id`: the id from the ping, or null | Reply to `ping`. |
@@ -91,6 +93,8 @@ Examples:
 | `unknown_type` | `type` is not one listed above. |
 | `bad_field` | A field has the wrong type or is out of range. |
 | `auth_required` | An input message was sent before `auth`. The socket then closes with 4001. |
+| `no_encryption` | `enc_hello` was sent, but the server has no encryption key. The socket then closes with 4001. |
+| `bad_state` | `enc_hello` was sent after the connection had started. |
 | `input_failed` | Windows rejected the injected input or PC action (`ref` names the message type; `message` says why). |
 
 ### Close codes
@@ -102,6 +106,29 @@ Examples:
 | 4029 | Too many wrong PINs; wait `retry_after` seconds. |
 | 4030 | The connection did not come from a local network address. |
 | 4031 | The connection came from another website's page, or used a different host name. |
+| 4032 | An encrypted connection received a frame that doesn't decrypt (wrong key, changed, replayed or out-of-order frame), or an unencrypted frame. Nothing in it was used. A client that gets this after its handshake should drop its saved key and pair again. |
+
+## Encryption
+
+Optional, and used by the web client whenever it has the key. It keeps everything sent over the network (PIN, typed and pasted text, every input) unreadable to others on the same network, and stops recorded traffic from being replayed.
+
+**The key.** The server keeps one random 32-byte key `K` in a file (`%APPDATA%\CouchPad\key` on Windows, `~/Library/Application Support/CouchPad/key` on macOS, `~/.config/couchpad/key` on Linux), so phones stay paired across restarts. `--new-key` replaces it, which unpairs every phone. The QR code carries `K` after `#` (`/#pin=123456&key=<base64url K>`): browsers never send that part over the network, so `K` reaches the phone only through the camera. A PIN typed by hand doesn't give the phone `K`; such connections stay unencrypted.
+
+**Handshake.** The client sends `{"v":1,"type":"enc_hello","nonce":cn}` as its first message, with 16 fresh random bytes `cn`. The server replies `{"v":1,"type":"enc_challenge","nonce":sn}` with 16 fresh random bytes `sn`. Both then compute the session key
+
+```
+session_key = SHA-512("CouchPad session v1" || K || sn || cn)[0:32]
+```
+
+**Frames.** From then on, every message in both directions is the usual JSON object, UTF-8 encoded and sealed with NaCl `secretbox` (XSalsa20-Poly1305) under `session_key`, sent as one binary frame (ciphertext with its 16-byte tag; the nonce is not sent). The 24-byte nonce is
+
+```
+nonce = direction (1 byte: 0 = client to server, 1 = server to client)
+        || counter (8 bytes, little-endian: 0 for the first frame in that direction, then 1, 2, ...)
+        || 15 zero bytes
+```
+
+So a frame that is replayed, dropped, reordered or changed fails to open, and the connection is closed (4032). The first encrypted client message must be `auth`, as on an unencrypted connection.
 
 ## Behaviour notes for client authors
 

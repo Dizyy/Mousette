@@ -1,4 +1,4 @@
-"""Entry point: `python -m server [--host IP] [--port N] [--dry-run] [--no-update]`."""
+"""Entry point: `python -m server [--host IP] [--port N] [--dry-run] [--no-update] [--new-key]`."""
 
 from __future__ import annotations
 
@@ -8,10 +8,11 @@ import logging
 import secrets
 import socket
 import sys
+from pathlib import Path
 
 import uvicorn
 
-from . import __version__
+from . import __version__, encryption
 from .app import create_app, is_lan_address
 from .input_backend import DryRunBackend, PynputBackend, is_elevated
 from .mdns import MdnsResponder
@@ -37,9 +38,10 @@ def url(host: str, port: int) -> str:
     return f"http://{host}" if port == 80 else f"http://{host}:{port}"
 
 
-def connect_url(name: str, port: int, pin: str) -> str:
-    """Address for the QR code. The PIN goes after "#", which browsers never send to the server."""
-    return f"{url(name, port)}/#pin={pin}"
+def connect_url(name: str, port: int, pin: str, key: bytes | None = None) -> str:
+    """Address for the QR code. The PIN and the encryption key go after "#", which browsers
+    never send to the server, so they only travel through the camera."""
+    return f"{url(name, port)}/#pin={pin}" + (f"&key={encryption.b64encode(key)}" if key else "")
 
 
 def lan_ip_candidates() -> list[str]:
@@ -86,6 +88,10 @@ def main() -> int:
                         help="log input events instead of moving the real mouse/keyboard")
     parser.add_argument("--no-update", action="store_true",
                         help="don't check for a new version")
+    parser.add_argument("--new-key", action="store_true",
+                        help="make a new encryption key: phones must scan the QR code again")
+    parser.add_argument("--key-file", type=Path, default=None,
+                        help=f"where the encryption key is kept (default: {encryption.default_key_file()})")
     args = parser.parse_args()
 
     for stream in (sys.stdout, sys.stderr):
@@ -114,9 +120,10 @@ def main() -> int:
     hostname = mdns.start() if mdns else None
 
     pin = f"{secrets.randbelow(1_000_000):06d}"
+    key = encryption.load_key(args.key_file or encryption.default_key_file(), new=args.new_key)
     backend = DryRunBackend() if args.dry_run else PynputBackend()
     names = [hostname, host] if hostname else [host]
-    app = create_app(backend, pin, addresses=[f"{name}:{port}" for name in names])
+    app = create_app(backend, pin, addresses=[f"{name}:{port}" for name in names], key=key)
 
     bar = "=" * 46
     print(bar)
@@ -126,8 +133,8 @@ def main() -> int:
         print(f"  Or:                   {url(host, port)}")
     print(f"  PIN:                  {pin}")
     try:
-        lines = qr_lines(connect_url(names[0], port, pin))
-        print("  Or scan with the phone camera:")
+        lines = qr_lines(connect_url(names[0], port, pin, key))
+        print("  Or scan with the phone camera (encrypted connection):")
         for line in lines:
             print("  " + line)
     except UnicodeEncodeError:

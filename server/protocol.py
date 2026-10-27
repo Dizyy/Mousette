@@ -6,6 +6,7 @@ See PROTOCOL.md for the human-readable specification.
 
 from __future__ import annotations
 
+import base64
 import json
 import math
 from typing import Any
@@ -35,6 +36,7 @@ MAX_PASTE_LENGTH = 100_000  # characters per paste_text message
 MAX_HOTKEY_KEYS = 5
 MAX_PIN_LENGTH = 32
 MAX_TOKEN_LENGTH = 64
+ENC_NONCE_BYTES = 16
 
 
 class ProtocolError(Exception):
@@ -151,6 +153,18 @@ def _validate_auth(msg: dict) -> dict:
     return {"pin": pin}
 
 
+def _validate_enc_hello(msg: dict) -> dict:
+    # Starts an encrypted connection; "nonce" is the client's random value (base64url, 16 bytes).
+    nonce = msg.get("nonce")
+    try:
+        raw = base64.urlsafe_b64decode(nonce + "=" * (-len(nonce) % 4)) if isinstance(nonce, str) else b""
+    except ValueError:
+        raw = b""
+    if len(raw) != ENC_NONCE_BYTES:
+        raise ProtocolError("bad_field", f"'nonce' must be {ENC_NONCE_BYTES} random bytes in base64url")
+    return {"nonce": raw}
+
+
 def _validate_ping(msg: dict) -> dict:
     # "id" is optional and echoed back verbatim in the pong.
     if "id" in msg and not isinstance(msg["id"], (int, float, str)):
@@ -160,6 +174,7 @@ def _validate_ping(msg: dict) -> dict:
 
 _VALIDATORS = {
     "auth": _validate_auth,
+    "enc_hello": _validate_enc_hello,
     "ping": _validate_ping,
     "move": _validate_move,
     "click": _validate_button,
@@ -177,7 +192,7 @@ _VALIDATORS = {
 }
 
 MESSAGE_TYPES = tuple(_VALIDATORS)
-INPUT_TYPES = tuple(t for t in MESSAGE_TYPES if t not in ("auth", "ping"))
+INPUT_TYPES = tuple(t for t in MESSAGE_TYPES if t not in ("auth", "enc_hello", "ping"))
 # Actions the server confirms with "action_ok", so the client can show feedback.
 ACTION_TYPES = ("task_manager", "shutdown", "cancel_shutdown", "paste_text")
 

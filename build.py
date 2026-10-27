@@ -37,6 +37,8 @@ def main() -> int:
         "--add-data", f"{ROOT / 'client'}{sep}client",
         # Both pick their backends at runtime, which PyInstaller can't see on its own.
         "--collect-submodules", "uvicorn", "--collect-submodules", "pynput",
+        # PyNaCl loads libsodium through cffi's compiled backend, also unseen.
+        "--hidden-import", "_cffi_backend", "--collect-binaries", "nacl",
         "--distpath", str(ROOT / "dist"), "--workpath", str(BUILD), "--specpath", str(BUILD),
         str(ROOT / "couchpad.py"),
     ], check=True)

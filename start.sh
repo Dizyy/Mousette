@@ -30,7 +30,7 @@ if [ -z "${PM_UPDATED:-}" ]; then
     fi
 fi
 
-if ! "$VENV_PY" -c "import fastapi, uvicorn, websockets, pynput, segno" >/dev/null 2>&1; then
+if ! "$VENV_PY" -c "import fastapi, uvicorn, websockets, pynput, segno, nacl" >/dev/null 2>&1; then
     echo "Installing requirements ..."
     "$VENV_PY" -m pip install --disable-pip-version-check -r requirements.txt \
         || { echo "Failed to install requirements."; exit 1; }
