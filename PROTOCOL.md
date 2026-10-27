@@ -9,6 +9,7 @@ This describes the messages between the PC server and the web page in `client/`.
 - Every message, in both directions, has `"v": 1` and a `"type"` string.
 - The server only accepts connections from private/LAN addresses (10/8, 172.16/12, 192.168/16, link-local, loopback).
 - A frame can be at most 512 KB.
+- `GET /name` returns `{"name": "mousette.local"}` (with `:port` when not 80), or `{"name": null}` without a .local name. The QR code links to the IP address, which every phone can open; on iPhone/iPad the web client then moves to this name when it answers within 2.5 s, keeping the `#` part. The server keeps the PIN of such a move: its `Referer` is one of the server's own addresses (pages are served with `Referrer-Policy: origin`).
 
 ## Session flow
 
@@ -112,7 +113,7 @@ Examples:
 
 Optional, and used by the web client whenever it has the key. It keeps everything sent over the network (PIN, typed and pasted text, every input) unreadable to others on the same network, and stops recorded traffic from being replayed.
 
-**The key.** The server keeps one random 32-byte key `K` in a file (`%APPDATA%\Mousette\key` on Windows, `~/Library/Application Support/Mousette/key` on macOS, `~/.config/mousette/key` on Linux), so phones stay paired across restarts. `--new-key` replaces it, which unpairs every phone. The QR code carries `K` after `#` (`/#pin=123456&key=<base64url K>`): browsers never send that part over the network, so `K` reaches the phone only through the camera. A PIN typed by hand doesn't give the phone `K`; such connections stay unencrypted.
+**The key.** The server keeps one random 32-byte key `K` in a file (`%APPDATA%\Mousette\key` on Windows, `~/Library/Application Support/Mousette/key` on macOS, `~/.config/mousette/key` on Linux), so phones stay paired across restarts. `--new-key` replaces it, which unpairs every phone. The QR code carries `K` after `#` (`http://<pc-ip>/#p=123456&k=<base64url K>`; the web client also accepts the older `#pin=…&key=…`): browsers never send that part over the network, so `K` reaches the phone only through the camera. A PIN typed by hand doesn't give the phone `K`; such connections stay unencrypted.
 
 **Handshake.** The client sends `{"v":1,"type":"enc_hello","nonce":cn}` as its first message, with 16 fresh random bytes `cn`. The server replies `{"v":1,"type":"enc_challenge","nonce":sn}` with 16 fresh random bytes `sn`. Both then compute the session key
 

@@ -39,9 +39,10 @@ def url(host: str, port: int) -> str:
 
 
 def connect_url(name: str, port: int, pin: str, key: bytes | None = None) -> str:
-    """Address for the QR code. The PIN and the encryption key go after "#", which browsers
-    never send to the server, so they only travel through the camera."""
-    return f"{url(name, port)}/#pin={pin}" + (f"&key={encryption.b64encode(key)}" if key else "")
+    """Address for the QR code. The PIN (p) and the encryption key (k) go after "#", which
+    browsers never send to the server, so they only travel through the camera. The short
+    names keep the code small enough for picky phone cameras to read."""
+    return f"{url(name, port)}/#p={pin}" + (f"&k={encryption.b64encode(key)}" if key else "")
 
 
 def lan_ip_candidates() -> list[str]:
@@ -128,12 +129,13 @@ def main() -> int:
     bar = "=" * 46
     print(bar)
     print(f"  Mousette {__version__} is running" + ("  (DRY RUN - no real input)" if args.dry_run else ""))
-    print(f"  Open on your phone:    {url(names[0], port)}")
+    # Android browsers can't open .local names, so the IP address comes first and is in the QR.
+    print(f"  Open on your phone:    {url(host, port)}")
     if hostname:
-        print(f"  Or:                   {url(host, port)}")
+        print(f"  iPhone/iPad also:      {url(hostname, port)}")
     print(f"  PIN:                  {pin}")
     try:
-        lines = qr_lines(connect_url(names[0], port, pin, key))
+        lines = qr_lines(connect_url(host, port, pin, key))
         print("  Or scan with the phone camera (encrypted connection):")
         for line in lines:
             print("  " + line)

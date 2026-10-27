@@ -12,7 +12,9 @@ _CHARS = {(True, True): "█", (True, False): "▀", (False, True): "▄", (Fals
 
 
 def qr_lines(text: str) -> list[str]:
-    matrix = segno.make(text, error="m", boost_error=False).matrix
+    # Low error correction: a code on a clean screen needs little, and fewer, bigger squares
+    # are easier for phone cameras to read.
+    matrix = segno.make(text, error="l", boost_error=False).matrix
     size = len(matrix) + 2 * BORDER
     light = [[True] * size for _ in range(BORDER)]
     light += [[True] * BORDER + [not m for m in row] + [True] * BORDER for row in matrix]

@@ -253,9 +253,12 @@ async def run(server: Server, port: int) -> None:
 
     # A link from another website must not log in with a PIN in its "#": the page is sent
     # to /?from=link, where the client ignores it. Camera, typed address and reload log in.
-    def page(path: str, fetch_site: str | None) -> tuple[int, str | None]:
+    def page(path: str, fetch_site: str | None, referer: str | None = None) -> tuple[int, str | None]:
         conn = http.client.HTTPConnection(HOST, port, timeout=5)
-        conn.request("GET", path, headers={"Sec-Fetch-Site": fetch_site} if fetch_site else {})
+        headers = {"Sec-Fetch-Site": fetch_site} if fetch_site else {}
+        if referer:
+            headers["Referer"] = referer
+        conn.request("GET", path, headers=headers)
         r = conn.getresponse()
         r.read()
         conn.close()
@@ -268,6 +271,17 @@ async def run(server: Server, port: int) -> None:
                                  ("/", "same-origin", (200, None)),
                                  ("/", None, (200, None))]:
         check(page(path, site) == expected, f"GET {path} from {site or 'unknown'} -> {page(path, site)}")
+    # The page moving itself from the IP address to the .local name keeps its PIN; a link
+    # from any other website still doesn't.
+    own = f"http://{HOST}:{port}/"
+    check(page("/", "cross-site", own) == (200, None), f"GET / from our own address ({own}) -> keeps the PIN")
+    check(page("/", "cross-site", "http://evil.example/") == (303, "/?from=link"), "GET / from evil.example -> /?from=link")
+    conn = http.client.HTTPConnection(HOST, port, timeout=5)
+    conn.request("GET", "/name")
+    r = conn.getresponse()
+    check(r.status == 200 and json.loads(r.read()) == {"name": None},
+          "GET /name -> no .local name on a loopback test server")
+    conn.close()
 
     print("Wrong PINs are limited across all addresses")
     guard = PinGuard("123456")
@@ -427,20 +441,20 @@ def check_qr() -> None:
     print("QR code")
     key = bytes(range(32))
     with_key = connect_url("mousette.local", 80, "123456", key)
-    check(with_key == "http://mousette.local/#pin=123456&key=AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8",
+    check(with_key == "http://mousette.local/#p=123456&k=AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8",
           f"connect_url with the key -> {with_key}")
     with tempfile.TemporaryDirectory() as tmp:
         key_file = Path(tmp) / "sub" / "key"
         first = load_key(key_file)
         check(len(first) == 32 and load_key(key_file) == first, "encryption key is made once, then reused")
         check(load_key(key_file, new=True) != first, "--new-key replaces it")
-    for args, expected in [(("mousette.local", 80, "123456"), "http://mousette.local/#pin=123456"),
-                           (("mousette.local", 8765, "123456"), "http://mousette.local:8765/#pin=123456"),
-                           (("192.168.1.23", 80, "123456"), "http://192.168.1.23/#pin=123456")]:
+    for args, expected in [(("mousette.local", 80, "123456"), "http://mousette.local/#p=123456"),
+                           (("mousette.local", 8765, "123456"), "http://mousette.local:8765/#p=123456"),
+                           (("192.168.1.23", 80, "123456"), "http://192.168.1.23/#p=123456")]:
         check(connect_url(*args) == expected, f"connect_url{args} -> {connect_url(*args)}")
 
     # Decode the drawn QR back into modules: each text line holds two module rows.
-    url = "http://mousette.local/#pin=123456"
+    url = "http://192.168.1.23/#p=123456&k=AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8"
     halves = {"█": (True, True), "▀": (True, False), "▄": (False, True), " ": (False, False)}  # True = light
     rows: list[list[bool]] = []
     for line in qr_lines(url):
@@ -448,7 +462,7 @@ def check_qr() -> None:
         rows += [list(top), list(bottom)]
     border = 4
     drawn = [[not light for light in row[border:-border]] for row in rows[border:border + len(rows) - 2 * border]]
-    expected_matrix = [[bool(m) for m in row] for row in segno.make(url, error="m", boost_error=False).matrix]
+    expected_matrix = [[bool(m) for m in row] for row in segno.make(url, error="l", boost_error=False).matrix]
     drawn = drawn[:len(expected_matrix)]
     check(drawn == expected_matrix, f"QR drawing matches the code for {url} ({len(expected_matrix)} modules)")
 

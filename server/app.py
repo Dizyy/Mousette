@@ -14,7 +14,7 @@ from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
 from fastapi import FastAPI, Request, WebSocket, WebSocketDisconnect
-from fastapi.responses import PlainTextResponse, RedirectResponse
+from fastapi.responses import JSONResponse, PlainTextResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 
 from . import encryption, protocol
@@ -130,6 +130,9 @@ def create_app(backend: InputBackend, pin: str, addresses: list[str] | None = No
     own_origins = None if allowed is None else {f"http://{a}" for a in allowed}
     direct = None if not addresses else addresses[-1].removesuffix(":80")  # the IP form
     ok_fields = {"protocol": protocol.PROTOCOL_VERSION, **({"direct": direct} if direct else {})}
+    # The .local name (e.g. "mousette.local"), when there is one. The QR code uses the IP
+    # address, which every phone can open; iPhones then move over to this name (see app.js).
+    local_name = addresses[0].removesuffix(":80") if addresses and len(addresses) > 1 else None
     app = FastAPI(title="Mousette", docs_url=None, redoc_url=None, openapi_url=None)
     guard = PinGuard(pin)
     # Handed out after a correct PIN; valid until the server stops, like the PIN itself.
@@ -150,23 +153,30 @@ def create_app(backend: InputBackend, pin: str, addresses: list[str] | None = No
                                      status_code=403)
         # Another website linking to the page could put a PIN after "#" and make it try wrong
         # PINs until everyone is locked out. Such links land on /?from=link, where the page
-        # ignores "#pin". The Camera app, a typed address and reloads aren't affected.
+        # ignores "#pin". The Camera app, a typed address and reloads aren't affected, and
+        # neither is the page itself moving from the IP address to the .local name: its
+        # Referer is one of our own addresses, which another website can't fake.
+        referer = (request.headers.get("referer") or "").rstrip("/")
+        from_ourselves = own_origins is not None and referer in own_origins
         if (request.url.path in ("/", "/index.html") and "from" not in request.query_params
-                and request.headers.get("sec-fetch-site") in ("cross-site", "same-site")):
+                and request.headers.get("sec-fetch-site") in ("cross-site", "same-site")
+                and not from_ourselves):
             return RedirectResponse("/?from=link", status_code=303)
         response = await call_next(request)
         # Make Safari check for a newer client on every load (a cheap 304 when nothing changed),
         # otherwise it keeps showing an old page after an update.
         response.headers["Cache-Control"] = "no-cache"
         # The page may only load its own files and talk to this server, and can't be framed.
-        sockets = " ".join(sorted(f"ws://{a}" for a in allowed or {host_header}))
+        # It may also check whether the .local name answers before moving over to it.
+        sockets = " ".join(sorted(f"ws://{a} http://{a}" for a in allowed or {host_header}))
         response.headers["Content-Security-Policy"] = (
             "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self'; "
             f"connect-src 'self' {sockets}; manifest-src 'self'; object-src 'none'; "
             "base-uri 'none'; form-action 'self'; frame-ancestors 'none'")
         response.headers["X-Frame-Options"] = "DENY"
         response.headers["X-Content-Type-Options"] = "nosniff"
-        response.headers["Referrer-Policy"] = "no-referrer"
+        # Only the address, never the path or the "#" part (which holds the PIN and key).
+        response.headers["Referrer-Policy"] = "origin"
         return response
 
     async def first_message(ch: Channel) -> tuple[str, dict] | None:
@@ -289,6 +299,10 @@ def create_app(backend: InputBackend, pin: str, addresses: list[str] | None = No
         finally:
             log.info("Client disconnected: %s", host)
             await asyncio.get_running_loop().run_in_executor(executor, backend.release_all)
+
+    @app.get("/name")
+    async def name() -> JSONResponse:
+        return JSONResponse({"name": local_name})
 
     app.mount("/", StaticFiles(directory=CLIENT_DIR, html=True), name="client")
     return app

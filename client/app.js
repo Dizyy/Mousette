@@ -933,7 +933,8 @@
   // Returns true when a PIN from the QR code was taken.
   function takePinFromQr() {
     if (!location.hash) return false;
-    const fromQr = /^#pin=(\d{6})(?:&key=([A-Za-z0-9_-]{43}))?$/.exec(location.hash);
+    // "#p=…&k=…" (the long "#pin=…&key=…" from 1.5/1.6 works too).
+    const fromQr = /^#p(?:in)?=(\d{6})(?:&k(?:ey)?=([A-Za-z0-9_-]{43}))?$/.exec(location.hash);
     const trusted = !new URLSearchParams(location.search).has('from');
     history.replaceState(null, '', location.pathname);
     if (!fromQr || !trusted) return false;
@@ -953,7 +954,34 @@
     }
   });
 
-  takePinFromQr();
+  // iPhones and iPads can open the PC's .local name, which keeps working when the router gives
+  // the PC a new IP address (so does a home-screen icon added there). The QR code uses the IP
+  // address so that every phone can open it; an iPhone moves over to the name when it answers.
+  // The "#" part, with the PIN and key, comes along and still never leaves the phone.
+  const appleTouch = /iPhone|iPad|iPod/.test(navigator.userAgent)
+    || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+  async function moveToLocalName() {
+    if (!appleTouch || !/^\d+\.\d+\.\d+\.\d+$/.test(location.hostname) || !/^#p(?:in)?=/.test(location.hash)
+        || new URLSearchParams(location.search).has('from')) return false;
+    try {
+      const { name } = await (await fetch('/name', { cache: 'no-store' })).json();
+      if (!name) return false;
+      // Some networks block .local names: only move when it answers quickly.
+      const stop = new AbortController();
+      const timer = setTimeout(() => stop.abort(), 2500);
+      await fetch(`http://${name}/name`, { mode: 'no-cors', cache: 'no-store', signal: stop.signal });
+      clearTimeout(timer);
+      location.replace(`http://${name}/${location.hash}`);
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
   renderSettings();
-  connect();
+  moveToLocalName().then((moving) => {
+    if (moving) return;
+    takePinFromQr();
+    connect();
+  });
 })();

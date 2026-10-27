@@ -16,11 +16,11 @@ Turn your phone into a trackpad and keyboard for your PC over your home network.
 |---|---|
 | **Windows** PC | Tested |
 | **iPhone / iPad** (Safari) | Tested |
-| **Android** (Chrome) | Should work, not tested yet |
+| **Android** (Chrome and other browsers) | Tested. Use the IP address or the QR code: Android can't open `mousette.local`. |
 | **macOS** | Should work, not tested yet. Needs the Accessibility permission (see [macOS and Linux](#macos-and-linux)). |
 | **Linux** | Should work on X11, not tested yet. Wayland is not supported. |
 
-The phone and the PC must be on the **same home network** (the PC can be on Wi-Fi or Ethernet). If you try it on Android, macOS or Linux, please [tell us how it went](https://github.com/Dizyy/Mousette/discussions).
+The phone and the PC must be on the **same home network** (the PC can be on Wi-Fi or Ethernet). If you try it on macOS or Linux, please [tell us how it went](https://github.com/Dizyy/Mousette/discussions).
 
 ## What's in the folder
 
@@ -62,9 +62,9 @@ From source, the first run creates a `.venv` folder and installs the packages fr
 
 ```
 ==============================================
-  Mousette 1.6.0 is running
-  Open on your phone:    http://mousette.local
-  Or:                   http://192.168.1.23
+  Mousette 1.6.1 is running
+  Open on your phone:    http://192.168.1.23
+  iPhone/iPad also:      http://mousette.local
   PIN:                  482915
   Or scan with the phone camera (encrypted connection):
   (a QR code appears here)
@@ -72,7 +72,7 @@ From source, the first run creates a `.venv` folder and installs the packages fr
 ==============================================
 ```
 
-Open **`http://mousette.local`** on the phone. It's the same on every PC and keeps working when the router gives the PC a new IP address. The **Or:** line is the PC's IP address, a backup in case the name doesn't work on your network (some Android phones can't open `.local` names: use this one there); it's different for everyone and Mousette finds it by itself.
+Scan the QR code with the phone (step 4), or open the address from **Open on your phone**: that's the PC's IP address, it works on every phone, and Mousette finds it by itself. On iPhone and iPad you can also use **`http://mousette.local`**: it's the same on every PC and keeps working when the router gives the PC a new IP address. When you scan the QR code with an iPhone or iPad, Mousette moves over to `mousette.local` by itself (if your network allows it). Android phones can't open `.local` names, so use the IP address there.
 
 Mousette uses port 80, so no port number is needed. If another program already uses port 80, it switches to port 8765 by itself and the addresses end in `:8765`. If a second PC on your network also runs Mousette, that one is called `mousette-2.local`. Always use the addresses your window shows.
 
@@ -119,8 +119,8 @@ New-NetFirewallRule -DisplayName "Mousette" -Direction Inbound -Protocol UDP -Lo
 ## 4. Open it on the phone
 
 1. Make sure the phone is on the **same Wi-Fi** as the PC (the same router).
-2. **Easiest, and encrypted:** open the **Camera** app (on Android, the camera or Google Lens), point it at the QR code in the Mousette window and tap the link. Mousette opens and connects by itself, no typing, and the connection is encrypted.
-3. **Or type it:** in the browser (Safari on iPhone/iPad, Chrome on Android), open `http://mousette.local` (or the address on the **Or:** line) and enter the 6-digit PIN. This connects **without** encryption; scan the QR code once to encrypt it.
+2. **Easiest, and encrypted:** open the **Camera** app (on Android, the camera, or **Google Lens** if the camera doesn't react), point it at the QR code in the Mousette window and tap the link. Mousette opens and connects by itself, no typing, and the connection is encrypted.
+3. **Or type it:** in the browser (Safari on iPhone/iPad, Chrome on Android), open the address from **Open on your phone** (on iPhone/iPad also `http://mousette.local`) and enter the 6-digit PIN. This connects **without** encryption; scan the QR code once to encrypt it.
 
 The dot at the top turns **green** when you're connected, and it says **Connected · encrypted** when the connection is encrypted.
 
@@ -155,7 +155,7 @@ There is no Ctrl+Alt+Del button: Windows shows that screen on a protected deskto
 2. iPhone/iPad: tap the **Share** button (at the bottom on iPhone, at the top on iPad), then **Add to Home Screen**, then **Add**. Android: tap the **⋮** menu, then **Add to Home screen**.
 3. Start Mousette from its icon. It opens fullscreen without the browser bars.
 
-Add the icon from `http://mousette.local`: it keeps working when the PC gets a new IP address. If you added it from the IP address instead and the PC's address changes, add the icon again.
+On iPhone/iPad, add the icon from `http://mousette.local`: it keeps working when the PC gets a new IP address. An icon added from the IP address (always the case on Android) stops working if the PC's address changes; then add it again. Most home routers keep giving the PC the same address.
 
 ## Updates
 
@@ -181,12 +181,14 @@ If you ticked **Allow access** for Python in step 3, that firewall entry belongs
 
 ## Troubleshooting
 
-**The page doesn't load on the phone.**
+**The page doesn't load on the phone, or stays black.**
+- If you started a new copy of `Mousette.exe` from another folder, Windows treats it as a new program and blocks it until you allow it (step 3). Its prompt can hide behind other windows.
 - Check that the Mousette window is still open and shows the banner.
 - Check that the phone is on the same network, not on mobile data or a guest Wi-Fi. Guest networks usually isolate devices from each other.
 - Check the firewall (step 3), including that the network is set to **Private**.
 - Type the address exactly as printed, starting with `http://`, not `https://`.
-- If `mousette.local` doesn't load but the **Or:** address does, your router or network blocks the name lookup (some mesh and guest networks do), or the firewall blocks UDP port 5353 (see step 3). Use the IP address; everything else works the same.
+- On Android, `mousette.local` never loads (`DNS_PROBE_FINISHED_NXDOMAIN`): Android browsers can't open `.local` names. Use the IP address or the QR code.
+- If `mousette.local` doesn't load on an iPhone but the IP address does, your router or network blocks the name lookup (some mesh and guest networks do), or the firewall blocks UDP port 5353 (see step 3). Use the IP address; everything else works the same.
 
 **It reconnects after a short lock, but not after a longer one.** After a longer sleep the phone looks up `mousette.local` again. Mousette then reconnects through the PC's IP address by itself; if the page itself was reloaded and Safari can't open it, wait up to 30 seconds and reload. For a permanent fix, allow UDP port 5353 in the firewall (step 3).
 
