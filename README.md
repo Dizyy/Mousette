@@ -62,6 +62,10 @@ On Windows, avoid very deeply nested folders: Windows has a 260-character path l
 - the addresses to open on the phone
 - whether a phone is connected, and whether the connection is encrypted
 
+<p align="center">
+  <img src="docs/screenshot-window.png" width="330" alt="The Mousette window: Phone connected, encrypted; the QR code; PIN 482 915; the addresses http://192.168.1.23 and http://mousette.local; a Restart as administrator button and Quit Mousette">
+</p>
+
 Mousette also puts its icon in the tray, next to the clock (click **^** if you don't see it). Closing the window keeps Mousette running there; click the icon to show the window again. Right-click it for **Show Mousette**, **Restart as administrator**, **Open log** and **Quit Mousette**. Starting `Mousette.exe` again just brings the window back.
 
 To control admin windows such as Task Manager, the On-Screen Keyboard and installers, click **Restart as administrator** in the window or the tray menu, then **Yes** in the Windows prompt. Windows ignores input from a normal program while one of those is in front.
