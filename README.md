@@ -7,7 +7,7 @@ Use your iPhone or iPad as a trackpad and keyboard for your Windows PC over your
   &nbsp;
   <img src="docs/screenshot-media.png" width="230" alt="PhoneMouse with the Media panel open: volume down, mute, volume up, previous, play/pause, next">
   &nbsp;
-  <img src="docs/screenshot-settings.png" width="230" alt="PhoneMouse settings: sensitivity, scroll speed, scroll strip, bar buttons and PC actions">
+  <img src="docs/screenshot-settings.png" width="230" alt="PhoneMouse settings: accent color, bar buttons and bar order">
 </p>
 
 In this guide, "phone" means your iPhone or iPad: both work the same way.
@@ -52,7 +52,7 @@ On the first run it creates a `.venv` folder and installs the packages from `req
 
 ```
 ==============================================
-  PhoneMouse 1.2.2 is running
+  PhoneMouse 1.3.0 is running
   Open on iPhone/iPad:  http://phonemouse.local
   Or:                   http://192.168.1.23
   PIN:                  482915
@@ -120,9 +120,9 @@ You only type the PIN once per server start. After that the phone stays logged i
 | Two-finger drag | Scroll (natural direction, both axes) |
 | Hold for about 0.4 s, then drag | Click-drag: select text, move windows. "Dragging" shows while it's active; lift your finger to release. |
 
-Bottom bar buttons: **Left**, **Right**, **Keys** (opens the on-screen keyboard; tap again to close), **Copy** (Ctrl+C), **Paste** (Ctrl+V), **Media** (opens volume −, mute, volume +, previous, play/pause and next; tap Media again or anywhere else to close), **Search** (Win+S), **Alt+Tab**, **Desktop** (Win+D), **Esc**. Under **Buttons on the bar** in settings, untick the ones you don't need; up to 7 fit in one row, more wrap into two.
+Bottom bar buttons: **Left**, **Right**, **Keys** (opens the on-screen keyboard; tap again to close), **Copy** (Ctrl+C), **Paste** (Ctrl+V), **Media** (opens volume −, mute, volume +, previous, play/pause and next; tap Media again or anywhere else to close), **Search** (Win+S), **Alt+Tab**, **Desktop** (Win+D), **Esc**. Under **Buttons on the bar** in settings, untick the ones you don't need; up to 7 fit in one row, more wrap into two. Under **Bar order**, drag a button by its handle (or use the arrows) to move it, and under **Bar alignment** choose **Left**, **Center**, **Right** or **Spread** (the default). **Reset bar** brings back all buttons in the original order.
 
-The gear icon opens settings for **cursor sensitivity**, **scroll speed**, the **scroll strip** and the **bar buttons**. These are saved on the phone. With the scroll strip turned on, a narrow bar appears to the right of the trackpad: drag one finger up or down on it to scroll.
+The gear icon opens settings for **cursor sensitivity**, **scroll speed**, the **scroll strip**, the **accent color** and the **bar buttons**. These are saved on the phone. With the scroll strip turned on, a narrow bar appears to the right of the trackpad: drag one finger up or down on it to scroll.
 
 The settings also have **PC** buttons:
 - **Task Manager** opens Task Manager. PhoneMouse must run as administrator: it then starts Task Manager itself, with admin rights, so Windows doesn't ask for your PIN or password. (Ctrl+Shift+Esc would let Windows start it, and if you set User Account Control to ask for a PIN, that prompt can only be answered on the PC.)
