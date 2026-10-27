@@ -1,22 +1,26 @@
-# PhoneMouse
+# CouchPad
 
-Use your iPhone or iPad as a trackpad and keyboard for your Windows PC over your home network. Move the cursor, click, scroll, type (including accented letters like é ü ñ, and emoji), use shortcuts like Search and Alt+Tab, open Task Manager and shut the PC down, all from Safari on the phone or tablet. You don't need an app.
+Turn your phone into a trackpad and keyboard for your PC over your home network. Move the cursor, click, scroll, type (including accented letters like é ü ñ, and emoji), paste text from your phone straight onto the PC, use shortcuts like Search and Alt+Tab, control music and volume, open Task Manager and shut the PC down. It runs in the phone's browser, so there's no app to install on the phone.
 
 <p align="center">
-  <img src="docs/screenshot-trackpad.png" width="230" alt="PhoneMouse trackpad with the scroll strip and the bottom bar buttons">
+  <img src="docs/screenshot-trackpad.png" width="230" alt="CouchPad trackpad with the scroll strip and the bottom bar buttons">
   &nbsp;
-  <img src="docs/screenshot-media.png" width="230" alt="PhoneMouse with the Media panel open: volume down, mute, volume up, previous, play/pause, next">
+  <img src="docs/screenshot-media.png" width="230" alt="CouchPad with the Media panel open: volume down, mute, volume up, previous, play/pause, next">
   &nbsp;
-  <img src="docs/screenshot-settings.png" width="230" alt="PhoneMouse settings: accent color, bar buttons and bar order">
+  <img src="docs/screenshot-settings.png" width="230" alt="CouchPad settings: accent color, bar buttons and bar order">
 </p>
 
-In this guide, "phone" means your iPhone or iPad: both work the same way.
+## What works where
 
-## Requirements
+| | Status |
+|---|---|
+| **Windows** PC | Tested |
+| **iPhone / iPad** (Safari) | Tested |
+| **Android** (Chrome) | Should work, not tested yet |
+| **macOS** | Should work, not tested yet. Needs the Accessibility permission (see [macOS and Linux](#macos-and-linux)). |
+| **Linux** | Should work on X11, not tested yet. Wayland is not supported. |
 
-- **Windows** PC (`start.bat` is a Windows script; the Python code may run on macOS or Linux, but that is untested)
-- **Python 3.11 or newer** (tested on Python 3.15)
-- An **iPhone or iPad** with Safari, connected to the **same home network** as the PC (the PC can be on Wi-Fi or Ethernet)
+The phone and the PC must be on the **same home network** (the PC can be on Wi-Fi or Ethernet). If you try it on Android, macOS or Linux, please [tell us how it went](https://github.com/Dizyy/CouchPad/discussions).
 
 ## What's in the folder
 
@@ -25,60 +29,65 @@ In this guide, "phone" means your iPhone or iPad: both work the same way.
   - `input_backend.py`: real mouse/keyboard control, plus a dry-run mode that only logs
   - `app.py`: the `/ws` WebSocket endpoint and the web page hosting
   - `__main__.py`: startup (finds the PC's network address and a free port, makes the PIN, prints the banner)
-  - `mdns.py`: makes `phonemouse.local` point at this PC, so you don't need the IP address
-  - `update.py`: checks GitHub for a new version when PhoneMouse starts, and installs it
-- `client/`: the web page for the iPhone/iPad (plain HTML/CSS/JS, no build step)
+  - `mdns.py`: makes `couchpad.local` point at this PC, so you don't need the IP address
+  - `update.py`: checks GitHub for a new version when CouchPad starts, and installs it
+  - `clipboard.py`: puts text from the phone on the PC clipboard
+- `client/`: the web page for the phone (plain HTML/CSS/JS, no build step)
 - `PROTOCOL.md`: the messages the phone and the server exchange
 - `tests/`: automated tests
-- `start.bat`: one-click start
-- `uninstall.bat`: removes PhoneMouse from the PC
+- `start.bat` / `start.sh`: one-click start from source (Windows / macOS and Linux)
+- `uninstall.bat`: removes the source version from a Windows PC
+- `couchpad.py`, `build.py`: entry point and build script for the single-file `CouchPad.exe`
 
-## 1. Install
+## 1. Download
 
-1. Install **Python 3.11+** from <https://www.python.org/downloads/>. During installation, tick **"Add python.exe to PATH"**.
-2. Get PhoneMouse onto the PC. Either:
-   - on GitHub, click **Code → Download ZIP** and unzip it, for example to `C:\PhoneMouse`, or
-   - run `git clone <repository URL> C:\PhoneMouse`.
+**Windows (easiest):** download **`CouchPad.exe`** from the [latest release](https://github.com/Dizyy/CouchPad/releases/latest) and put it in any folder, for example your Documents. That's all: no Python, no installer.
 
-Avoid very deeply nested folders. Windows has a 260-character path limit, and the Python packages have long file names.
+Windows may show **"Windows protected your PC"** the first time, because CouchPad isn't signed with a paid certificate. Click **More info → Run anyway**.
 
-## 2. Start the server
+**From source** (Windows, macOS, Linux):
+1. Install **Python 3.11+** from <https://www.python.org/downloads/>. On Windows, tick **"Add python.exe to PATH"** during installation.
+2. On GitHub, click **Code → Download ZIP** and unzip it, for example to `C:\CouchPad`, or run `git clone https://github.com/Dizyy/CouchPad.git`.
 
-Double-click **`start.bat`**.
+On Windows, avoid very deeply nested folders: Windows has a 260-character path limit, and the Python packages have long file names.
 
-It first asks **"Run as administrator…? [Y,N]"**. Answer **Y** (then **Yes** in the Windows prompt) if you want the phone to work in admin windows such as Task Manager, the On-Screen Keyboard and installers; Windows ignores input from a normal program while one of those is in front. Answer **N**, or wait 10 seconds, to run without admin rights. Without them the server logs a warning at startup.
+## 2. Start it
 
-On the first run it creates a `.venv` folder and installs the packages from `requirements.txt` into it. This takes a minute and needs internet. Later runs start straight away. Then it prints something like:
+Double-click **`CouchPad.exe`**. From source, double-click **`start.bat`** on Windows, or run `bash start.sh` on macOS and Linux.
+
+On Windows it first asks **"Run as administrator…?"**. Answer **Y** (then **Yes** in the Windows prompt) if you want the phone to work in admin windows such as Task Manager, the On-Screen Keyboard and installers; Windows ignores input from a normal program while one of those is in front. Answer **N**, or wait 10 seconds, to run without admin rights. Without them CouchPad logs a warning at startup.
+
+From source, the first run creates a `.venv` folder and installs the packages from `requirements.txt` into it. This takes a minute and needs internet. Later runs start straight away. Then it prints something like:
 
 ```
 ==============================================
-  PhoneMouse 1.3.0 is running
-  Open on iPhone/iPad:  http://phonemouse.local
+  CouchPad 1.4.0 is running
+  Open on your phone:    http://couchpad.local
   Or:                   http://192.168.1.23
   PIN:                  482915
-  Or scan with the iPhone/iPad camera:
+  Or scan with the phone camera:
   (a QR code appears here)
   Press Ctrl+C to stop.
 ==============================================
 ```
 
-Open **`http://phonemouse.local`** on the phone. It's the same on every PC and keeps working when the router gives the PC a new IP address. The **Or:** line is the PC's IP address, a backup in case the name doesn't work on your network; that one is different for everyone and PhoneMouse finds it by itself.
+Open **`http://couchpad.local`** on the phone. It's the same on every PC and keeps working when the router gives the PC a new IP address. The **Or:** line is the PC's IP address, a backup in case the name doesn't work on your network (some Android phones can't open `.local` names: use this one there); it's different for everyone and CouchPad finds it by itself.
 
-PhoneMouse uses port 80, so no port number is needed. If another program already uses port 80, it switches to port 8765 by itself and the addresses end in `:8765`. If a second PC on your network also runs PhoneMouse, that one is called `phonemouse-2.local`. Always use the addresses your window shows.
+CouchPad uses port 80, so no port number is needed. If another program already uses port 80, it switches to port 8765 by itself and the addresses end in `:8765`. If a second PC on your network also runs CouchPad, that one is called `couchpad-2.local`. Always use the addresses your window shows.
 
-Keep this window open while you use the phone. The PIN is new every time the server starts.
+Keep this window open while you use the phone. The PIN is new every time CouchPad starts.
 
-**To stop:** close the window, or press **Ctrl+C**. If Windows then asks *"Terminate batch job (Y/N)?"*, either answer is fine: the server has already stopped.
+**To stop:** close the window, or press **Ctrl+C**. If Windows then asks *"Terminate batch job (Y/N)?"*, either answer is fine: CouchPad has already stopped.
 
-Options (add them after `start.bat`, for example `start.bat --port 9000`):
+Options (add them after the command, for example `start.bat --port 9000` or `CouchPad.exe --port 9000` in a command prompt):
 - `--port 9000`: use a specific port (default: 80, or 8765 if 80 is taken)
 - `--host 192.168.x.x`: choose which network address to use, if the PC has several
 - `--dry-run`: log input instead of moving the real mouse (for testing)
 - `--no-update`: don't check for a new version this time
 
-## 3. Allow Python through Windows Firewall (private networks only)
+## 3. Allow CouchPad through the firewall (private networks only)
 
-The first time the server starts, Windows usually shows a **"Windows Defender Firewall has blocked some features"** prompt for Python:
+The first time CouchPad starts, Windows usually shows a **"Windows Defender Firewall has blocked some features"** prompt for CouchPad (or Python, when you run from source):
 
 1. Tick **Private networks**.
 2. Leave **Public networks** unticked.
@@ -87,27 +96,33 @@ The first time the server starts, Windows usually shows a **"Windows Defender Fi
 If you missed the prompt, or the phone can't connect:
 
 1. Open **Start → "Allow an app through Windows Firewall"**.
-2. Click **Change settings**, then find **Python** (or `python.exe`). If it isn't listed, use **Allow another app…** and browse to `PhoneMouse\.venv\Scripts\python.exe`.
+2. Click **Change settings**, then find **CouchPad** (or **Python** / `python.exe` from source). If it isn't listed, use **Allow another app…** and browse to `CouchPad.exe` (from source: `CouchPad\.venv\Scripts\python.exe`).
 3. Tick **Private** only, then click **OK**.
 
 Also check that Windows treats your home network as **Private**: **Settings → Network & internet → Wi-Fi** (or **Ethernet**) **→ your network → Network profile type → Private network**.
 
-Instead of the app rule, you can add rules for just PhoneMouse's ports: TCP for the page, and UDP 5353 so the phone can find `phonemouse.local`. Run this in an **administrator** PowerShell:
+Instead of the app rule, you can add rules for just CouchPad's ports: TCP for the page, and UDP 5353 so the phone can find `couchpad.local`. Run this in an **administrator** PowerShell:
 
 ```powershell
-New-NetFirewallRule -DisplayName "PhoneMouse" -Direction Inbound -Protocol TCP -LocalPort 80,8765 -Profile Private -Action Allow
-New-NetFirewallRule -DisplayName "PhoneMouse" -Direction Inbound -Protocol UDP -LocalPort 5353 -Profile Private -Action Allow
+New-NetFirewallRule -DisplayName "CouchPad" -Direction Inbound -Protocol TCP -LocalPort 80,8765 -Profile Private -Action Allow
+New-NetFirewallRule -DisplayName "CouchPad" -Direction Inbound -Protocol UDP -LocalPort 5353 -Profile Private -Action Allow
 ```
 
-## 4. Open it on the iPhone or iPad
+### macOS and Linux
 
-1. Make sure the iPhone or iPad is on the **same Wi-Fi** as the PC (the same router).
-2. **Easiest:** open the **Camera** app, point it at the QR code in the PhoneMouse window and tap the link. PhoneMouse opens and connects by itself, no typing.
-3. **Or type it:** in Safari, open `http://phonemouse.local` (or the address on the **Or:** line) and enter the 6-digit PIN.
+- **macOS:** the first time the phone moves the mouse, macOS asks to allow **Accessibility** access for Terminal (or the app you started `start.sh` from). Allow it under **System Settings → Privacy & Security → Accessibility**, then restart CouchPad. Port 80 needs admin rights on some systems; CouchPad then uses 8765 by itself.
+- **Linux:** works with X11 desktops. On Wayland (the default on many new systems), apps aren't allowed to move the mouse, so CouchPad can't work there; choose an X11 session at login instead. Pasting from the phone needs `xclip`, `xsel` or `wl-clipboard` installed. If a firewall like `ufw` is on, allow the port: `sudo ufw allow 8765/tcp`.
+- **Shut down PC** asks the system to shut down after 5 seconds; **Task Manager** opens Activity Monitor (macOS) or the system monitor (Linux).
+
+## 4. Open it on the phone
+
+1. Make sure the phone is on the **same Wi-Fi** as the PC (the same router).
+2. **Easiest:** open the **Camera** app (on Android, the camera or Google Lens), point it at the QR code in the CouchPad window and tap the link. CouchPad opens and connects by itself, no typing.
+3. **Or type it:** in the browser (Safari on iPhone/iPad, Chrome on Android), open `http://couchpad.local` (or the address on the **Or:** line) and enter the 6-digit PIN.
 
 The dot at the top turns **green** when you're connected.
 
-You only type the PIN once per server start. After that the phone stays logged in: if you lock and unlock it, switch apps, or close and reopen PhoneMouse, it reconnects by itself. When the server restarts, it makes a new PIN and the phone asks for it again.
+You only type the PIN once per server start. After that the phone stays logged in: if you lock and unlock it, switch apps, or close and reopen CouchPad, it reconnects by itself. When the server restarts, it makes a new PIN and the phone asks for it again.
 
 ### Gestures
 
@@ -120,50 +135,58 @@ You only type the PIN once per server start. After that the phone stays logged i
 | Two-finger drag | Scroll (natural direction, both axes) |
 | Hold for about 0.4 s, then drag | Click-drag: select text, move windows. "Dragging" shows while it's active; lift your finger to release. |
 
-Bottom bar buttons: **Left**, **Right**, **Keys** (opens the on-screen keyboard; tap again to close), **Copy** (Ctrl+C), **Paste** (Ctrl+V), **Media** (opens volume −, mute, volume +, previous, play/pause and next; tap Media again or anywhere else to close), **Search** (Win+S), **Alt+Tab**, **Desktop** (Win+D), **Esc**. Under **Buttons on the bar** in settings, untick the ones you don't need; up to 7 fit in one row, more wrap into two. Under **Bar order**, drag a button by its handle (or use the arrows) to move it, and under **Bar alignment** choose **Left**, **Center**, **Right** or **Spread** (the default). **Reset bar** brings back all buttons in the original order.
+Bottom bar buttons: **Left**, **Right**, **Keys** (opens the on-screen keyboard; tap again to close), **Copy** (Ctrl+C), **Paste** (Ctrl+V), **Send** (paste text from your phone on the PC, see below), **Media** (opens volume −, mute, volume +, previous, play/pause and next; tap Media again or anywhere else to close), **Search** (Win+S), **Alt+Tab**, **Desktop** (Win+D), **Esc**. Under **Buttons on the bar** in settings, untick the ones you don't need; up to 7 fit in one row, more wrap into two. Under **Bar order**, drag a button by its handle (or use the arrows) to move it, and under **Bar alignment** choose **Left**, **Center**, **Right** or **Spread** (the default). **Reset bar** brings back all buttons in the original order.
+
+**Send text from your phone:** copy something on the phone, tap **Send**, paste it into the box and tap **Paste on PC**. It's pasted where the cursor is on the PC, in one go, line breaks included. You can also paste while **Keys** is open (for example from the keyboard's clipboard on Android): it's pasted on the PC the same way.
 
 The gear icon opens settings for **cursor sensitivity**, **scroll speed**, the **scroll strip**, the **accent color** and the **bar buttons**. These are saved on the phone. With the scroll strip turned on, a narrow bar appears to the right of the trackpad: drag one finger up or down on it to scroll.
 
 The settings also have **PC** buttons:
-- **Task Manager** opens Task Manager. PhoneMouse must run as administrator: it then starts Task Manager itself, with admin rights, so Windows doesn't ask for your PIN or password. (Ctrl+Shift+Esc would let Windows start it, and if you set User Account Control to ask for a PIN, that prompt can only be answered on the PC.)
+- **Task Manager** opens Task Manager. CouchPad must run as administrator: it then starts Task Manager itself, with admin rights, so Windows doesn't ask for your PIN or password. (Ctrl+Shift+Esc would let Windows start it, and if you set User Account Control to ask for a PIN, that prompt can only be answered on the PC.)
 - **Shut down PC** asks you to confirm, then shuts the PC down after 5 seconds. The phone counts down 5-4-3-2-1; tap **Cancel** in that message, or **Cancel shutdown**, to stop it.
 
 There is no Ctrl+Alt+Del button: Windows shows that screen on a protected desktop that only accepts a real keyboard and mouse, so the phone could open it but not use it.
 
 ## 5. Add to Home Screen (fullscreen app)
 
-1. Open the PhoneMouse page in **Safari**.
-2. Tap the **Share** button (at the bottom on iPhone, at the top on iPad), then **Add to Home Screen**, then **Add**.
-3. Start PhoneMouse from its icon. It opens fullscreen without the Safari bars.
+1. Open the CouchPad page in **Safari** (iPhone/iPad) or **Chrome** (Android).
+2. iPhone/iPad: tap the **Share** button (at the bottom on iPhone, at the top on iPad), then **Add to Home Screen**, then **Add**. Android: tap the **⋮** menu, then **Add to Home screen**.
+3. Start CouchPad from its icon. It opens fullscreen without the browser bars.
 
-Add the icon from `http://phonemouse.local`: it keeps working when the PC gets a new IP address. If you added it from the IP address instead and the PC's address changes, add the icon again.
+Add the icon from `http://couchpad.local`: it keeps working when the PC gets a new IP address. If you added it from the IP address instead and the PC's address changes, add the icon again.
 
 ## Updates
 
-Each time you start `start.bat`, PhoneMouse checks GitHub for a new version. If there is one, it downloads it, replaces its files and restarts itself, which takes a few seconds. Your settings on the phone and the `.venv` folder are kept. Without internet it just starts the version you have.
+Each time CouchPad starts, it checks GitHub for a new version. If there is one, it downloads it and restarts itself, which takes a few seconds: `CouchPad.exe` replaces itself, and the source version replaces its files. Your settings on the phone and the `.venv` folder are kept. Without internet it just starts the version you have.
 
-To skip the check once, start it with `start.bat --no-update`. A folder made with `git clone` is never updated automatically; run `git pull` there instead.
+To skip the check once, start it with `--no-update`. A folder made with `git clone` is never updated automatically; run `git pull` there instead.
 
-Versions before 1.2.0 can't update themselves: download 1.2.0 once (step 1), and later versions arrive by themselves.
+Versions before 1.2.0 can't update themselves: download the latest version once (step 1), and later versions arrive by themselves.
+
+CouchPad used to be called PhoneMouse. PhoneMouse 1.2.0 and later update to CouchPad by themselves. After that, open `http://couchpad.local` on the phone and add the home-screen icon again: the old `phonemouse.local` address stops working.
 
 ## Uninstall
 
-1. Double-click **`uninstall.bat`** in the PhoneMouse folder and answer **Yes** in the Windows prompt.
-2. Press **Y** to confirm. It stops PhoneMouse, removes the `PhoneMouse` firewall rule if you added one in step 3, and deletes the whole PhoneMouse folder.
-3. On the iPhone/iPad, press and hold the PhoneMouse icon and choose **Remove App**.
+**`CouchPad.exe`:** delete the file (and `CouchPad.exe.old` next to it, if there is one). If you allowed it through the firewall in step 3, remove that entry under **Start → "Allow an app through Windows Firewall"**. On the phone, remove the home-screen icon.
+
+**From source on Windows:**
+
+1. Double-click **`uninstall.bat`** in the CouchPad folder and answer **Yes** in the Windows prompt.
+2. Press **Y** to confirm. It stops CouchPad, removes the `CouchPad` firewall rule if you added one in step 3, and deletes the whole CouchPad folder.
+3. On the phone, press and hold the CouchPad icon and remove it.
 
 If you ticked **Allow access** for Python in step 3, that firewall entry belongs to your Python installation and stays. Remove it under **Start → "Allow an app through Windows Firewall"** if you no longer want it. Python itself stays installed too.
 
 ## Troubleshooting
 
 **The page doesn't load on the phone.**
-- Check that the `start.bat` window is still open and shows the banner.
+- Check that the CouchPad window is still open and shows the banner.
 - Check that the phone is on the same network, not on mobile data or a guest Wi-Fi. Guest networks usually isolate devices from each other.
 - Check the firewall (step 3), including that the network is set to **Private**.
 - Type the address exactly as printed, starting with `http://`, not `https://`.
-- If `phonemouse.local` doesn't load but the **Or:** address does, your router or network blocks the name lookup (some mesh and guest networks do), or the firewall blocks UDP port 5353 (see step 3). Use the IP address; everything else works the same.
+- If `couchpad.local` doesn't load but the **Or:** address does, your router or network blocks the name lookup (some mesh and guest networks do), or the firewall blocks UDP port 5353 (see step 3). Use the IP address; everything else works the same.
 
-**It reconnects after a short lock, but not after a longer one.** After a longer sleep the phone looks up `phonemouse.local` again. PhoneMouse then reconnects through the PC's IP address by itself; if the page itself was reloaded and Safari can't open it, wait up to 30 seconds and reload. For a permanent fix, allow UDP port 5353 in the firewall (step 3).
+**It reconnects after a short lock, but not after a longer one.** After a longer sleep the phone looks up `couchpad.local` again. CouchPad then reconnects through the PC's IP address by itself; if the page itself was reloaded and Safari can't open it, wait up to 30 seconds and reload. For a permanent fix, allow UDP port 5353 in the firewall (step 3).
 
 **The page loads in a browser on the PC itself, but not on the phone.** The server works, but Windows is blocking connections from other devices. This usually happens on a new PC or after joining a new network, because Windows often sets the network to **Public**. Firewall rules for "Private networks" don't apply on a Public network.
 1. In PowerShell, run `Get-NetConnectionProfile` and look at **NetworkCategory**.
@@ -172,32 +195,32 @@ If you ticked **Allow access** for Python in step 3, that firewall entry belongs
 
 If it already says **Private**, add the port rule from step 3. A dismissed firewall prompt is remembered as "block".
 
-**The banner shows a strange address, or the wrong one.** If the PC has several network adapters (VPN, virtual machines, Wi-Fi plus Ethernet), the server picks the most likely home address, usually `192.168.x.x`, and lists the others under "Other addresses". Start with the right one: `start.bat --host 192.168.x.x`.
+**The banner shows a strange address, or the wrong one.** If the PC has several network adapters (VPN, virtual machines, Wi-Fi plus Ethernet), the server picks the most likely home address, usually `192.168.x.x`, and lists the others under "Other addresses". Start with the right one: `--host 192.168.x.x` (see the options in step 2).
 
 **You use a VPN on the PC.** Many VPN apps block connections from your local network. Look for a setting like "Allow LAN access" or "Invisibility on LAN" and allow local devices. Also see the previous point about the address.
 
-**"Wrong PIN".** Check the 6 digits against the `start.bat` window. **"PhoneMouse on the PC was restarted"** or **"The PIN on the PC has changed"** means the server was restarted: enter the new PIN.
+**"Wrong PIN".** Check the 6 digits against the CouchPad window. **"CouchPad on the PC was restarted"** or **"The PIN on the PC has changed"** means the server was restarted: enter the new PIN.
 
 **"Too many wrong PINs".** After 5 wrong attempts, the phone has to wait 60 seconds.
 
-**New buttons or settings don't show after updating PhoneMouse.** The phone is still showing an older saved copy of the page. Open the address in Safari and tap reload once, then add the home-screen icon again.
+**New buttons or settings don't show after updating CouchPad.** The phone is still showing an older saved copy of the page. Open the address in the browser and tap reload once, then add the home-screen icon again.
 
 **Typing does nothing.** First click into a text field on the PC (tap the trackpad), then tap **Keys**.
 
-**The phone stops working after opening Task Manager or the On-Screen Keyboard.** Windows doesn't let normal programs control windows that run as administrator. While such a window is in front, all input from the phone is ignored, until you click another window with the real mouse. Start `start.bat` and answer **Y** to run as administrator. Even then, User Account Control prompts ("Do you want to allow…", or a PIN/password request) and the lock screen can't be controlled remotely: Windows shows them on a protected screen that only accepts the real keyboard and mouse. Use the **Task Manager** button in Settings rather than Ctrl+Shift+Esc to avoid that prompt.
+**The phone stops working after opening Task Manager or the On-Screen Keyboard.** Windows doesn't let normal programs control windows that run as administrator. While such a window is in front, all input from the phone is ignored, until you click another window with the real mouse. Start CouchPad and answer **Y** to run as administrator. Even then, User Account Control prompts ("Do you want to allow…", or a PIN/password request) and the lock screen can't be controlled remotely: Windows shows them on a protected screen that only accepts the real keyboard and mouse. Use the **Task Manager** button in Settings rather than Ctrl+Shift+Esc to avoid that prompt.
 
 ## Security
 
 - The server only listens on your **local network address**, and only accepts connections from local network devices. It isn't reachable from the internet, and you should **not** set up port forwarding for it.
-- Every connection needs the PIN, which is random and changes on each start. After the PIN, the phone saves a random login token so it can reconnect after being locked; the token stops working when the server restarts. After 5 wrong PINs from a device, that device is locked out for 60 seconds; after 10 wrong PINs from any devices combined, everyone is locked out for 60 seconds. Wrong PINs are shown in the PhoneMouse window.
-- Only PhoneMouse's own page can connect. Other websites open in a browser on your network can't connect to it or guess the PIN in the background, and the page can't be embedded in other sites.
-- The connection is unencrypted (`http`/`ws`), which is normal for a home network. Anyone **on your network who knows the current PIN** can control the PC, and someone on the same Wi-Fi with network-sniffing tools could read what you type. Don't run it on public or untrusted Wi-Fi, don't type passwords through it, and close the window when you're done.
-- The PhoneMouse window shows the PIN and a QR code that logs in with it. Close or minimise the window before you share your screen or stream.
-- Whoever is connected can also shut the PC down. When you run PhoneMouse as administrator (answer **Y** in `start.bat`), the phone can also control admin windows and open Task Manager with admin rights, so only do that on a network you trust.
+- Every connection needs the PIN, which is random and changes on each start. After the PIN, the phone saves a random login token so it can reconnect after being locked; the token stops working when the server restarts. After 5 wrong PINs from a device, that device is locked out for 60 seconds; after 10 wrong PINs from any devices combined, everyone is locked out for 60 seconds. Wrong PINs are shown in the CouchPad window.
+- Only CouchPad's own page can connect. Other websites open in a browser on your network can't connect to it or guess the PIN in the background, and the page can't be embedded in other sites.
+- The connection is unencrypted (`http`/`ws`), which is normal for a home network. Anyone **on your network who knows the current PIN** can control the PC, and someone on the same Wi-Fi with network-sniffing tools could read what you type. Don't run it on public or untrusted Wi-Fi, don't type or paste passwords through it, and close the window when you're done.
+- The CouchPad window shows the PIN and a QR code that logs in with it. Close or minimise the window before you share your screen or stream.
+- Whoever is connected can also shut the PC down. When you run CouchPad as administrator (answer **Y** when it starts), the phone can also control admin windows and open Task Manager with admin rights, so only do that on a network you trust.
 
 ## Testing
 
-Automated test of the server. It runs in dry-run mode on 127.0.0.1, so your real mouse and keyboard are never touched. Run `start.bat` once first so `.venv` exists, then:
+Automated test of the server. It runs in dry-run mode on 127.0.0.1, so your real mouse and keyboard are never touched. Run `start.bat` (or `start.sh`) once first so `.venv` exists, then:
 
 ```bat
 .venv\Scripts\python.exe tests\smoke_test.py
@@ -211,11 +234,19 @@ The updater has its own test, which needs no network:
 .venv\Scripts\python.exe tests\update_test.py
 ```
 
+## Building CouchPad.exe
+
+```bat
+.venv\Scripts\python.exe build.py
+```
+
+It installs [PyInstaller](https://pyinstaller.org/) into `.venv` (only needed for building) and writes `dist\CouchPad.exe`. Attach that file to each GitHub release with exactly that name: the .exe updater downloads it from there. On macOS or Linux the same command builds `dist/CouchPad` for that system.
+
 ## Feedback
 
-- **Found a bug?** [Report it](https://github.com/Dizyy/Phonemouse/issues/new?template=bug_report.yml).
-- **Want a new feature?** [Suggest it](https://github.com/Dizyy/Phonemouse/issues/new?template=feature_request.yml).
-- **Using PhoneMouse?** [Share a review or ask a question](https://github.com/Dizyy/Phonemouse/discussions), and give the repo a ⭐ if you like it.
+- **Found a bug?** [Report it](https://github.com/Dizyy/CouchPad/issues/new?template=bug_report.yml).
+- **Want a new feature?** [Suggest it](https://github.com/Dizyy/CouchPad/issues/new?template=feature_request.yml).
+- **Using CouchPad?** [Share a review or ask a question](https://github.com/Dizyy/CouchPad/discussions), and give the repo a ⭐ if you like it.
 
 Please never post your PIN or IP address.
 

@@ -1,5 +1,5 @@
 name: Feature request
-description: Suggest something PhoneMouse should do.
+description: Suggest something CouchPad should do.
 labels: [enhancement]
 body:
   - type: textarea

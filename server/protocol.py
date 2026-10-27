@@ -1,4 +1,4 @@
-"""PhoneMouse wire protocol, version 1.
+"""CouchPad wire protocol, version 1.
 
 Pure validation logic with no dependency on FastAPI, pynput or the web client.
 See PROTOCOL.md for the human-readable specification.
@@ -31,6 +31,7 @@ HOTKEY_NAMES = NAMED_KEYS + MODIFIER_KEYS + FUNCTION_KEYS
 MAX_MOVE = 4000          # pixels per message
 MAX_SCROLL = 100         # wheel notches per message
 MAX_TEXT_LENGTH = 2000   # characters per type_text message
+MAX_PASTE_LENGTH = 100_000  # characters per paste_text message
 MAX_HOTKEY_KEYS = 5
 MAX_PIN_LENGTH = 32
 MAX_TOKEN_LENGTH = 64
@@ -109,6 +110,15 @@ def _validate_type_text(msg: dict) -> dict:
     return {"text": text}
 
 
+def _validate_paste_text(msg: dict) -> dict:
+    text = msg.get("text")
+    if not isinstance(text, str) or not text:
+        raise ProtocolError("bad_field", "'text' must be a non-empty string")
+    if len(text) > MAX_PASTE_LENGTH:
+        raise ProtocolError("bad_field", f"'text' is longer than {MAX_PASTE_LENGTH} characters")
+    return {"text": text}
+
+
 def _validate_key(msg: dict) -> dict:
     name = msg.get("name")
     if not isinstance(name, str) or name.lower() not in NAMED_KEYS:
@@ -158,6 +168,7 @@ _VALIDATORS = {
     "mouse_up": _validate_button,
     "scroll": _validate_scroll,
     "type_text": _validate_type_text,
+    "paste_text": _validate_paste_text,
     "key": _validate_key,
     "hotkey": _validate_hotkey,
     "task_manager": _validate_no_fields,
@@ -167,8 +178,8 @@ _VALIDATORS = {
 
 MESSAGE_TYPES = tuple(_VALIDATORS)
 INPUT_TYPES = tuple(t for t in MESSAGE_TYPES if t not in ("auth", "ping"))
-# PC actions the server confirms with "action_ok", so the client can show feedback.
-ACTION_TYPES = ("task_manager", "shutdown", "cancel_shutdown")
+# Actions the server confirms with "action_ok", so the client can show feedback.
+ACTION_TYPES = ("task_manager", "shutdown", "cancel_shutdown", "paste_text")
 
 
 def parse(raw: str) -> tuple[str, dict]:

@@ -78,14 +78,14 @@ def lan_ip_candidates() -> list[str]:
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(prog="phonemouse", description="PhoneMouse PC server")
+    parser = argparse.ArgumentParser(prog="couchpad", description="CouchPad PC server")
     parser.add_argument("--host", help="address to bind (default: this PC's LAN IP)")
     parser.add_argument("--port", type=int,
                         help="port to listen on (default: 80, or 8765 if 80 is taken)")
     parser.add_argument("--dry-run", action="store_true",
                         help="log input events instead of moving the real mouse/keyboard")
     parser.add_argument("--no-update", action="store_true",
-                        help="don't check for a new version (handled by start.bat)")
+                        help="don't check for a new version")
     args = parser.parse_args()
 
     for stream in (sys.stdout, sys.stderr):
@@ -97,16 +97,16 @@ def main() -> int:
     host = args.host or (candidates[0] if candidates else None)
     if host is None:
         print("Could not find a local network address. Is this PC connected to Wi-Fi/Ethernet?")
-        print("You can pass one explicitly, e.g.  start.bat --host 192.168.x.x")
+        print("You can pass one explicitly, e.g.  --host 192.168.x.x")
         return 1
     if not is_lan_address(host):
-        print(f"Refusing to bind to {host}: PhoneMouse only listens on private/LAN addresses.")
+        print(f"Refusing to bind to {host}: CouchPad only listens on private/LAN addresses.")
         return 1
 
     port = args.port or next((p for p in PREFERRED_PORTS if port_is_free(host, p)), None)
     if port is None:
         print(f"Ports {' and '.join(map(str, PREFERRED_PORTS))} are both in use. "
-              "Choose another, e.g.  start.bat --port 9000")
+              "Choose another, e.g.  --port 9000")
         return 1
 
     # The .local name only makes sense on a real network, not for local tests.
@@ -120,30 +120,30 @@ def main() -> int:
 
     bar = "=" * 46
     print(bar)
-    print(f"  PhoneMouse {__version__} is running" + ("  (DRY RUN - no real input)" if args.dry_run else ""))
-    print(f"  Open on iPhone/iPad:  {url(names[0], port)}")
+    print(f"  CouchPad {__version__} is running" + ("  (DRY RUN - no real input)" if args.dry_run else ""))
+    print(f"  Open on your phone:    {url(names[0], port)}")
     if hostname:
         print(f"  Or:                   {url(host, port)}")
     print(f"  PIN:                  {pin}")
     try:
         lines = qr_lines(connect_url(names[0], port, pin))
-        print("  Or scan with the iPhone/iPad camera:")
+        print("  Or scan with the phone camera:")
         for line in lines:
             print("  " + line)
     except UnicodeEncodeError:
         pass  # the console can't show it; the address and PIN above still work
     if len(candidates) > 1:
         print(f"  Other addresses:      {', '.join(candidates[1:])}")
-        print("  (if the iPhone/iPad can't connect, try  start.bat --host <address>)")
+        print("  (if the phone can't connect, start CouchPad with  --host <address>)")
     print("  Press Ctrl+C to stop.")
     print(bar, flush=True)
-    if not is_elevated():
+    if sys.platform == "win32" and not is_elevated():
         logging.warning("Not running as administrator: Windows will ignore the phone while an admin "
                         "window (Task Manager, On-Screen Keyboard, installers) is in front. "
-                        "Restart with start.bat and answer Y to fix this.")
+                        "Restart CouchPad and answer Y to fix this.")
 
     try:
-        uvicorn.run(app, host=host, port=port, log_level="warning", ws_max_size=64 * 1024)
+        uvicorn.run(app, host=host, port=port, log_level="warning", ws_max_size=512 * 1024)  # room for a long paste_text
     finally:
         if mdns:
             mdns.stop()

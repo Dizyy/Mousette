@@ -16,8 +16,8 @@ body:
   - type: input
     id: version
     attributes:
-      label: PhoneMouse version
-      description: Shown at the top of the PhoneMouse window, e.g. 1.0.0.
+      label: CouchPad version
+      description: Shown at the top of the CouchPad window, e.g. 1.0.0.
   - type: dropdown
     id: device
     attributes:
@@ -37,6 +37,6 @@ body:
   - type: textarea
     id: log
     attributes:
-      label: Messages in the PhoneMouse window
+      label: Messages in the CouchPad window
       description: Copy any error lines. Remove the PIN and addresses first.
       render: text

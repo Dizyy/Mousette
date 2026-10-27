@@ -358,6 +358,22 @@ input[type="range"] {
 }
 #pin-input:focus { outline: 2px solid var(--accent); outline-offset: 1px; }
 
+#send-text {
+  width: 100%;
+  min-height: 120px;
+  padding: 12px 14px;
+  border-radius: 18px;
+  border: 1px solid var(--border);
+  background: var(--bg);
+  color: var(--text);
+  font: inherit;
+  font-size: 16px; /* stops iOS zooming in on focus */
+  resize: vertical;
+  -webkit-user-select: text;
+  user-select: text;
+}
+#send-text:focus { outline: 2px solid var(--accent); outline-offset: 1px; }
+
 .sheet-actions { display: flex; justify-content: flex-end; gap: 12px; margin-top: 8px; }
 .primary-btn, .text-btn {
   min-height: 52px;

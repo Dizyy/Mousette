@@ -1,6 +1,6 @@
 {
-  "name": "PhoneMouse",
-  "short_name": "PhoneMouse",
+  "name": "CouchPad",
+  "short_name": "CouchPad",
   "start_url": "/",
   "scope": "/",
   "display": "fullscreen",

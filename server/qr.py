@@ -1,4 +1,4 @@
-"""Draws a QR code with text characters, so it shows in the PhoneMouse window."""
+"""Draws a QR code with text characters, so it shows in the CouchPad window."""
 
 from __future__ import annotations
 

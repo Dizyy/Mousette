@@ -3,12 +3,12 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, minimum-scale=1, user-scalable=no, viewport-fit=cover">
-  <title>PhoneMouse</title>
+  <title>CouchPad</title>
   <meta name="theme-color" content="#1a1916">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <meta name="apple-mobile-web-app-title" content="PhoneMouse">
+  <meta name="apple-mobile-web-app-title" content="CouchPad">
   <meta name="format-detection" content="telephone=no">
   <link rel="manifest" href="manifest.webmanifest">
   <link rel="apple-touch-icon" sizes="180x180" href="icons/icon-180.png">
@@ -83,6 +83,10 @@
         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M19 3h-4.18A3 3 0 0 0 12 1a3 3 0 0 0-2.82 2H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V5a2 2 0 0 0-2-2Zm-7 0a1 1 0 1 1 0 2 1 1 0 0 1 0-2Zm7 16H5V5h2v3h10V5h2v14Z"/></svg>
         <span>Paste</span>
       </button>
+      <button class="bar-btn" data-action="sendtext" aria-label="Send text from the phone to the PC">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 5h2v3h10V5h2v6h2V5a2 2 0 0 0-2-2h-4.18A3 3 0 0 0 12 1a3 3 0 0 0-2.82 2H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h6v-2H5V5Zm7-2a1 1 0 1 1 0 2 1 1 0 0 1 0-2Zm6.01 10.5-1.41 1.4 2.58 2.6H13v2h6.18l-2.58 2.6 1.41 1.4 5-5-5-5Z"/></svg>
+        <span>Send</span>
+      </button>
       <button class="bar-btn" data-action="media" id="media-btn" aria-label="Media controls">
         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v10.55A4 4 0 1 0 14 17V7h4V3h-6Z"/></svg>
         <span>Media</span>
@@ -151,10 +155,23 @@
     </div>
   </div>
 
+  <div class="sheet" id="send-sheet" hidden>
+    <form class="sheet-card" id="send-form" role="dialog" aria-modal="true" aria-labelledby="send-title">
+      <h2 id="send-title">Send text to PC</h2>
+      <p class="muted">Paste or type here. It's pasted where the cursor is on the PC.</p>
+      <textarea id="send-text" rows="5" autocomplete="off" autocorrect="off" autocapitalize="off"
+                spellcheck="false" aria-label="Text to send"></textarea>
+      <div class="sheet-actions">
+        <button class="text-btn" type="button" id="send-cancel">Cancel</button>
+        <button class="primary-btn" type="submit">Paste on PC</button>
+      </div>
+    </form>
+  </div>
+
   <div class="sheet" id="pin-sheet" hidden>
     <form class="sheet-card" id="pin-form" role="dialog" aria-modal="true" aria-labelledby="pin-title">
       <h2 id="pin-title">Enter PIN</h2>
-      <p class="muted">The 6-digit PIN is shown in the PhoneMouse window on your PC.</p>
+      <p class="muted">The 6-digit PIN is shown in the CouchPad window on your PC.</p>
       <input id="pin-input" type="text" inputmode="numeric" pattern="[0-9]*" maxlength="6"
              autocomplete="one-time-code" placeholder="••••••" aria-label="PIN">
       <p class="error" id="pin-error" hidden></p>

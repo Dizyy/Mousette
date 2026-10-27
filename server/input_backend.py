@@ -7,13 +7,29 @@ and is used by the automated test so it never touches your desktop.
 from __future__ import annotations
 
 import logging
+import shutil
 import subprocess
+import sys
 import threading
+import time
 
-log = logging.getLogger("phonemouse.input")
+log = logging.getLogger("couchpad.input")
 
 SHUTDOWN_DELAY_S = 5
 ERROR_NO_SHUTDOWN_IN_PROGRESS = 1116
+
+# The phone sends Windows shortcuts; on macOS the same jobs have other keys
+# ("win" is the Cmd key there).
+MAC_HOTKEYS = {
+    ("ctrl", "c"): ["win", "c"],
+    ("ctrl", "v"): ["win", "v"],
+    ("win", "s"): ["win", "space"],   # Spotlight
+    ("alt", "tab"): ["win", "tab"],
+    ("win", "d"): ["f11"],            # Show Desktop
+}
+# Tried in order on Linux; the first one installed opens.
+LINUX_TASK_MANAGERS = ("gnome-system-monitor", "plasma-systemmonitor", "ksysguard",
+                       "xfce4-taskmanager", "mate-system-monitor", "lxtask")
 
 
 class InputBackend:
@@ -65,6 +81,9 @@ class InputBackend:
         if text:
             self.type_text(text)
 
+    def _do_paste_text(self, text: str) -> None:
+        self.paste_text(text)
+
     def _do_key(self, name: str) -> None:
         self.hotkey([name])
 
@@ -87,6 +106,7 @@ class InputBackend:
     def release(self, button: str) -> None: raise NotImplementedError
     def scroll(self, dx: float, dy: float) -> None: raise NotImplementedError
     def type_text(self, text: str) -> None: raise NotImplementedError
+    def paste_text(self, text: str) -> None: raise NotImplementedError
     def hotkey(self, keys: list[str]) -> None: raise NotImplementedError
     def task_manager(self) -> None: raise NotImplementedError
     def shutdown(self) -> None: raise NotImplementedError
@@ -112,6 +132,7 @@ class PynputBackend(InputBackend):
         super().__init__()
         from pynput import keyboard, mouse
 
+        self._shutdown_timer: threading.Timer | None = None
         self._mouse = mouse.Controller()
         self._keyboard = keyboard.Controller()
         self._buttons = {
@@ -153,7 +174,17 @@ class PynputBackend(InputBackend):
         # as Unicode input events, splitting emoji into UTF-16 surrogate pairs.
         self._keyboard.type(text)
 
+    def paste_text(self, text: str) -> None:
+        # Clipboard + paste shortcut: instant for long text, and keeps line breaks and
+        # formatting characters that typing would turn into Enter/Tab presses.
+        from . import clipboard
+        clipboard.set_text(text)
+        time.sleep(0.05)  # let the target app see the new clipboard first
+        self.hotkey(["ctrl", "v"])  # Cmd+V on macOS, see MAC_HOTKEYS
+
     def hotkey(self, keys: list[str]) -> None:
+        if sys.platform == "darwin":
+            keys = MAC_HOTKEYS.get(tuple(keys), keys)
         resolved = [self._keys.get(name, name) for name in keys]
         pressed = []
         try:
@@ -165,19 +196,53 @@ class PynputBackend(InputBackend):
                 self._keyboard.release(key)
 
     def task_manager(self) -> None:
-        # Started by an admin PhoneMouse, Task Manager inherits admin rights, so Windows
+        if sys.platform == "darwin":
+            subprocess.Popen(["open", "-a", "Activity Monitor"])
+            return
+        if sys.platform != "win32":
+            for app in LINUX_TASK_MANAGERS:
+                if shutil.which(app):
+                    subprocess.Popen([app])
+                    return
+            raise RuntimeError("No system monitor app found on this PC.")
+        # Started by an admin CouchPad, Task Manager inherits admin rights, so Windows
         # shows no UAC prompt (which the phone could not answer: it runs on the secure desktop).
         if not is_elevated():
-            raise RuntimeError("Start PhoneMouse as administrator first (start.bat, answer Y). "
+            raise RuntimeError("Start CouchPad as administrator first (answer Y when it starts). "
                                "Otherwise Windows asks for your PIN on the PC.")
         subprocess.Popen(["taskmgr.exe"])
 
     def shutdown(self) -> None:
+        if sys.platform != "win32":
+            # macOS and Linux have no seconds-based delay that works without root,
+            # so the delay (and its cancel) happens here.
+            if self._shutdown_timer is not None:
+                self._shutdown_timer.cancel()
+            self._shutdown_timer = threading.Timer(SHUTDOWN_DELAY_S, self._power_off)
+            self._shutdown_timer.daemon = True
+            self._shutdown_timer.start()
+            return
         result = _run(["shutdown", "/s", "/t", str(SHUTDOWN_DELAY_S)])
         if result.returncode != 0:
             raise RuntimeError(f"Shutdown failed: {(result.stderr or result.stdout).strip()}")
 
+    def _power_off(self) -> None:
+        self._shutdown_timer = None
+        if sys.platform == "darwin":
+            cmd = ["osascript", "-e", 'tell application "System Events" to shut down']
+        else:
+            cmd = ["systemctl", "poweroff"]
+        result = _run(cmd)
+        if result.returncode != 0:
+            log.error("Shutdown failed: %s", (result.stderr or result.stdout).strip())
+
     def cancel_shutdown(self) -> None:
+        if sys.platform != "win32":
+            if self._shutdown_timer is None:
+                raise RuntimeError("No shutdown is in progress.")
+            self._shutdown_timer.cancel()
+            self._shutdown_timer = None
+            return
         result = _run(["shutdown", "/a"])
         if result.returncode == ERROR_NO_SHUTDOWN_IN_PROGRESS:
             raise RuntimeError("No shutdown is in progress.")
@@ -192,6 +257,7 @@ class DryRunBackend(InputBackend):
     def release(self, button): log.info("DRY-RUN mouse_up button=%s", button)
     def scroll(self, dx, dy): log.info("DRY-RUN scroll dx=%.3f dy=%.3f", dx, dy)
     def type_text(self, text): log.info("DRY-RUN type_text text=%r", text)
+    def paste_text(self, text): log.info("DRY-RUN paste_text text=%r", text)
     def hotkey(self, keys): log.info("DRY-RUN hotkey keys=%s", "+".join(keys))
     def task_manager(self): log.info("DRY-RUN task_manager")
     def shutdown(self): log.info("DRY-RUN shutdown delay=%ds", SHUTDOWN_DELAY_S)

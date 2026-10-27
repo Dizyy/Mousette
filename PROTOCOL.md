@@ -1,10 +1,10 @@
-# PhoneMouse protocol, version 1
+# CouchPad protocol, version 1
 
 This describes the messages between the PC server and the web page in `client/`. Server-side validation lives in `server/protocol.py`.
 
 ## Transport
 
-- WebSocket at `ws://phonemouse.local/ws` or `ws://<pc-lan-ip>/ws`. The port is 80, or 8765 when 80 is taken (choose another with `--port`).
+- WebSocket at `ws://couchpad.local/ws` or `ws://<pc-lan-ip>/ws`. The port is 80, or 8765 when 80 is taken (choose another with `--port`).
 - Each WebSocket **text** frame holds one JSON object, UTF-8 encoded. Binary frames are not used.
 - Every message, in both directions, has `"v": 1` and a `"type"` string.
 - The server only accepts connections from private/LAN addresses (10/8, 172.16/12, 192.168/16, link-local, loopback).
@@ -24,7 +24,7 @@ client                                   server
 1. Open the WebSocket.
 2. Send `auth` as the **first** message. If the first message is anything else, or nothing arrives within 10 s, the server replies with `error` (`auth_required`) and closes the socket with code **4001**.
 3. On success the server replies `auth_ok`. All other message types are accepted only after this.
-4. The server does **not** acknowledge input messages, which keeps latency low. It replies only to `ping` (with `pong`), to rejected messages (with `error`), and to successful PC actions (`task_manager`, `shutdown`, `cancel_shutdown`, with `action_ok`). Messages are processed strictly in the order they arrive. So a `pong` also means every message sent before its `ping` has been handled.
+4. The server does **not** acknowledge input messages, which keeps latency low. It replies only to `ping` (with `pong`), to rejected messages (with `error`), and to successful actions (`task_manager`, `shutdown`, `cancel_shutdown`, `paste_text`, with `action_ok`). Messages are processed strictly in the order they arrive. So a `pong` also means every message sent before its `ping` has been handled.
 
 The PIN is a random 6-digit string. The server prints it at startup, and it changes every time the server restarts. After 5 wrong PINs from one IP address, that address is locked out for 60 s. After 10 wrong PINs from all addresses together within 60 s, every address is locked out until that window has passed.
 
@@ -43,6 +43,7 @@ The server only accepts requests whose `Host` header is the address it printed, 
 | `mouse_up` | `button` (default `"left"`) | Release the button. |
 | `scroll` | `dx`, `dy`: number (wheel notches, ±100) | Positive `dy` scrolls **up**, negative `dy` scrolls down. Positive `dx` scrolls right. Fractions give smooth scrolling (the smallest effective step is 1/120 notch). |
 | `type_text` | `text`: string (≤ 2000 chars) | Types the text as Unicode, including accented letters (é ü ñ) and emoji. `\n` presses Enter. |
+| `paste_text` | `text`: non-empty string (≤ 100 000 chars) | Puts the text on the PC clipboard, then presses Ctrl+V (Cmd+V on macOS), so it is pasted at the cursor in one go. Replies `action_ok`, or `error` (`input_failed`) if the clipboard could not be set. |
 | `key` | `name`: key name (see below) | Press and release one key. |
 | `hotkey` | `keys`: list of 1–5 key names | Press the keys in order, then release them in reverse order. |
 | `task_manager` | none | The server starts Task Manager itself, so it inherits the server's admin rights and Windows shows no UAC prompt. Replies `error` (`input_failed`) if the server is not running as administrator. |
@@ -75,10 +76,10 @@ Examples:
 
 | type | fields | meaning |
 |---|---|---|
-| `auth_ok` | `protocol`: 1; `token`: string (only after a PIN); optional `direct`: the server's IP address and port | Authenticated; input is accepted from now on. Keep `token` to log in again later: it is valid until the server stops. If the page's host name (`phonemouse.local`) stops resolving, connect to `ws://<direct>/ws` instead: the server accepts its own page from any of its addresses. |
+| `auth_ok` | `protocol`: 1; `token`: string (only after a PIN); optional `direct`: the server's IP address and port | Authenticated; input is accepted from now on. Keep `token` to log in again later: it is valid until the server stops. If the page's host name (`couchpad.local`) stops resolving, connect to `ws://<direct>/ws` instead: the server accepts its own page from any of its addresses. |
 | `auth_failed` | `reason`: `"wrong_pin"`, `"token_expired"` (the server restarted since the token was issued) or `"locked_out"`; `retry_after`: seconds (only when locked out) | The socket closes right after this. |
 | `pong` | `id`: the id from the ping, or null | Reply to `ping`. |
-| `action_ok` | `ref`: `"task_manager"`, `"shutdown"` or `"cancel_shutdown"` | The PC action was carried out. |
+| `action_ok` | `ref`: `"task_manager"`, `"shutdown"`, `"cancel_shutdown"` or `"paste_text"` | The action was carried out. |
 | `error` | `code`, `message`, optional `ref` | The message was rejected. The connection stays open, except for `auth_required`. |
 
 ### Error codes

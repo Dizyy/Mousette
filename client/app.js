@@ -1,4 +1,4 @@
-// PhoneMouse web client. Speaks protocol v1 (see PROTOCOL.md) over /ws.
+// CouchPad web client. Speaks protocol v1 (see PROTOCOL.md) over /ws.
 (() => {
   'use strict';
 
@@ -37,7 +37,7 @@
   const forgetToken = () => store.remove('pm.token');
 
   // The PC's IP address, from auth_ok. After a long sleep the phone sometimes can't look up
-  // phonemouse.local any more; then the connection goes to the IP address instead.
+  // couchpad.local any more; then the connection goes to the IP address instead.
   const getDirect = () => store.get('pm.direct');
   let viaDirect = false;
   function failedToOpen() {
@@ -145,15 +145,15 @@
           authRejected = true;
           if (msg.reason === 'token_expired') {
             forgetToken();
-            showPin('PhoneMouse on the PC was restarted. Enter the new PIN from the PhoneMouse window.');
+            showPin('CouchPad on the PC was restarted. Enter the new PIN from the CouchPad window.');
           } else if (msg.reason === 'locked_out') {
             showPin(`Too many wrong PINs. Try again in ${msg.retry_after || 60} s.`);
           } else {
             forgetToken();
             forgetPin();
             showPin(pinJustEntered
-              ? 'Wrong PIN. Check the PhoneMouse window on your PC.'
-              : 'The PIN on the PC has changed. Enter the new PIN from the PhoneMouse window.');
+              ? 'Wrong PIN. Check the CouchPad window on your PC.'
+              : 'The PIN on the PC has changed. Enter the new PIN from the CouchPad window.');
           }
           pinJustEntered = false;
           break;
@@ -164,7 +164,7 @@
           onActionOk(msg.ref);
           break;
         case 'error':
-          console.warn('PhoneMouse server error:', msg.code, msg.message);
+          console.warn('CouchPad server error:', msg.code, msg.message);
           if (PC_ACTIONS.includes(msg.ref)) showToast(msg.message, { bad: true });
           break;
       }
@@ -445,6 +445,14 @@
       send({ type: 'key', name: 'enter' });
     }
   });
+  // Pasting into the keyboard goes onto the PC clipboard and is pasted there in one go,
+  // instead of being typed out letter by letter.
+  kbd.addEventListener('paste', (e) => {
+    const text = e.clipboardData && e.clipboardData.getData('text/plain');
+    if (!text) return;
+    e.preventDefault();
+    pasteOnPc(text);
+  });
   kbd.addEventListener('focus', () => kbdBtn.classList.add('on'));
   kbd.addEventListener('blur', () => kbdBtn.classList.remove('on'));
 
@@ -464,6 +472,7 @@
     keyboard: toggleKeyboard,
     copy: () => send({ type: 'hotkey', keys: ['ctrl', 'c'] }),
     paste: () => send({ type: 'hotkey', keys: ['ctrl', 'v'] }),
+    sendtext: openSendSheet,
     media: () => setMediaPanel(mediaPanel.hidden),
     search: () => send({ type: 'hotkey', keys: ['win', 's'] }),
     alttab: () => send({ type: 'hotkey', keys: ['alt', 'tab'] }),
@@ -717,7 +726,7 @@
   settingsSheet.addEventListener('click', (e) => { if (e.target === settingsSheet) settingsSheet.hidden = true; });
 
   // ---------- PC actions (Task Manager, shutdown) ----------
-  const PC_ACTIONS = ['task_manager', 'shutdown', 'cancel_shutdown'];
+  const PC_ACTIONS = ['task_manager', 'shutdown', 'cancel_shutdown', 'paste_text'];
   const toast = $('toast');
   const toastText = $('toast-text');
   const toastBtn = $('toast-btn');
@@ -769,8 +778,36 @@
       showToast('Shutdown cancelled.');
     } else if (ref === 'task_manager') {
       settingsSheet.hidden = true;
+    } else if (ref === 'paste_text') {
+      showToast('Pasted on the PC.', { ms: 2000 });
     }
   }
+
+  // ---------- Send text: phone clipboard to the PC ----------
+  const sendSheet = $('send-sheet');
+  const sendText = $('send-text');
+
+  function pasteOnPc(text) {
+    if (!send({ type: 'paste_text', text })) {
+      showToast('Not connected to the PC.', { bad: true });
+      return false;
+    }
+    return true;
+  }
+
+  function openSendSheet() {
+    kbd.blur();
+    sendText.value = '';
+    sendSheet.hidden = false;
+    sendText.focus(); // inside the tap handler, so the iOS keyboard opens
+  }
+
+  $('send-form').addEventListener('submit', (e) => {
+    e.preventDefault();
+    if (sendText.value && pasteOnPc(sendText.value)) sendSheet.hidden = true;
+  });
+  $('send-cancel').addEventListener('click', () => { sendSheet.hidden = true; });
+  sendSheet.addEventListener('click', (e) => { if (e.target === sendSheet) sendSheet.hidden = true; });
 
   // The server starts Task Manager itself, so Windows shows no UAC prompt the phone can't answer.
   $('taskmgr-btn').addEventListener('click', () => pcAction('task_manager'));
@@ -806,10 +843,10 @@
     connect();
   });
 
-  // Opened from the QR code in the PhoneMouse window: the PIN comes after "#", which the
+  // Opened from the QR code in the CouchPad window: the PIN comes after "#", which the
   // browser never sends anywhere. Use it, then wipe it so it isn't kept in history or an icon.
   // Pages linked from other websites arrive as /?from=link (see server/app.py): there the
-  // PIN is ignored, so a website can't make PhoneMouse try wrong PINs.
+  // PIN is ignored, so a website can't make CouchPad try wrong PINs.
   // Returns true when a PIN from the QR code was taken.
   function takePinFromQr() {
     if (!location.hash) return false;
@@ -823,7 +860,7 @@
     return true;
   }
 
-  // Scanning again while PhoneMouse is already open only changes the "#" part.
+  // Scanning again while CouchPad is already open only changes the "#" part.
   window.addEventListener('hashchange', () => {
     if (takePinFromQr()) {
       dropConnection(false);

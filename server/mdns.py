@@ -1,4 +1,4 @@
-"""Tiny mDNS responder: makes "phonemouse.local" point at this PC.
+"""Tiny mDNS responder: makes "couchpad.local" point at this PC.
 
 iPhones and iPads look up .local names with multicast DNS (Bonjour). This answers
 those lookups for one name with one IPv4 address. Standard library only: no
@@ -13,7 +13,7 @@ import struct
 import threading
 import time
 
-log = logging.getLogger("phonemouse.mdns")
+log = logging.getLogger("couchpad.mdns")
 
 MDNS_GROUP = "224.0.0.251"
 MDNS_PORT = 5353
@@ -78,16 +78,16 @@ def _parse(data: bytes) -> tuple[int, int, list[tuple[str, int, int]], list[tupl
 class MdnsResponder:
     """Answers "<name>.local" with `ip` until stop() is called."""
 
-    def __init__(self, ip: str, name: str = "phonemouse"):
+    def __init__(self, ip: str, name: str = "couchpad"):
         self.ip = ip
         self._packed_ip = socket.inet_aton(ip)
         self._wanted = name
-        self.hostname: str | None = None  # e.g. "phonemouse.local" once claimed
+        self.hostname: str | None = None  # e.g. "couchpad.local" once claimed
         self._sock: socket.socket | None = None
         self._stop = threading.Event()
 
     def start(self) -> str | None:
-        """Claims a free name (phonemouse, phonemouse-2, ...) and starts answering.
+        """Claims a free name (couchpad, couchpad-2, ...) and starts answering.
 
         Returns the hostname, or None when mDNS isn't available on this network.
         """

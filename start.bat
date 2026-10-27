@@ -1,16 +1,16 @@
 @echo off
 setlocal
 cd /d "%~dp0"
-title PhoneMouse
+title CouchPad
 
 rem Restarted by the updater below: admin rights were already decided, the update is done.
 if defined PM_UPDATED goto :elevated
 
 rem --- Offer to run as administrator ---
 rem Windows drops input sent by a normal program into admin windows (Task Manager,
-rem On-Screen Keyboard, installers), so PhoneMouse needs admin rights to control them.
+rem On-Screen Keyboard, installers), so CouchPad needs admin rights to control them.
 net session >nul 2>nul && goto :elevated
-choice /c YN /t 10 /d N /m "Run as administrator so PhoneMouse can control Task Manager and other admin windows"
+choice /c YN /t 10 /d N /m "Run as administrator so CouchPad can control Task Manager and other admin windows"
 if errorlevel 2 goto :elevated
 if "%~1"=="" (
     powershell -NoProfile -Command "Start-Process -FilePath '%~f0' -Verb RunAs" && exit /b 0

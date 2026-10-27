@@ -12,3 +12,7 @@ desktop.ini
 .DS_Store
 .vscode/
 .idea/
+
+# Single-file build output (build.py)
+build/
+dist/

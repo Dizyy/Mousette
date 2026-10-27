@@ -74,6 +74,7 @@ BAD_MESSAGES = [
     (json.dumps({"v": 1, "type": "move", "dx": "far", "dy": 0}), "bad_field"),
     (json.dumps({"v": 1, "type": "key", "name": "launch_rockets"}), "bad_field"),
     (json.dumps({"v": 1, "type": "type_text", "text": "x" * 5000}), "bad_field"),
+    (json.dumps({"v": 1, "type": "paste_text", "text": ""}), "bad_field"),
     (json.dumps({"v": 1, "type": "Shutdown"}), "unknown_type"),
     (json.dumps({"v": 1, "type": "restart"}), "unknown_type"),
     (json.dumps({"v": 1, "type": "ctrl_alt_del"}), "unknown_type"),
@@ -191,7 +192,7 @@ async def run(server: Server, port: int) -> None:
     check(refused, "WebSocket from another website's page is refused")
     async with websockets.connect(url, origin=f"http://{HOST}:{port}") as ws:
         await send(ws, {"type": "ping"})
-        check((await recv_json(ws)).get("code") == "auth_required", "WebSocket from PhoneMouse's own page is accepted")
+        check((await recv_json(ws)).get("code") == "auth_required", "WebSocket from CouchPad's own page is accepted")
     try:
         urllib.request.urlopen(urllib.request.Request(f"http://{HOST}:{port}/", headers={"Host": "evil.example"}))
         status = 200
@@ -297,6 +298,14 @@ async def run(server: Server, port: int) -> None:
             check(reply == {"v": 1, "type": "action_ok", "ref": type_}, f"{type_} -> {reply}")
             check(server.log_count(needle) == 1, f"{type_:<15} executed: {needle[8:]}")
 
+        print("Paste text from the phone")
+        paste = "Line 1 é ü 😀\nLine 2"
+        await send(ws, {"type": "paste_text", "text": paste})
+        reply = await recv_json(ws)
+        check(reply == {"v": 1, "type": "action_ok", "ref": "paste_text"}, f"paste_text -> {reply}")
+        await server.wait_for_log("DRY-RUN paste_text")
+        check(server.log_count(f"DRY-RUN paste_text text={paste!r}") == 1, "paste_text      executed with the exact text")
+
         print("Invalid messages get an error reply, connection stays open")
         for raw, expected_code in BAD_MESSAGES:
             await ws.send(raw)
@@ -328,13 +337,13 @@ async def run(server: Server, port: int) -> None:
 
 def check_qr() -> None:
     print("QR code")
-    for args, expected in [(("phonemouse.local", 80, "123456"), "http://phonemouse.local/#pin=123456"),
-                           (("phonemouse.local", 8765, "123456"), "http://phonemouse.local:8765/#pin=123456"),
+    for args, expected in [(("couchpad.local", 80, "123456"), "http://couchpad.local/#pin=123456"),
+                           (("couchpad.local", 8765, "123456"), "http://couchpad.local:8765/#pin=123456"),
                            (("192.168.1.23", 80, "123456"), "http://192.168.1.23/#pin=123456")]:
         check(connect_url(*args) == expected, f"connect_url{args} -> {connect_url(*args)}")
 
     # Decode the drawn QR back into modules: each text line holds two module rows.
-    url = "http://phonemouse.local/#pin=123456"
+    url = "http://couchpad.local/#pin=123456"
     halves = {"█": (True, True), "▀": (True, False), "▄": (False, True), " ": (False, False)}  # True = light
     rows: list[list[bool]] = []
     for line in qr_lines(url):
