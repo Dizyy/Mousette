@@ -22,7 +22,7 @@ body:
     id: device
     attributes:
       label: Device
-      options: [iPhone, iPad, Other]
+      options: [iPhone, iPad, Android, Other]
   - type: input
     id: windows
     attributes:
@@ -32,11 +32,11 @@ body:
     id: admin
     attributes:
       label: Running as administrator?
-      description: Did you answer Y when start.bat asked?
+      description: Did you click Restart as administrator (Mousette.exe), or answer Y when start.bat asked?
       options: ["Yes", "No", "Not sure"]
   - type: textarea
     id: log
     attributes:
-      label: Messages in the Mousette window
-      description: Copy any error lines. Remove the PIN and addresses first.
+      label: Log
+      description: Mousette.exe - right-click the tray icon, Open log. start.bat - the console window. Copy any error lines. Remove the PIN and addresses first.
       render: text

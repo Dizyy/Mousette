@@ -29,6 +29,7 @@ The phone and the PC must be on the **same home network** (the PC can be on Wi-F
   - `input_backend.py`: real mouse/keyboard control, plus a dry-run mode that only logs
   - `app.py`: the `/ws` WebSocket endpoint and the web page hosting
   - `__main__.py`: startup (finds the PC's network address and a free port, makes the PIN, prints the banner)
+  - `tray.py`: the window and tray icon of `Mousette.exe` on Windows
   - `mdns.py`: makes `mousette.local` point at this PC, so you don't need the IP address
   - `update.py`: checks GitHub for a new version when Mousette starts, and installs it
   - `clipboard.py`: puts text from the phone on the PC clipboard
@@ -44,7 +45,9 @@ The phone and the PC must be on the **same home network** (the PC can be on Wi-F
 
 **Windows (easiest):** download **`Mousette.exe`** from the [latest release](https://github.com/Dizyy/Mousette/releases/latest) and put it in any folder, for example your Documents. That's all: no Python, no installer.
 
-Windows may show **"Windows protected your PC"** the first time, because Mousette isn't signed with a paid certificate. Click **More info → Run anyway**.
+Windows may show **"Windows protected your PC"** the first time, because Mousette isn't signed with a code signing certificate yet. Click **More info → Run anyway**.
+
+On Windows 11 with **Smart App Control** turned on, Windows may block `Mousette.exe` without a **Run anyway** button. Use the source version below instead. Signing `Mousette.exe` is planned.
 
 **From source** (Windows, macOS, Linux):
 1. Install **Python 3.11+** from <https://www.python.org/downloads/>. On Windows, tick **"Add python.exe to PATH"** during installation.
@@ -54,11 +57,16 @@ On Windows, avoid very deeply nested folders: Windows has a 260-character path l
 
 ## 2. Start it
 
-Double-click **`Mousette.exe`**. From source, double-click **`start.bat`** on Windows, or run `bash start.sh` on macOS and Linux.
+**`Mousette.exe`:** double-click it. The Mousette window opens and shows:
+- the QR code and the PIN
+- the addresses to open on the phone
+- whether a phone is connected, and whether the connection is encrypted
 
-**`Mousette.exe`** opens the Mousette window with the QR code, the PIN, the addresses and whether a phone is connected (and encrypted). Mousette also sits in the tray, next to the clock: closing the window keeps it running there, and clicking the tray icon shows the window again. To work in admin windows such as Task Manager, the On-Screen Keyboard and installers, click **Restart as administrator** in the window or the tray menu (then **Yes** in the Windows prompt); Windows ignores input from a normal program while one of those is in front.
+Mousette also puts its icon in the tray, next to the clock (click **^** if you don't see it). Closing the window keeps Mousette running there; click the icon to show the window again. Right-click it for **Show Mousette**, **Restart as administrator**, **Open log** and **Quit Mousette**. Starting `Mousette.exe` again just brings the window back.
 
-**From source**, `start.bat` first asks **"Run as administrator…?"**. Answer **Y** (then **Yes** in the Windows prompt) for admin windows, or **N** (or wait 10 seconds) to run without admin rights. Without them Mousette logs a warning at startup. The first run creates a `.venv` folder and installs the packages from `requirements.txt` into it. This takes a minute and needs internet. Later runs start straight away. Then it prints something like:
+To control admin windows such as Task Manager, the On-Screen Keyboard and installers, click **Restart as administrator** in the window or the tray menu, then **Yes** in the Windows prompt. Windows ignores input from a normal program while one of those is in front.
+
+**From source:** double-click **`start.bat`** on Windows, or run `bash start.sh` on macOS and Linux. On Windows it first asks **"Run as administrator…?"**: answer **Y** (then **Yes** in the Windows prompt) for admin windows, or **N** (or wait 10 seconds) to run without admin rights. The first run creates a `.venv` folder and installs the packages from `requirements.txt` into it. This takes a minute and needs internet. Later runs start straight away. The source version runs in a console window and prints something like:
 
 ```
 ==============================================
@@ -80,7 +88,7 @@ Keep Mousette running while you use the phone. The PIN is new every time Mousett
 
 **To stop:** `Mousette.exe`: click **Quit Mousette** in the window, or right-click the tray icon and choose **Quit Mousette**. From source: close the window, or press **Ctrl+C**. If Windows then asks *"Terminate batch job (Y/N)?"*, either answer is fine: Mousette has already stopped.
 
-Options (add them after the command, for example `start.bat --port 9000` or `Mousette.exe --port 9000` in a command prompt):
+Options (add them after the command, for example `start.bat --port 9000`, or `Mousette.exe --port 9000` in a command prompt or in a shortcut's **Target** field):
 - `--port 9000`: use a specific port (default: 80, or 8765 if 80 is taken)
 - `--host 192.168.x.x`: choose which network address to use, if the PC has several
 - `--dry-run`: log input instead of moving the real mouse (for testing)
@@ -155,6 +163,8 @@ There is no Ctrl+Alt+Del button: Windows shows that screen on a protected deskto
 2. iPhone/iPad: tap the **Share** button (at the bottom on iPhone, at the top on iPad), then **Add to Home Screen**, then **Add**. Android: tap the **⋮** menu, then **Add to Home screen**.
 3. Start Mousette from its icon. It opens fullscreen without the browser bars.
 
+The page shows a short tip about this the first few times you open it in the browser.
+
 On iPhone/iPad, add the icon from `http://mousette.local`: it keeps working when the PC gets a new IP address. An icon added from the IP address (always the case on Android) stops working if the PC's address changes; then add it again. Most home routers keep giving the PC the same address.
 
 ## Updates
@@ -186,7 +196,7 @@ If you ticked **Allow access** for Python in step 3, that firewall entry belongs
 - Check that Mousette is still running: its icon is in the tray (from source: the window still shows the banner).
 - Check that the phone is on the same network, not on mobile data or a guest Wi-Fi. Guest networks usually isolate devices from each other.
 - Check the firewall (step 3), including that the network is set to **Private**.
-- Type the address exactly as printed, starting with `http://`, not `https://`.
+- Type the address exactly as the Mousette window shows it, starting with `http://`, not `https://`.
 - On Android, `mousette.local` never loads (`DNS_PROBE_FINISHED_NXDOMAIN`): Android browsers can't open `.local` names. Use the IP address or the QR code.
 - If `mousette.local` doesn't load on an iPhone but the IP address does, your router or network blocks the name lookup (some mesh and guest networks do), or the firewall blocks UDP port 5353 (see step 3). Use the IP address; everything else works the same.
 
@@ -199,9 +209,11 @@ If you ticked **Allow access** for Python in step 3, that firewall entry belongs
 
 If it already says **Private**, add the port rule from step 3. A dismissed firewall prompt is remembered as "block".
 
-**The banner shows a strange address, or the wrong one.** If the PC has several network adapters (VPN, virtual machines, Wi-Fi plus Ethernet), the server picks the most likely home address, usually `192.168.x.x`, and lists the others under "Other addresses". Start with the right one: `--host 192.168.x.x` (see the options in step 2).
+**The window shows a strange address, or the wrong one.** If the PC has several network adapters (VPN, virtual machines, Wi-Fi plus Ethernet), the server picks the most likely home address, usually `192.168.x.x`, and lists the others under "Other addresses". Start with the right one: `--host 192.168.x.x` (see the options in step 2).
 
 **You use a VPN on the PC.** Many VPN apps block connections from your local network. Look for a setting like "Allow LAN access" or "Invisibility on LAN" and allow local devices. Also see the previous point about the address.
+
+**Where's the log?** `Mousette.exe`: right-click the tray icon → **Open log**. It's the file `%APPDATA%\Mousette\mousette.log`. From source, everything is in the console window.
 
 **"Wrong PIN".** Check the 6 digits against the Mousette window. **"Mousette on the PC was restarted"** or **"The PIN on the PC has changed"** means the server was restarted: enter the new PIN.
 
@@ -216,7 +228,7 @@ If it already says **Private**, add the port rule from step 3. A dismissed firew
 ## Security
 
 - The server only listens on your **local network address**, and only accepts connections from local network devices. It isn't reachable from the internet, and you should **not** set up port forwarding for it.
-- Every connection needs the PIN, which is random and changes on each start. After the PIN, the phone saves a random login token so it can reconnect after being locked; the token stops working when the server restarts. After 5 wrong PINs from a device, that device is locked out for 60 seconds; after 10 wrong PINs from any devices combined, everyone is locked out for 60 seconds. Wrong PINs are logged: in the window from source, in `%APPDATA%\Mousette\mousette.log` for `Mousette.exe`.
+- Every connection needs the PIN, which is random and changes on each start. After the PIN, the phone saves a random login token so it can reconnect after being locked; the token stops working when the server restarts. After 5 wrong PINs from a device, that device is locked out for 60 seconds; after 10 wrong PINs from any devices combined, everyone is locked out for 60 seconds. Wrong PINs are logged: in the console window from source, in `%APPDATA%\Mousette\mousette.log` for `Mousette.exe`.
 - Only Mousette's own page can connect. Other websites open in a browser on your network can't connect to it or guess the PIN in the background, and the page can't be embedded in other sites.
 - **Encryption:** when you connect by scanning the QR code, everything between the phone and the PC is encrypted, including the PIN and everything you type or paste. Someone else on your Wi-Fi can't read it, and recorded traffic can't be replayed. The QR code carries a secret key that never travels over the network. The phone keeps it, so it stays encrypted after the PC restarts (you still enter the new PIN). If you **type** the PIN instead of scanning, the connection is **not** encrypted, and the page tells you so: someone on the same Wi-Fi with network-sniffing tools could then read what you type. Details: [PROTOCOL.md](PROTOCOL.md#encryption).
 - The key is saved on the PC (`%APPDATA%\Mousette\key` on Windows). To unpair all phones, start Mousette with `--new-key` and scan the new QR code.
@@ -233,7 +245,7 @@ Automated test of the server. It runs in dry-run mode on 127.0.0.1, so your real
 .venv\Scripts\python.exe tests\smoke_test.py
 ```
 
-It sends every message type, checks the server executed each one, and checks that wrong or missing PINs, malformed messages and the PIN lockout are rejected.
+It sends every message type, checks the server executed each one, and checks that wrong or missing PINs, malformed messages and the PIN lockout are rejected. It also checks the connected-phone status that the Mousette window shows.
 
 The updater has its own test, which needs no network:
 
@@ -247,7 +259,7 @@ The updater has its own test, which needs no network:
 .venv\Scripts\python.exe build.py
 ```
 
-It installs [PyInstaller](https://pyinstaller.org/) into `.venv` (only needed for building) and writes `dist\Mousette.exe`. Attach that file to each GitHub release with exactly that name: the .exe updater downloads it from there. On macOS or Linux the same command builds `dist/Mousette` for that system.
+It installs [PyInstaller](https://pyinstaller.org/), Pillow (for the icon) and, on Windows, pystray (for the tray icon) into `.venv`, which are only needed for building, and writes `dist\Mousette.exe`. Attach that file to each GitHub release with exactly that name: the .exe updater downloads it from there. On macOS or Linux the same command builds `dist/Mousette` for that system.
 
 ## Feedback
 
