@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, minimum-scale=1, user-scalable=no, viewport-fit=cover">
   <title>PhoneMouse</title>
-  <meta name="theme-color" content="#0b0f17">
+  <meta name="theme-color" content="#1a1916">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -125,8 +125,20 @@
         <span>Scroll strip on the right edge</span>
         <input type="checkbox" id="strip">
       </label>
+      <h3 class="section-title">Accent color</h3>
+      <div class="swatches" id="swatches" role="radiogroup" aria-label="Accent color"></div>
       <h3 class="section-title">Buttons on the bar</h3>
       <div class="bar-choices" id="bar-choices"></div>
+      <h3 class="section-title">Bar order <small>drag the handle, or use the arrows</small></h3>
+      <ol class="order-list" id="order-list"></ol>
+      <h3 class="section-title">Bar alignment</h3>
+      <div class="segmented" id="bar-align" role="radiogroup" aria-label="Bar alignment">
+        <button role="radio" data-align="left">Left</button>
+        <button role="radio" data-align="center">Center</button>
+        <button role="radio" data-align="right">Right</button>
+        <button role="radio" data-align="spread">Spread</button>
+      </div>
+      <button class="text-btn wide" id="reset-bar">Reset bar</button>
       <h3 class="section-title">PC</h3>
       <div class="pc-actions">
         <button class="text-btn" id="taskmgr-btn">Task Manager</button>

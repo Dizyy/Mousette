@@ -13,7 +13,12 @@
   };
 
   // hiddenButtons: data-action names of bottom-bar buttons the user turned off.
-  const DEFAULT_SETTINGS = { sens: 1.2, scroll: 1.0, strip: false, hiddenButtons: [] };
+  // barOrder: data-action names in bar order ([] = the order in index.html).
+  // barAlign: 'left' | 'center' | 'right' | 'spread'.
+  const DEFAULT_SETTINGS = {
+    sens: 1.2, scroll: 1.0, strip: false, hiddenButtons: [],
+    accent: '#9cc5a1', barOrder: [], barAlign: 'spread',
+  };
   let settings = { ...DEFAULT_SETTINGS };
   try { settings = { ...DEFAULT_SETTINGS, ...JSON.parse(store.get('pm.settings') || '{}') }; } catch { /* keep defaults */ }
   const saveSettings = () => store.set('pm.settings', JSON.stringify(settings));
@@ -554,21 +559,147 @@
     barChoices.append(label);
   }
 
+  // Accent color presets. The first one is the default.
+  const ACCENTS = [
+    ['Sage', '#9cc5a1'], ['Blue', '#7fb8e0'], ['Violet', '#b5a3e0'], ['Amber', '#e3b866'],
+    ['Rose', '#e3a0b4'], ['Coral', '#e39a8a'], ['Teal', '#7cc7bd'], ['Sand', '#d6c7a8'],
+  ];
+  const swatches = $('swatches');
+  for (const [name, color] of ACCENTS) {
+    const swatch = document.createElement('button');
+    swatch.className = 'swatch';
+    swatch.setAttribute('role', 'radio');
+    swatch.setAttribute('aria-label', name);
+    swatch.style.setProperty('--c', color);
+    swatch.dataset.color = color;
+    swatch.addEventListener('click', () => { settings.accent = color; renderSettings(); saveSettings(); });
+    swatches.append(swatch);
+  }
+
+  function renderAccent() {
+    const accent = ACCENTS.some(([, c]) => c === settings.accent) ? settings.accent : DEFAULT_SETTINGS.accent;
+    document.documentElement.style.setProperty('--accent', accent);
+    for (const s of swatches.children) s.setAttribute('aria-checked', String(s.dataset.color === accent));
+  }
+
+  // Bar order: one row per button with a drag handle and up/down buttons.
+  const DEFAULT_ORDER = barButtons.map((btn) => btn.dataset.action);
+  const ALIGNS = ['left', 'center', 'right', 'spread'];
+  const orderList = $('order-list');
+  const orderRows = {};
+  const GRIP = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 5a1.5 1.5 0 1 1-3 0 1.5 1.5 0 0 1 3 0Zm0 7a1.5 1.5 0 1 1-3 0 1.5 1.5 0 0 1 3 0Zm-1.5 8.5a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3ZM18 5a1.5 1.5 0 1 1-3 0 1.5 1.5 0 0 1 3 0Zm-1.5 8.5a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3ZM18 19a1.5 1.5 0 1 1-3 0 1.5 1.5 0 0 1 3 0Z"/></svg>';
+  const UP = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m12 8-6 6 1.41 1.41L12 10.83l4.59 4.58L18 14l-6-6Z"/></svg>';
+  const DOWN = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M16.59 8.59 12 13.17 7.41 8.59 6 10l6 6 6-6-1.41-1.41Z"/></svg>';
+
+  // Saved order, cleaned up: unknown names dropped, buttons missing from it added at the end.
+  function barOrder() {
+    const saved = Array.isArray(settings.barOrder) ? settings.barOrder.filter((a) => DEFAULT_ORDER.includes(a)) : [];
+    const order = [...new Set(saved)];
+    for (const action of DEFAULT_ORDER) if (!order.includes(action)) order.push(action);
+    return order;
+  }
+
+  function moveButton(action, step) {
+    const order = barOrder();
+    const i = order.indexOf(action);
+    const j = i + step;
+    if (j < 0 || j >= order.length) return;
+    [order[i], order[j]] = [order[j], order[i]];
+    settings.barOrder = order;
+    renderSettings();
+    saveSettings();
+  }
+
+  for (const btn of barButtons) {
+    const action = btn.dataset.action;
+    const name = btn.querySelector('span').textContent;
+    const row = document.createElement('li');
+    row.className = 'order-row';
+    row.dataset.action = action;
+    row.innerHTML = `<button class="grip" aria-label="Drag to move ${name}">${GRIP}</button>`
+      + `<span class="name">${btn.querySelector('svg').outerHTML}<span>${name}</span><span class="tag">hidden</span></span>`
+      + `<button class="move up" aria-label="Move ${name} up">${UP}</button>`
+      + `<button class="move down" aria-label="Move ${name} down">${DOWN}</button>`;
+    row.querySelector('.up').addEventListener('click', () => moveButton(action, -1));
+    row.querySelector('.down').addEventListener('click', () => moveButton(action, 1));
+
+    // Pointer events cover touch, pen and mouse: the row moves as the finger passes other rows' midpoints.
+    // The neighbours are moved, not the dragged row: taking it out of the page would end the pointer capture.
+    const grip = row.querySelector('.grip');
+    const mid = (el) => { const b = el.getBoundingClientRect(); return b.top + b.height / 2; };
+    let pointer = null;
+    grip.addEventListener('pointerdown', (e) => {
+      pointer = e.pointerId;
+      grip.setPointerCapture(pointer);
+      row.classList.add('dragging');
+      e.preventDefault();
+    });
+    grip.addEventListener('pointermove', (e) => {
+      if (e.pointerId !== pointer) return;
+      let moved = false;
+      while (row.nextElementSibling && e.clientY > mid(row.nextElementSibling)) {
+        orderList.insertBefore(row.nextElementSibling, row);
+        moved = true;
+      }
+      while (row.previousElementSibling && e.clientY < mid(row.previousElementSibling)) {
+        orderList.insertBefore(row.previousElementSibling, row.nextElementSibling);
+        moved = true;
+      }
+      if (!moved) return;
+      settings.barOrder = [...orderList.children].map((r) => r.dataset.action);
+      renderSettings();
+    });
+    const endDrag = (e) => {
+      if (e.pointerId !== pointer) return;
+      pointer = null;
+      row.classList.remove('dragging');
+      saveSettings();
+    };
+    grip.addEventListener('pointerup', endDrag);
+    grip.addEventListener('pointercancel', endDrag);
+    orderRows[action] = row;
+  }
+
+  const alignButtons = [...$('bar-align').children];
+  for (const b of alignButtons) {
+    b.addEventListener('click', () => { settings.barAlign = b.dataset.align; renderSettings(); saveSettings(); });
+  }
+  $('reset-bar').addEventListener('click', () => {
+    settings.hiddenButtons = [];
+    settings.barOrder = [];
+    settings.barAlign = DEFAULT_SETTINGS.barAlign;
+    renderSettings();
+    saveSettings();
+  });
+
   function renderBar() {
     const hidden = new Set(Array.isArray(settings.hiddenButtons) ? settings.hiddenButtons : []);
+    const order = barOrder();
+    const byAction = Object.fromEntries(barButtons.map((btn) => [btn.dataset.action, btn]));
     let shown = 0;
-    for (const btn of barButtons) {
-      btn.hidden = hidden.has(btn.dataset.action);
+    order.forEach((action, i) => {
+      const btn = byAction[action];
+      bar.append(btn); // moving a node keeps its listeners
+      btn.hidden = hidden.has(action);
       if (!btn.hidden) shown++;
-    }
+      const row = orderRows[action];
+      if (orderList.children[i] !== row) orderList.insertBefore(row, orderList.children[i] || null);
+      row.classList.toggle('is-hidden', btn.hidden);
+      row.querySelector('.up').disabled = i === 0;
+      row.querySelector('.down').disabled = i === order.length - 1;
+    });
     for (const box of barChoices.querySelectorAll('input')) box.checked = !hidden.has(box.dataset.action);
     // Up to 7 buttons fit in one row; more wrap into two even rows.
     bar.style.setProperty('--bar-cols', shown <= 7 ? shown : Math.ceil(shown / 2));
     bar.hidden = shown === 0;
+    const align = ALIGNS.includes(settings.barAlign) ? settings.barAlign : DEFAULT_SETTINGS.barAlign;
+    bar.dataset.align = align;
+    for (const b of alignButtons) b.setAttribute('aria-checked', String(b.dataset.align === align));
     if (mediaBtn.hidden) setMediaPanel(false);
   }
 
   function renderSettings() {
+    renderAccent();
     renderBar();
     sensInput.value = settings.sens;
     scrollInput.value = settings.scroll;
