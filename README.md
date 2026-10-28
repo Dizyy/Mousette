@@ -1,14 +1,61 @@
+<div align="center">
+
+<img src="docs/logo.png" width="112" height="112" alt="Mousette icon: a mouse pointer shaped like a little mouse">
+
 # Mousette
 
-Turn your phone into a trackpad and keyboard for your PC over your home network. Move the cursor, click, scroll, type (including accented letters like é ü ñ, and emoji), paste text from your phone straight onto the PC, use shortcuts like Search and Alt+Tab, control music and volume, open Task Manager and shut the PC down. It runs in the phone's browser, so there's no app to install on the phone.
+### Trackpad & keyboard in your pocket
 
-<p align="center">
-  <img src="docs/screenshot-trackpad.png" width="230" alt="Mousette trackpad with the scroll strip and the bottom bar buttons">
-  &nbsp;
-  <img src="docs/screenshot-media.png" width="230" alt="Mousette with the Media panel open: volume down, mute, volume up, previous, play/pause, next">
-  &nbsp;
-  <img src="docs/screenshot-settings.png" width="230" alt="Mousette settings: 14 accent colors, bar buttons and bar order">
-</p>
+Turn your iPhone, iPad or Android phone into a trackpad and keyboard for your Windows PC.<br>
+**Runs in the phone's browser: no app to install, no account, no cloud.**
+
+<br>
+
+<a href="https://github.com/Dizyy/Mousette/releases/latest/download/Mousette.exe"><img src="https://img.shields.io/badge/Download_for_Windows-9cc5a1?style=for-the-badge&logo=github&logoColor=1a1916" alt="Download for Windows" height="36"></a>
+&nbsp;
+<a href="#security"><img src="https://img.shields.io/badge/Security-1f1f1f?style=for-the-badge&logo=letsencrypt&logoColor=white" alt="Security" height="36"></a>
+
+<br>
+
+[![Latest release](https://img.shields.io/github/v/release/Dizyy/Mousette?style=flat-square&label=release&color=9cc5a1)](https://github.com/Dizyy/Mousette/releases/latest)
+[![Windows](https://img.shields.io/badge/platform-Windows-1f1f1f?style=flat-square)](#what-works-where)
+[![Python 3.11+](https://img.shields.io/badge/Python-3.11%2B-1f1f1f?style=flat-square&logo=python&logoColor=white)](#1-download)
+[![MIT License](https://img.shields.io/badge/license-MIT-1f1f1f?style=flat-square)](LICENSE)
+
+<br>
+
+<img src="docs/screenshot-trackpad.png" width="230" alt="Mousette trackpad with the scroll strip and the bottom bar buttons">
+&nbsp;
+<img src="docs/screenshot-media.png" width="230" alt="Mousette with the Media panel open: volume down, mute, volume up, previous, play/pause, next">
+&nbsp;
+<img src="docs/screenshot-settings.png" width="230" alt="Mousette settings: scroll strip, accent colors and bar buttons">
+
+</div>
+
+<br>
+
+<table>
+<tr>
+<td width="33%" align="center" valign="top">
+
+**1. Download `Mousette.exe`**<br>
+<sub>One file, no installer. Double-click to start.</sub>
+
+</td>
+<td width="33%" align="center" valign="top">
+
+**2. Scan the QR code**<br>
+<sub>With your phone's camera. It connects encrypted.</sub>
+
+</td>
+<td width="33%" align="center" valign="top">
+
+**3. Add to Home Screen**<br>
+<sub>It then opens fullscreen, like an app.</sub>
+
+</td>
+</tr>
+</table>
 
 ## Why Mousette?
 
