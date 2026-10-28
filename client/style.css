@@ -293,7 +293,27 @@ svg { width: 24px; height: 24px; fill: currentColor; flex: none; }
 }
 .typebox.on { color: var(--text); box-shadow: inset 0 0 0 2px var(--accent); }
 .typebox.on svg { color: var(--accent); }
-.keygrid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+.view-keys { overflow-y: auto; }
+.keygrid, .modrow { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+.fkeys { display: grid; grid-template-columns: repeat(6, 1fr); gap: 5px; }
+.fkeys button, .modrow button {
+  min-height: 40px;
+  border-radius: 12px;
+  background: var(--surface);
+  box-shadow: inset 0 0 0 1px var(--border);
+  font-size: 13px; font-weight: 600;
+}
+.fkeys button { color: var(--muted); }
+.modrow button { min-height: 46px; border-radius: 14px; font-size: 14px; position: relative; }
+.fkeys button.pressed, .modrow button.pressed { background: var(--accent); color: var(--on-accent); }
+/* Sticky modifiers: outlined = held for the next key, filled with a bar = locked on. */
+.modrow .mod.once { box-shadow: inset 0 0 0 2px var(--accent); color: var(--accent); }
+.modrow .mod.lock { background: var(--accent); color: var(--on-accent); }
+.modrow .mod.lock::after {
+  content: ""; position: absolute; left: 50%; bottom: 6px;
+  width: 16px; height: 3px; margin-left: -8px; border-radius: 2px;
+  background: currentColor;
+}
 .arrows { display: grid; grid-template-columns: repeat(3, 72px); gap: 8px; justify-content: center; }
 .arrows button:first-child { grid-column: 2; }
 .arrows button:nth-child(2) { grid-column: 1; }

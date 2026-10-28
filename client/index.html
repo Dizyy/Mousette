@@ -104,7 +104,27 @@
           <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 5H4a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2Zm-9 3h2v2h-2V8Zm0 3h2v2h-2v-2ZM8 8h2v2H8V8Zm0 3h2v2H8v-2ZM7 13H5v-2h2v2Zm0-3H5V8h2v2Zm9 7H8v-2h8v2Zm0-4h-2v-2h2v2Zm0-3h-2V8h2v2Zm3 3h-2v-2h2v2Zm0-3h-2V8h2v2Z"/></svg>
           <span id="typebox-text">Tap to type with your phone's keyboard</span>
         </button>
-        <p class="view-note">What you type goes straight to the PC, where its cursor is.</p>
+        <p class="view-note">What you type goes straight to the PC. Tap Ctrl, Alt, Shift or Win for the next key, twice to keep it on.</p>
+        <div class="fkeys">
+          <button class="press" data-action="f1">F1</button>
+          <button class="press" data-action="f2">F2</button>
+          <button class="press" data-action="f3">F3</button>
+          <button class="press" data-action="f4">F4</button>
+          <button class="press" data-action="f5">F5</button>
+          <button class="press" data-action="f6">F6</button>
+          <button class="press" data-action="f7">F7</button>
+          <button class="press" data-action="f8">F8</button>
+          <button class="press" data-action="f9">F9</button>
+          <button class="press" data-action="f10">F10</button>
+          <button class="press" data-action="f11">F11</button>
+          <button class="press" data-action="f12">F12</button>
+        </div>
+        <div class="modrow" role="group" aria-label="Modifier keys">
+          <button class="mod press" data-mod="ctrl" aria-pressed="false">Ctrl</button>
+          <button class="mod press" data-mod="alt" aria-pressed="false">Alt</button>
+          <button class="mod press" data-mod="shift" aria-pressed="false">Shift</button>
+          <button class="mod press" data-mod="win" aria-pressed="false">Win</button>
+        </div>
         <div class="keygrid">
           <button class="press" data-action="esc">Esc</button>
           <button class="press" data-action="tab">Tab</button>

@@ -68,6 +68,11 @@ INPUT_MESSAGES = [
     ({"type": "hotkey", "keys": ["ctrl", "c"]}, "DRY-RUN hotkey keys=ctrl+c"),
     ({"type": "hotkey", "keys": ["ctrl", "v"]}, "DRY-RUN hotkey keys=ctrl+v"),
     ({"type": "hotkey", "keys": ["ctrl", "shift", "Esc"]}, "DRY-RUN hotkey keys=ctrl+shift+esc"),
+    # Keyboard tab: F-keys alone and with sticky modifiers, a modifier with a named key.
+    ({"type": "hotkey", "keys": ["f5"]}, "DRY-RUN hotkey keys=f5"),
+    ({"type": "hotkey", "keys": ["alt", "f4"]}, "DRY-RUN hotkey keys=alt+f4"),
+    ({"type": "hotkey", "keys": ["ctrl", "shift", "t"]}, "DRY-RUN hotkey keys=ctrl+shift+t"),
+    ({"type": "hotkey", "keys": ["shift", "end"]}, "DRY-RUN hotkey keys=shift+end"),
     # Deck buttons: a website (https:// added) and an app opened through Windows search.
     ({"type": "open_url", "url": "youtube.com"}, "DRY-RUN open_url url=https://youtube.com"),
     ({"type": "open_url", "url": "http://example.org/a?b=1"}, "DRY-RUN open_url url=http://example.org/a?b=1"),

@@ -609,8 +609,47 @@
   document.addEventListener('gesturestart', (e) => e.preventDefault());
   document.addEventListener('touchmove', (e) => {
     // Sliders and the settings card (it scrolls on small screens) keep their own touch moves.
-    if (!e.target.closest('input[type="range"], .sheet-card')) e.preventDefault();
+    if (!e.target.closest('input[type="range"], .sheet-card, .view-keys')) e.preventDefault();
   }, { passive: false });
+
+  // ---------- Sticky modifier keys (Keyboard tab) ----------
+  // Tap: held for the next key only. Tap again within 350 ms: locked on until tapped again.
+  const MODS = ['ctrl', 'alt', 'shift', 'win']; // also the Deck editor's modifier order
+  const modState = {}; // name -> 'once' | 'lock'
+  const modButtons = [...document.querySelectorAll('[data-mod]')];
+  let lastModTap = { name: null, t: 0 };
+
+  function showMods() {
+    for (const b of modButtons) {
+      const s = modState[b.dataset.mod];
+      b.classList.toggle('once', s === 'once');
+      b.classList.toggle('lock', s === 'lock');
+      b.setAttribute('aria-pressed', String(!!s));
+    }
+  }
+
+  function tapMod(name) {
+    const now = Date.now();
+    const s = modState[name];
+    if (!s) modState[name] = 'once';
+    else if (s === 'once' && lastModTap.name === name && now - lastModTap.t < 350) modState[name] = 'lock';
+    else delete modState[name];
+    lastModTap = { name, t: now };
+    showMods();
+  }
+
+  const activeMods = () => MODS.filter((m) => modState[m]);
+
+  // Every key press goes through here, so held modifiers join it. F-keys and single
+  // characters only exist inside "hotkey" (see PROTOCOL.md), plain named keys use "key".
+  function pressKey(name) {
+    const mods = activeMods();
+    if (mods.length || /^f\d+$/.test(name)) send({ type: 'hotkey', keys: [...mods, name] });
+    else send({ type: 'key', name });
+    let changed = false;
+    for (const m of mods) if (modState[m] === 'once') { delete modState[m]; changed = true; }
+    if (changed) showMods();
+  }
 
   // ---------- Hidden keyboard input ----------
   const kbd = $('kbd');
@@ -637,8 +676,14 @@
            && v[v.length - 1 - s] === SENTINEL[SENTINEL.length - 1 - s]) s++;
     const removed = SENTINEL.length - p - s;
     const inserted = v.slice(p, v.length - s);
-    for (let i = 0; i < removed; i++) send({ type: 'key', name: 'backspace' });
-    if (inserted) send({ type: 'type_text', text: inserted });
+    for (let i = 0; i < removed; i++) pressKey('backspace');
+    // With Ctrl/Alt/Shift/Win held, a typed letter becomes a shortcut (Ctrl + C).
+    let plain = '';
+    for (const ch of inserted) {
+      if (activeMods().length) pressKey({ ' ': 'space', '\n': 'enter' }[ch] || ch.toLowerCase());
+      else plain += ch;
+    }
+    if (plain) send({ type: 'type_text', text: plain });
     resetKbd();
   }
 
@@ -648,7 +693,7 @@
   kbd.addEventListener('keydown', (e) => {
     if (e.key === 'Enter' || e.keyCode === 13) {
       e.preventDefault();
-      send({ type: 'key', name: 'enter' });
+      pressKey('enter');
     }
   });
   // Pasting into the keyboard goes onto the PC clipboard and is pasted there in one go,
@@ -677,7 +722,7 @@
 
   // ---------- Buttons: tabs, quick actions, shortcut keys, deck, media ----------
   const hotkey = (...keys) => () => send({ type: 'hotkey', keys });
-  const key = (name) => () => send({ type: 'key', name });
+  const key = (name) => () => pressKey(name);
   const actions = {
     left: () => send({ type: 'click', button: 'left' }),
     right: () => send({ type: 'click', button: 'right' }),
@@ -703,6 +748,7 @@
     arrowup: key('up'),
     arrowdown: key('down'),
     arrowright: key('right'),
+    ...Object.fromEntries(Array.from({ length: 12 }, (_, i) => [`f${i + 1}`, key(`f${i + 1}`)])),
     // The server starts Task Manager itself, so Windows shows no UAC prompt the phone can't answer.
     taskmgr: () => pcAction('task_manager'),
     shutdown: () => { if (window.confirm('Shut down PC?')) pcAction('shutdown'); },
@@ -729,6 +775,7 @@
   function runButton(btn) {
     if (btn.dataset.tab) { showTab(btn.dataset.tab); return; }
     if (btn === quickBtn) { setQuick(quick.hidden); return; }
+    if (btn.dataset.mod) { tapMod(btn.dataset.mod); return; }
     if (btn.dataset.key) send({ type: 'key', name: btn.dataset.key });
     else if (actions[btn.dataset.action]) actions[btn.dataset.action]();
     if (btn.closest('#quick')) setQuick(false);
@@ -1096,7 +1143,6 @@
     heart: 'M12 21.35 10.55 20C5.4 15.36 2 12.28 2 8.5A5.5 5.5 0 0 1 7.5 3c1.74 0 3.41.81 4.5 2.09A6 6 0 0 1 16.5 3 5.5 5.5 0 0 1 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35Z',
   };
   const DECK_COLORS = [null, '#9cc5a1', '#7fb8e0', '#e3b866', '#e3a0b4', '#b5a3e0', '#7cc7bd', '#f0b48a'];
-  const MODS = ['ctrl', 'alt', 'shift', 'win'];
   // Shown until the PC has saved buttons of its own (deck_get answers null).
   const DEFAULT_DECK = [
     { kind: 'shortcut', name: 'Search', icon: 'search', color: null, keys: ['win', 's'] },
