@@ -131,19 +131,6 @@ A program that controls your mouse and keyboard has to be one you can trust. Man
 - **PIN protected:** a new random PIN on every start, and devices that guess wrong get locked out (see [Security](#security)).
 - **No phone app:** it runs in the phone's browser, so there's nothing to install from an app store.
 
-### How it compares
-
-| | **Mousette** | Remote Mouse | KDE Connect | CmdPalm |
-|---|---|---|---|---|
-| On the phone | Browser, no app | App from the app store | App from the app store | Browser, no app |
-| On the computer | Windows | Windows, Mac | Linux, Windows, Mac | Mac only |
-| Open source | Yes (AGPL) | No | Yes (GPL) | Yes (AGPL) |
-| Price | Free | Free, with paid extras | Free | Free |
-| Your own buttons | Yes (Deck) | Yes | Run commands | Yes |
-| Account needed | No | No | No | No |
-
-<sub>From each project's own pages, October 2026. Something changed? [Tell us](https://github.com/Dizyy/Mousette/discussions).</sub>
-
 ## Features
 
 - **Quick to connect:** scan the QR code in the Mousette window with the phone camera.
@@ -179,6 +166,7 @@ The phone and the PC must be on the **same home network** (the PC can be on Wi-F
   - `clipboard.py`: puts text from the phone on the PC clipboard
   - `deck.py`: saves the phone's own Deck buttons on the PC (`deck.json` next to the encryption key)
   - `encryption.py`: the encryption key and encrypted connections (PyNaCl)
+  - `qr.py`: draws the QR code as text for the console window
 - `client/`: the web page for the phone (plain HTML/CSS/JS, no build step); `client/vendor/` holds [tweetnacl.js](https://github.com/dchest/tweetnacl-js) 1.0.3 (public domain) for encryption
 - `PROTOCOL.md`: the messages the phone and the server exchange
 - `tests/`: automated tests
