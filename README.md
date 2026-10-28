@@ -10,6 +10,27 @@ Turn your phone into a trackpad and keyboard for your PC over your home network.
   <img src="docs/screenshot-settings.png" width="230" alt="Mousette settings: 14 accent colors, bar buttons and bar order">
 </p>
 
+## Why Mousette?
+
+A program that controls your mouse and keyboard has to be one you can trust. Many remote mouse apps are closed source, keep a background service running after you close them, and send data you can't check. Mousette works differently:
+
+- **Open source (MIT):** every line of the PC program and the phone page is in this repo.
+- **Nothing left running:** **Quit Mousette** stops it completely. It doesn't start with Windows and installs no service.
+- **No tracking:** no accounts, no ads, no analytics. The only internet request is the update check on GitHub at start, which you can turn off with `--no-update`.
+- **Stays on your home network:** the phone talks straight to your PC. Nothing goes through a cloud server, and the phone page loads nothing from the internet.
+- **Encrypted:** scan the QR code and everything between the phone and the PC is encrypted: the PIN, every tap, everything you type or paste. Others on your Wi-Fi can't read it, and recorded traffic can't be replayed.
+- **PIN protected:** a new random PIN on every start, and devices that guess wrong get locked out (see [Security](#security)).
+- **No phone app:** it runs in the phone's browser, so there's nothing to install from an app store.
+
+## Features
+
+- **Quick to connect:** scan the QR code in the Mousette window with the phone camera.
+- **Encrypted connection:** the QR code gives the phone a secret key, and everything sent between the phone and the PC is encrypted with keys made from it (XSalsa20-Poly1305 from the NaCl library). The key reaches the phone through the camera, never over the network, and the phone stays paired after the PC restarts. Typing the PIN by hand connects without encryption, and the page tells you so. Details: [PROTOCOL.md](PROTOCOL.md#encryption).
+- **Trackpad:** tap to click, two-finger tap to right-click, two-finger scroll, hold and drag to select or move windows. Or scroll with one finger on the scroll strip next to the trackpad (turn it on or off in settings).
+- **Keyboard:** type in any language, including é ü ñ and emoji, or paste text from your phone onto the PC.
+- **Shortcuts and media:** Search, Alt+Tab, Task Manager, volume, play/pause, next track, shut down.
+- **Your layout:** 14 accent colors, and you pick which buttons the bottom bar shows and in what order.
+
 ## What works where
 
 | | Status |
