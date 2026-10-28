@@ -20,7 +20,7 @@ Trackpad, keyboard, your own buttons and media controls for your Windows PC, on 
 [![Latest release](https://img.shields.io/github/v/release/Dizyy/Mousette?style=flat-square&label=release&color=9cc5a1)](https://github.com/Dizyy/Mousette/releases/latest)
 [![Windows](https://img.shields.io/badge/platform-Windows-1f1f1f?style=flat-square)](#what-works-where)
 [![Python 3.11+](https://img.shields.io/badge/Python-3.11%2B-1f1f1f?style=flat-square&logo=python&logoColor=white)](#1-download)
-[![MIT License](https://img.shields.io/badge/license-MIT-1f1f1f?style=flat-square)](LICENSE)
+[![AGPL-3.0 License](https://img.shields.io/badge/license-AGPL--3.0-1f1f1f?style=flat-square)](LICENSE)
 
 <br>
 
@@ -113,7 +113,7 @@ Trackpad, keyboard, your own buttons and media controls for your Windows PC, on 
 
 A program that controls your mouse and keyboard has to be one you can trust. Many remote mouse apps are closed source, keep a background service running after you close them, and send data you can't check. Mousette works differently:
 
-- **Open source (MIT):** every line of the PC program and the phone page is in this repo.
+- **Open source (AGPL-3.0):** every line of the PC program and the phone page is in this repo, and every changed copy someone shares has to stay open source too.
 - **Nothing left running:** **Quit Mousette** stops it completely. It doesn't start with Windows and installs no service.
 - **No tracking:** no accounts, no ads, no analytics. The only internet request is the update check on GitHub at start, which you can turn off with `--no-update`.
 - **Stays on your home network:** the phone talks straight to your PC. Nothing goes through a cloud server, and the phone page loads nothing from the internet.
@@ -127,7 +127,7 @@ A program that controls your mouse and keyboard has to be one you can trust. Man
 |---|---|---|---|---|
 | On the phone | Browser, no app | App from the app store | App from the app store | Browser, no app |
 | On the computer | Windows | Windows, Mac | Linux, Windows, Mac | Mac only |
-| Open source | Yes (MIT) | No | Yes (GPL) | Yes (AGPL) |
+| Open source | Yes (AGPL) | No | Yes (GPL) | Yes (AGPL) |
 | Price | Free | Free, with paid extras | Free | Free |
 | Your own buttons | Yes (Deck) | Yes | Run commands | Yes |
 | Account needed | No | No | No | No |
@@ -427,4 +427,6 @@ Please never post your PIN or IP address.
 
 ## License
 
-MIT. See [LICENSE](LICENSE).
+Copyright (c) 2026 Dizyy. Mousette is free software under the [GNU Affero General Public License v3.0](LICENSE) (AGPL-3.0): you may use, change and share it, and if you share a changed version, or let others use it over a network, you must publish its source code under the same license.
+
+Versions up to 1.9.0 were released under the MIT license.
