@@ -142,7 +142,7 @@ To control admin windows such as Task Manager, the On-Screen Keyboard and instal
 
 ```
 ==============================================
-  Mousette 1.8.0 is running
+  Mousette 1.9.0 is running
   Open on your phone:    http://192.168.1.23
   iPhone/iPad also:      http://mousette.local
   PIN:                  482915
