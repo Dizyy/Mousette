@@ -4,9 +4,9 @@
 
 # Mousette
 
-### Trackpad & keyboard in your pocket
+### Your whole PC in one hand
 
-Turn your iPhone, iPad or Android phone into a trackpad and keyboard for your Windows PC.<br>
+Trackpad, keyboard, your own buttons and media controls for your Windows PC, on your iPhone, iPad or Android phone.<br>
 **Runs in the phone's browser: no app to install, no account, no cloud.**
 
 <br>
@@ -24,11 +24,7 @@ Turn your iPhone, iPad or Android phone into a trackpad and keyboard for your Wi
 
 <br>
 
-<img src="docs/screenshot-trackpad.png" width="230" alt="Mousette trackpad with the scroll strip and the bottom bar buttons">
-&nbsp;
-<img src="docs/screenshot-media.png" width="230" alt="Mousette with the Media panel open: volume down, mute, volume up, previous, play/pause, next">
-&nbsp;
-<img src="docs/screenshot-settings.png" width="230" alt="Mousette settings: scroll strip, accent colors and bar buttons">
+<img src="docs/hero.png" width="800" alt="A Windows 11 PC playing a video, with the Mousette cursor on it, and a phone in front showing the Mousette trackpad, connected and encrypted">
 
 </div>
 
@@ -57,6 +53,62 @@ Turn your iPhone, iPad or Android phone into a trackpad and keyboard for your Wi
 </tr>
 </table>
 
+## Four tabs, one hand
+
+<table>
+<tr>
+<td width="50%" align="center" valign="top">
+
+<img src="docs/screenshot-trackpad.png" width="260" alt="Trackpad tab: a large pad, Click and Right-click buttons, and a row of small shortcut keys">
+
+**Trackpad**<br>
+<sub>Windows gestures: two-finger scroll that keeps gliding, pinch to zoom, three- and four-finger swipes for Task view, apps and desktops. Big Click and Right-click buttons under your thumb.</sub>
+
+</td>
+<td width="50%" align="center" valign="top">
+
+<img src="docs/screenshot-keyboard.png" width="260" alt="Keyboard tab: type box, F1 to F12, Ctrl Alt Shift Win with Ctrl held, Esc Tab Del Backspace, Home End PgUp PgDn, arrows and Enter">
+
+**Keyboard**<br>
+<sub>Type in any language with your phone's keyboard. F1–F12, arrows, and sticky Ctrl, Alt, Shift and Win: tap Ctrl, then C, for Ctrl+C.</sub>
+
+</td>
+</tr>
+<tr>
+<td width="50%" align="center" valign="top">
+
+<img src="docs/screenshot-deck.png" width="260" alt="Deck tab: buttons for Search, Alt+Tab, Desktop, New tab, Reopen tab, Close tab, Screenshot and Add button">
+
+**Deck**<br>
+<sub>Your own buttons: a shortcut, a piece of text, a website or an app, with your own name, icon and colour. Saved on the PC, so every phone gets them.</sub>
+
+</td>
+<td width="50%" align="center" valign="top">
+
+<img src="docs/screenshot-media.png" width="260" alt="Media tab: previous, play/pause, next, rewind, fullscreen, forward, volume down, mute, volume up">
+
+**Media**<br>
+<sub>Play/pause, next and previous track, rewind and forward, fullscreen and volume, for music and videos on the PC.</sub>
+
+</td>
+</tr>
+</table>
+
+<p align="center">
+  <img src="docs/gestures.gif" width="300" alt="Animation of the trackpad gestures: drag to move, two-finger scroll, pinch to zoom, three fingers up for Task view, three fingers sideways to switch apps, hold and drag to select">
+  &nbsp;&nbsp;
+  <img src="docs/screenshot-quick.png" width="260" alt="Quick actions opened from the mouse button in the middle of the tab bar: Copy, Paste, Send text, Search, Alt+Tab, Desktop, Task Manager, Screenshot, Shut down">
+</p>
+<p align="center"><sub>Left: the gestures. Right: <b>Quick actions</b>, one tap on the little mouse in the tab bar.</sub></p>
+
+## Made for real life
+
+- **Movie night:** the laptop is on the TV and you're on the couch. Play, pause, skip back, go fullscreen and turn it down without getting up.
+- **Presenting:** next and previous slide with the arrows, F5 to start the show, and a Deck button that opens your slides.
+- **PC on the TV:** browse, search and type on the big screen with a real trackpad and keyboard in your hand.
+- **Couch gaming:** start a game from the couch, Alt+Tab out to change a setting, turn the volume up, then pick up the controller.
+- **Across the desk:** when the PC is out of reach, or the mouse is on the other side of a stack of books.
+
 ## Why Mousette?
 
 A program that controls your mouse and keyboard has to be one you can trust. Many remote mouse apps are closed source, keep a background service running after you close them, and send data you can't check. Mousette works differently:
@@ -69,15 +121,28 @@ A program that controls your mouse and keyboard has to be one you can trust. Man
 - **PIN protected:** a new random PIN on every start, and devices that guess wrong get locked out (see [Security](#security)).
 - **No phone app:** it runs in the phone's browser, so there's nothing to install from an app store.
 
+### How it compares
+
+| | **Mousette** | Remote Mouse | KDE Connect | CmdPalm |
+|---|---|---|---|---|
+| On the phone | Browser, no app | App from the app store | App from the app store | Browser, no app |
+| On the computer | Windows | Windows, Mac | Linux, Windows, Mac | Mac only |
+| Open source | Yes (MIT) | No | Yes (GPL) | Yes (AGPL) |
+| Price | Free | Free, with paid extras | Free | Free |
+| Your own buttons | Yes (Deck) | Yes | Run commands | Yes |
+| Account needed | No | No | No | No |
+
+<sub>From each project's own pages, October 2026. Something changed? [Tell us](https://github.com/Dizyy/Mousette/discussions).</sub>
+
 ## Features
 
 - **Quick to connect:** scan the QR code in the Mousette window with the phone camera.
 - **Encrypted connection:** the QR code gives the phone a secret key, and everything sent between the phone and the PC is encrypted with keys made from it (XSalsa20-Poly1305 from the NaCl library). The key reaches the phone through the camera, never over the network, and the phone stays paired after the PC restarts. Typing the PIN by hand connects without encryption, and the page tells you so. Details: [PROTOCOL.md](PROTOCOL.md#encryption).
 - **Trackpad with Windows gestures:** tap to click, two-finger tap to right-click, two-finger scroll that keeps gliding after a flick, pinch to zoom, three-finger tap to middle-click, three- and four-finger swipes for Task view, the app switcher, Show desktop and virtual desktops, hold and drag to select or move windows. Or scroll with one finger on the scroll strip next to the trackpad (turn it on or off in settings).
-- **Keyboard:** type in any language, including é ü ñ and emoji, or paste text from your phone onto the PC.
+- **Keyboard:** type in any language, including é ü ñ and emoji, or paste text from your phone onto the PC. F1–F12, arrows, Home/End, and sticky Ctrl, Alt, Shift and Win for any shortcut.
 - **Your own buttons (Deck):** make buttons for a keyboard shortcut, a piece of text to paste, a website or an app, with your own name, icon and colour. They're saved on the PC, so every phone gets the same buttons.
-- **Shortcuts and media:** Search, Alt+Tab, Task Manager, volume, play/pause, next track, shut down.
-- **Your layout:** 14 accent colors, and you pick which buttons the bottom bar shows and in what order.
+- **Quick actions and media:** Copy, Paste, Search, Alt+Tab, Task Manager, Screenshot, shut down; play/pause, next track, volume.
+- **Your layout:** 14 accent colors, the tab bar at the top or bottom, and you pick which shortcut keys the Trackpad tab shows and in what order.
 
 ## What works where
 
@@ -225,11 +290,22 @@ You only type the PIN once per server start. After that the phone stays logged i
 | Four-finger swipe left / right | Next / previous virtual desktop (up / down as with three fingers) |
 | Hold for about 0.4 s, then drag | Click-drag: select text, move windows. "Dragging" shows while it's active; lift your finger to release. |
 
-Bottom bar buttons: **Left**, **Right**, **Keys** (opens the on-screen keyboard; tap again to close), **Copy** (Ctrl+C), **Paste** (Ctrl+V), **Send** (paste text from your phone on the PC, see below), **Media** (opens volume −, mute, volume +, previous, play/pause and next; tap Media again or anywhere else to close), **Search** (Win+S), **Alt+Tab**, **Desktop** (Win+D), **Esc**. Under **Buttons on the bar** in settings, untick the ones you don't need; up to 7 fit in one row, more wrap into two. Under **Bar order**, drag a button by its handle (or use the arrows) to move it, and under **Bar alignment** choose **Left**, **Center**, **Right** or **Spread** (the default). **Reset bar** brings back all buttons in the original order.
+### The tabs
 
-**Send text from your phone:** copy something on the phone, tap **Send**, paste it into the box and tap **Paste on PC**. It's pasted where the cursor is on the PC, in one go, line breaks included. You can also paste while **Keys** is open (for example from the keyboard's clipboard on Android): it's pasted on the PC the same way.
+The tab bar has **Trackpad**, **Keyboard**, **Deck** and **Media**, with the little mouse in the middle for **Quick actions**.
 
-The gear icon opens settings for **cursor sensitivity**, **scroll speed**, the **scroll strip**, the **accent color** and the **bar buttons**. These are saved on the phone. The accent color also colors the QR code in the Mousette window, and the color dots above **Show QR encryption code** change it on the phone: the PC and the phone always match. With the scroll strip turned on, a narrow bar appears to the right of the trackpad: drag one finger up or down on it to scroll.
+- **Trackpad:** the pad with **Click** and **Right-click** under it, and a row of small shortcut keys (Esc, Tab, arrows, Copy, Paste). In settings, under **Shortcut keys**, put the row at the **Top** or **Bottom** or turn it **Off**, untick keys you don't need, and drag them by the handle (or use the arrows) to change the order. **Reset shortcut keys** brings them all back.
+- **Keyboard:** tap the box at the top to open your phone's keyboard; tap it again to close it. Below it are **F1–F12**, **Ctrl**, **Alt**, **Shift** and **Win**, Esc, Tab, Del, Backspace, Home, End, PgUp, PgDn, the arrows and Enter.
+  - Tap **Ctrl**, **Alt**, **Shift** or **Win** and it's held for the next key only (outlined), so **Ctrl** then **C** is Ctrl+C. Letters typed on the phone keyboard work too.
+  - Tap it twice quickly to keep it on (filled, with a small bar), for example **Ctrl** with several arrow presses. Tap it once more to turn it off.
+  - The held keys also apply to the shortcut keys on the Trackpad tab.
+- **Deck:** your own buttons. Tap **Edit**, then **Add button**, and choose what it does: a **shortcut** (pick Ctrl/Alt/Shift/Win and a key), **text** to paste (optionally pressing Enter after it), a **website** to open in the PC's browser, or an **app** to open through Windows search. Give it a name, an icon and a colour. In Edit mode, tap a button to change or delete it, and hold one, then drag it to move it. The buttons are saved on the PC, so every phone that connects gets the same Deck. Until you change it, the Deck shows a few useful shortcuts.
+- **Media:** previous, play/pause and next, rewind and forward (the arrow keys, which most video players use), fullscreen (F) and volume down, mute and up.
+- **Quick actions:** tap the little mouse in the middle of the tab bar for **Copy**, **Paste**, **Send text**, **Search** (Win+S), **Alt+Tab**, **Desktop** (Win+D), **Task Manager**, **Screenshot** (Win+Shift+S) and **Shut down**. Tap anywhere else to close it.
+
+**Send text from your phone:** copy something on the phone, tap the little mouse, then **Send text**, paste it into the box and tap **Paste on PC**. It's pasted where the cursor is on the PC, in one go, line breaks included. You can also paste while the phone keyboard is open on the Keyboard tab (for example from the keyboard's clipboard on Android): it's pasted on the PC the same way.
+
+The gear icon opens settings for **cursor sensitivity**, **scroll speed**, the **scroll strip**, the **accent color**, the **tab bar** (top or bottom) and the **shortcut keys**. These are saved on the phone. The accent color also colors the QR code in the Mousette window, and the color dots above **Show QR encryption code** change it on the phone: the PC and the phone always match. With the scroll strip turned on, a narrow bar appears to the right of the trackpad: drag one finger up or down on it to scroll.
 
 The settings also have **PC** buttons:
 - **Task Manager** opens Task Manager. Mousette must run as administrator: it then starts Task Manager itself, with admin rights, so Windows doesn't ask for your PIN or password. (Ctrl+Shift+Esc would let Windows start it, and if you set User Account Control to ask for a PIN, that prompt can only be answered on the PC.)
@@ -301,7 +377,7 @@ If it already says **Private**, add the port rule from step 3. A dismissed firew
 
 **New buttons or settings don't show after updating Mousette.** The phone is still showing an older saved copy of the page. Open the address in the browser and tap reload once, then add the home-screen icon again.
 
-**Typing does nothing.** First click into a text field on the PC (tap the trackpad), then tap **Keys**.
+**Typing does nothing.** First click into a text field on the PC (tap the trackpad), then open the **Keyboard** tab and tap the box at the top.
 
 **The phone stops working after opening Task Manager or the On-Screen Keyboard.** Windows doesn't let normal programs control windows that run as administrator. While such a window is in front, all input from the phone is ignored, until you click another window with the real mouse. Click **Restart as administrator** in the Mousette window (from source: answer **Y** when `start.bat` starts). Even then, User Account Control prompts ("Do you want to allow…", or a PIN/password request) and the lock screen can't be controlled remotely: Windows shows them on a protected screen that only accepts the real keyboard and mouse. Use the **Task Manager** button in Settings rather than Ctrl+Shift+Esc to avoid that prompt.
 
@@ -313,7 +389,7 @@ If it already says **Private**, add the port rule from step 3. A dismissed firew
 - **Encryption:** when you connect by scanning the QR code, everything between the phone and the PC is encrypted, including the PIN and everything you type or paste. Someone else on your Wi-Fi can't read it, and recorded traffic can't be replayed. The QR code carries a secret key that never travels over the network. The phone keeps it, so it stays encrypted after the PC restarts (you still enter the new PIN). If you **type** the PIN instead of scanning, the connection is **not** encrypted, and the page tells you so: someone on the same Wi-Fi with network-sniffing tools could then read what you type. Details: [PROTOCOL.md](PROTOCOL.md#encryption).
 - The key is saved on the PC (`%APPDATA%\Mousette\key` on Windows). To unpair all phones, start Mousette with `--new-key` and scan the new QR code.
 - Don't run Mousette on public or untrusted Wi-Fi, and quit Mousette when you're done. Anyone **on your network who knows the current PIN** can control the PC.
-- Text you send with **Send** goes onto the PC clipboard. On Windows it is marked so it stays out of clipboard history (Win+V) and isn't synced to your other devices through the cloud clipboard. It stays on the clipboard itself until you copy something else.
+- Text you send with **Send text** goes onto the PC clipboard. On Windows it is marked so it stays out of clipboard history (Win+V) and isn't synced to your other devices through the cloud clipboard. It stays on the clipboard itself until you copy something else.
 - The Mousette window shows the PIN and a QR code that logs in with it and carries the encryption key. Close or minimise the window before you share your screen or stream (`Mousette.exe` keeps running in the tray).
 - Whoever is connected can also shut the PC down. When you run Mousette as administrator, the phone can also control admin windows and open Task Manager with admin rights, so only do that on a network you trust.
 
