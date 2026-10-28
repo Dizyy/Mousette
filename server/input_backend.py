@@ -80,6 +80,12 @@ class InputBackend:
     def _do_zoom(self, steps: float) -> None:
         self.zoom(steps)
 
+    def _do_open_url(self, url: str) -> None:
+        self.open_url(url)
+
+    def _do_open_app(self, name: str) -> None:
+        self.open_app(name)
+
     def _do_type_text(self, text: str) -> None:
         if text:
             self.type_text(text)
@@ -110,6 +116,8 @@ class InputBackend:
     def scroll(self, dx: float, dy: float) -> None: raise NotImplementedError
     def zoom(self, steps: float) -> None: raise NotImplementedError
     def type_text(self, text: str) -> None: raise NotImplementedError
+    def open_url(self, url: str) -> None: raise NotImplementedError
+    def open_app(self, name: str) -> None: raise NotImplementedError
     def paste_text(self, text: str) -> None: raise NotImplementedError
     def hotkey(self, keys: list[str]) -> None: raise NotImplementedError
     def task_manager(self) -> None: raise NotImplementedError
@@ -184,6 +192,25 @@ class PynputBackend(InputBackend):
         # keyboard.type sends characters outside the active layout (accented letters, emoji)
         # as Unicode input events, splitting emoji into UTF-16 surrogate pairs.
         self._keyboard.type(text)
+
+    # Deck buttons only press keys, like a person would: Mousette never starts programs itself.
+    def open_url(self, url: str) -> None:
+        if sys.platform == "win32":
+            self.hotkey(["win", "r"])  # the Run box opens web addresses in the default browser
+            time.sleep(0.5)
+            self._keyboard.type(url)
+            time.sleep(0.1)
+            self.hotkey(["enter"])
+        else:
+            import webbrowser
+            webbrowser.open(url)  # http(s) only, checked in protocol.py
+
+    def open_app(self, name: str) -> None:
+        self.hotkey(["win", "s"])  # Windows search (Spotlight on macOS, see MAC_HOTKEYS)
+        time.sleep(0.7)
+        self._keyboard.type(name)
+        time.sleep(0.8)  # let search find it
+        self.hotkey(["enter"])
 
     def paste_text(self, text: str) -> None:
         # Clipboard + paste shortcut: instant for long text, and keeps line breaks and
@@ -270,6 +297,8 @@ class DryRunBackend(InputBackend):
     def zoom(self, steps): log.info("DRY-RUN zoom steps=%.3f", steps)
     def type_text(self, text): log.info("DRY-RUN type_text text=%r", text)
     def paste_text(self, text): log.info("DRY-RUN paste_text text=%r", text)
+    def open_url(self, url): log.info("DRY-RUN open_url url=%s", url)
+    def open_app(self, name): log.info("DRY-RUN open_app name=%r", name)
     def hotkey(self, keys): log.info("DRY-RUN hotkey keys=%s", "+".join(keys))
     def task_manager(self): log.info("DRY-RUN task_manager")
     def shutdown(self): log.info("DRY-RUN shutdown delay=%ds", SHUTDOWN_DELAY_S)

@@ -367,7 +367,12 @@ svg { width: 24px; height: 24px; fill: currentColor; flex: none; }
 /* Sheets (settings, PIN) */
 .sheet {
   position: fixed;
-  inset: 0;
+  /* Only the part of the screen above the phone keyboard (set by fitViewport in app.js), so a
+     field being typed in is never hidden under the keyboard. */
+  left: 0;
+  right: 0;
+  top: var(--app-top);
+  height: var(--app-height);
   z-index: 10;
   display: flex;
   align-items: flex-end;
@@ -531,3 +536,74 @@ html[data-bar="top"] .toast { top: calc(136px + env(safe-area-inset-top)); }
 .primary-btn.wide { width: 100%; margin-top: 16px; }
 .text-btn { color: var(--text); background: var(--surface-2); }
 .text-btn.wide { width: 100%; margin: 14px 0; }
+
+/* Deck: the user's own buttons */
+.deck-head { display: flex; align-items: center; justify-content: space-between; margin: 0 4px; }
+.deck-head h2 { margin: 0; font-size: 16px; font-weight: 600; }
+.edit-btn {
+  min-height: 40px; padding: 0 16px;
+  border-radius: 999px;
+  background: var(--surface);
+  box-shadow: inset 0 0 0 1px var(--border);
+  font-size: 14px; font-weight: 600;
+}
+.edit-btn.on { background: var(--accent); color: var(--on-accent); box-shadow: none; }
+.tile { position: relative; color: var(--text); }
+.tile b { font-weight: 600; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; padding: 0 6px; }
+.tile small { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; padding: 0 6px; }
+.tile.colored { background: var(--tile); box-shadow: none; color: #1a1916; }
+.tile.colored svg, .tile.colored small { color: rgba(26, 25, 22, .75); }
+.tile.pressed { filter: brightness(1.15); }
+.tile.add { background: transparent; color: var(--muted); box-shadow: inset 0 0 0 1.5px var(--border); }
+.tile.add svg { color: var(--muted); }
+.tile .badge {
+  position: absolute; top: 6px; right: 6px;
+  width: 26px; height: 26px;
+  display: none; place-items: center;
+  border-radius: 50%;
+  background: var(--surface-2);
+  color: var(--text);
+  font-size: 13px;
+}
+.editing .tiles { touch-action: none; }
+.editing .tile:not(.add) .badge { display: grid; }
+.editing .tile:not(.add):not(.colored) { box-shadow: inset 0 0 0 2px color-mix(in srgb, var(--accent) 55%, var(--border)); }
+.tile.dragging { transform: scale(1.06); z-index: 2; box-shadow: 0 12px 30px rgba(0, 0, 0, .5); transition: transform .12s; }
+
+/* Deck: add / edit sheet */
+.form-row { margin: 16px 0 0; }
+.form-row > label, .form-row > .lbl { display: block; margin: 0 4px 8px; color: var(--muted); font-size: 14px; }
+.input {
+  width: 100%;
+  min-height: 50px;
+  padding: 0 14px;
+  border-radius: 16px;
+  border: 1px solid var(--border);
+  background: var(--bg);
+  color: var(--text);
+  font: inherit;
+  font-size: 16px; /* stops iOS zooming in on focus */
+  -webkit-user-select: text;
+  user-select: text;
+}
+textarea.input { min-height: 96px; padding: 12px 14px; resize: vertical; }
+.input:focus { outline: 2px solid var(--accent); outline-offset: 1px; }
+.mods { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
+.mods button { min-height: 46px; border-radius: 14px; background: var(--surface-2); color: var(--muted); font-weight: 600; }
+.mods button.on { background: var(--accent); color: var(--on-accent); }
+.keypick { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-top: 6px; }
+.preview { margin: 10px 4px 0; color: var(--muted); font-size: 14px; }
+.preview b { color: var(--text); }
+.icon-grid, .color-grid { display: grid; grid-template-columns: repeat(8, 1fr); gap: 6px; }
+.icon-grid button { aspect-ratio: 1; border-radius: 12px; background: var(--surface-2); display: grid; place-items: center; color: var(--text); }
+.icon-grid button svg { width: 20px; height: 20px; }
+.icon-grid button.on { box-shadow: inset 0 0 0 2px var(--accent); color: var(--accent); }
+.color-grid button { aspect-ratio: 1; border-radius: 50%; background: var(--c); position: relative; }
+.color-grid button.none { background: var(--surface-2); box-shadow: inset 0 0 0 1px var(--border); }
+.color-grid button.on::after { content: ""; position: absolute; inset: -4px; border-radius: 50%; border: 2px solid var(--text); }
+.toggle-row { display: flex; align-items: center; justify-content: space-between; min-height: 48px; margin: 8px 4px 0; color: var(--muted); }
+.toggle-row input { width: 26px; height: 26px; accent-color: var(--accent); }
+.how { margin: 8px 4px 0; color: var(--muted); font-size: 13px; }
+.sheet-actions.split { justify-content: space-between; }
+.sheet-actions-right { display: flex; gap: 12px; }
+.text-btn[hidden] { display: none; }

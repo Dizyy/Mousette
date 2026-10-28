@@ -148,6 +148,7 @@
     const sock = ws;
     ws = null;
     authed = false;
+    deckSavesPending = 0;
     stopPing();
     if (sock) { try { sock.close(); } catch { /* ignore */ } }
     setStatus(false, reconnect ? 'Reconnecting…' : 'Not connected');
@@ -223,6 +224,7 @@
           }
           hidePin();
           sendAccent();
+          rawSend({ type: 'deck_get' });
           startPing();
           maybeShowHomeTip();
           break;
@@ -248,6 +250,9 @@
         case 'action_ok':
           onActionOk(msg.ref);
           break;
+        case 'deck':
+          onDeck(msg.buttons);
+          break;
         case 'accent': // picked in the PC window
           if (ACCENTS.some(([, c]) => c === msg.color) && settings.accent !== msg.color) {
             settings.accent = msg.color;
@@ -258,12 +263,14 @@
         case 'error':
           console.warn('Mousette server error:', msg.code, msg.message);
           if (PC_ACTIONS.includes(msg.ref)) showToast(msg.message, { bad: true });
+          else if (msg.ref === 'deck_set' || msg.code === 'deck_not_saved') showToast('The PC could not save the buttons.', { bad: true });
           break;
       }
     };
     sock.onclose = (event) => {
       if (ws !== sock) return; // already dropped
       ws = null;
+      deckSavesPending = 0;
       authed = false;
       stopPing();
       if (event.code === CLOSE_BAD_FRAME && key) {
@@ -681,9 +688,6 @@
     search: hotkey('win', 's'),
     alttab: hotkey('alt', 'tab'),
     desktop: hotkey('win', 'd'),
-    newtab: hotkey('ctrl', 't'),
-    reopentab: hotkey('ctrl', 'shift', 't'),
-    closetab: hotkey('ctrl', 'w'),
     screenshot: hotkey('win', 'shift', 's'),
     fullscreen: hotkey('f'),
     esc: key('esc'),
@@ -773,6 +777,13 @@
     rootStyle.setProperty('--app-height', `${vv.height}px`);
     rootStyle.setProperty('--app-top', `${vv.offsetTop}px`);
   }
+  // A field in a sheet (Deck editor, Send text) scrolls into view once the keyboard is up.
+  document.addEventListener('focusin', (e) => {
+    const field = e.target;
+    if (!field.matches('input:not([type="checkbox"]):not([type="range"]), textarea, select')) return;
+    if (!field.closest('.sheet-card')) return;
+    setTimeout(() => field.scrollIntoView({ block: 'center', behavior: 'smooth' }), 350);
+  });
   if (window.visualViewport) {
     window.visualViewport.addEventListener('resize', fitViewport);
     window.visualViewport.addEventListener('scroll', fitViewport);
@@ -1064,6 +1075,280 @@
     if (window.confirm('Shut down PC?')) pcAction('shutdown');
   });
   $('cancel-shutdown-btn').addEventListener('click', () => pcAction('cancel_shutdown'));
+
+  // ---------- Deck: the user's own buttons, saved on the PC (deck_get / deck_set) ----------
+  const DECK_ICONS = {
+    star: 'M12 17.27 18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z',
+    search: 'M15.5 14h-.79l-.28-.27a6.5 6.5 0 1 0-.7.7l.27.28v.79l5 4.99L20.49 19l-4.99-5Zm-6 0a4.5 4.5 0 1 1 0-9 4.5 4.5 0 0 1 0 9Z',
+    globe: 'M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20Zm6.9 6h-2.95a15.7 15.7 0 0 0-1.38-3.56A8.03 8.03 0 0 1 18.9 8ZM12 4.04c.83 1.2 1.48 2.53 1.91 3.96h-3.82c.43-1.43 1.08-2.76 1.91-3.96ZM4.26 14a8.2 8.2 0 0 1 0-4h3.38a16.5 16.5 0 0 0 0 4H4.26Zm.82 2h2.95c.32 1.25.78 2.45 1.38 3.56A8 8 0 0 1 5.08 16Zm2.95-8H5.08a7.99 7.99 0 0 1 4.33-3.56A15.65 15.65 0 0 0 8.03 8ZM12 19.96A14.1 14.1 0 0 1 10.09 16h3.82A14.1 14.1 0 0 1 12 19.96ZM14.34 14H9.66a14.7 14.7 0 0 1 0-4h4.68a14.7 14.7 0 0 1 0 4Z',
+    text: 'M14 17H4v2h10v-2Zm6-8H4v2h16V9ZM4 15h16v-2H4v2ZM4 5v2h16V5H4Z',
+    music: 'M12 3v10.55A4 4 0 1 0 14 17V7h4V3h-6Z',
+    tab: 'M20 4H4a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2Zm0 14H4V8h16v10Z',
+    redo: 'M12 5V1L7 6l5 5V7a6 6 0 1 1-6 6H4a8 8 0 1 0 8-8Z',
+    close: 'M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12 19 6.41Z',
+    screen: 'M21 3H3a2 2 0 0 0-2 2v11a2 2 0 0 0 2 2h7v2H8v2h8v-2h-2v-2h7a2 2 0 0 0 2-2V5a2 2 0 0 0-2-2Zm0 13H3V5h18v11Z',
+    crop: 'M3 5v4h2V5h4V3H5a2 2 0 0 0-2 2Zm2 10H3v4a2 2 0 0 0 2 2h4v-2H5v-4Zm14 4h-4v2h4a2 2 0 0 0 2-2v-4h-2v4Zm0-16h-4v2h4v4h2V5a2 2 0 0 0-2-2Z',
+    switch: 'M3 5h12v10H3V5Zm2 2v6h8V7H5Zm12 2h4v10H9v-2h10v-6h-2V9Z',
+    game: 'M21 6H3a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h18a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2Zm-10 7H8v3H6v-3H3v-2h3V8h2v3h3v2Zm4.5 2a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3Zm4-3a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3Z',
+    mail: 'M20 4H4a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2Zm0 4-8 5-8-5V6l8 5 8-5v2Z',
+    folder: 'M10 4H4a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-8l-2-2Z',
+    bolt: 'M7 2v11h3v9l7-12h-4l4-8z',
+    heart: 'M12 21.35 10.55 20C5.4 15.36 2 12.28 2 8.5A5.5 5.5 0 0 1 7.5 3c1.74 0 3.41.81 4.5 2.09A6 6 0 0 1 16.5 3 5.5 5.5 0 0 1 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35Z',
+  };
+  const DECK_COLORS = [null, '#9cc5a1', '#7fb8e0', '#e3b866', '#e3a0b4', '#b5a3e0', '#7cc7bd', '#f0b48a'];
+  const MODS = ['ctrl', 'alt', 'shift', 'win'];
+  // Shown until the PC has saved buttons of its own (deck_get answers null).
+  const DEFAULT_DECK = [
+    { kind: 'shortcut', name: 'Search', icon: 'search', color: null, keys: ['win', 's'] },
+    { kind: 'shortcut', name: 'Alt+Tab', icon: 'switch', color: null, keys: ['alt', 'tab'] },
+    { kind: 'shortcut', name: 'Desktop', icon: 'screen', color: null, keys: ['win', 'd'] },
+    { kind: 'shortcut', name: 'New tab', icon: 'tab', color: null, keys: ['ctrl', 't'] },
+    { kind: 'shortcut', name: 'Reopen tab', icon: 'redo', color: null, keys: ['ctrl', 'shift', 't'] },
+    { kind: 'shortcut', name: 'Close tab', icon: 'close', color: null, keys: ['ctrl', 'w'] },
+    { kind: 'shortcut', name: 'Screenshot', icon: 'crop', color: null, keys: ['win', 'shift', 's'] },
+  ];
+  let deckButtons = DEFAULT_DECK.map((b) => ({ ...b }));
+  let deckEditing = false;
+  const tiles = $('tiles');
+  const deckView = document.querySelector('.view-deck');
+  const deckEditBtn = $('deck-edit');
+  const iconSvg = (name) => `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="${DECK_ICONS[name] || DECK_ICONS.star}"/></svg>`;
+  const keyLabel = (k) => ({ win: 'Win', ctrl: 'Ctrl', alt: 'Alt', shift: 'Shift', esc: 'Esc', page_up: 'PgUp', page_down: 'PgDn' }[k]
+    || (k.length === 1 ? k.toUpperCase() : k[0].toUpperCase() + k.slice(1)));
+  const comboText = (keys) => keys.map(keyLabel).join('+');
+  const subText = (b) => (b.kind === 'shortcut' ? comboText(b.keys || [])
+    : b.kind === 'text' ? 'Text' : b.kind === 'website' ? (b.url || '').replace(/^https?:\/\//, '') : 'App');
+
+  function runDeckButton(b) {
+    if (b.kind === 'shortcut') send({ type: 'hotkey', keys: b.keys });
+    else if (b.kind === 'text') { if (pasteOnPc(b.text) && b.enter) send({ type: 'key', name: 'enter' }); }
+    else if (b.kind === 'website') send({ type: 'open_url', url: b.url });
+    else if (b.kind === 'app') send({ type: 'open_app', name: b.app });
+  }
+
+  // The PC answers every deck_set with a deck message. Those answers are skipped while this
+  // phone's own saves are on their way, so a late answer never undoes a newer edit.
+  let deckSavesPending = 0;
+  function saveDeck() {
+    if (send({ type: 'deck_set', buttons: deckButtons })) deckSavesPending++;
+    else showToast('Not connected to the PC: the buttons were not saved.', { bad: true });
+  }
+
+  function renderDeck() {
+    tiles.textContent = '';
+    deckButtons.forEach((b, i) => {
+      const t = document.createElement('button');
+      t.type = 'button';
+      t.className = 'tile';
+      t.dataset.i = String(i);
+      if (b.color) { t.classList.add('colored'); t.style.setProperty('--tile', b.color); }
+      t.innerHTML = `${iconSvg(b.icon)}<b></b><small></small><span class="badge" aria-hidden="true">✎</span>`;
+      t.querySelector('b').textContent = b.name;
+      t.querySelector('small').textContent = subText(b);
+      t.setAttribute('aria-label', deckEditing ? `Change ${b.name}` : b.name);
+      tiles.append(t);
+    });
+    const add = document.createElement('button');
+    add.type = 'button';
+    add.className = 'tile add';
+    add.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2Z"/></svg><b>Add button</b>';
+    add.addEventListener('click', () => openDeckSheet(-1));
+    tiles.append(add);
+  }
+
+  function setDeckEditing(on) {
+    deckEditing = on;
+    deckView.classList.toggle('editing', on);
+    deckEditBtn.classList.toggle('on', on);
+    deckEditBtn.textContent = on ? 'Done' : 'Edit';
+    $('deck-hint').hidden = !on;
+    renderDeck();
+  }
+  deckEditBtn.addEventListener('click', () => setDeckEditing(!deckEditing));
+
+  // Tap runs a button (edit mode: opens it). In edit mode, holding a button and dragging moves
+  // it: the other tiles step aside as the finger passes them, then the new order is saved.
+  const DECK_HOLD_MS = 350;
+  let deckPress = null; // {tile, id, x, y, dragging, timer}
+  tiles.addEventListener('pointerdown', (e) => {
+    const tile = e.target.closest('.tile');
+    if (!tile || tile.classList.contains('add')) return;
+    tile.classList.add('pressed');
+    deckPress = { tile, id: e.pointerId, x: e.clientX, y: e.clientY, dragging: false, timer: null };
+    if (deckEditing) {
+      deckPress.timer = setTimeout(() => {
+        if (!deckPress) return;
+        deckPress.dragging = true;
+        tile.classList.add('dragging');
+        try { tile.setPointerCapture(e.pointerId); } catch { /* ignore */ }
+      }, DECK_HOLD_MS);
+    }
+  });
+  tiles.addEventListener('pointermove', (e) => {
+    if (!deckPress || e.pointerId !== deckPress.id) return;
+    if (!deckPress.dragging) {
+      // Moved before the hold finished: it was a scroll or a slip, not a tap.
+      if (Math.hypot(e.clientX - deckPress.x, e.clientY - deckPress.y) > 10) endDeckPress(false);
+      return;
+    }
+    e.preventDefault();
+    const tile = deckPress.tile;
+    const under = document.elementsFromPoint(e.clientX, e.clientY).find((el) => el.classList && el.classList.contains('tile') && el !== tile && !el.classList.contains('add'));
+    if (!under) return;
+    const list = [...tiles.children];
+    // Move the neighbours, never the held tile: taking it out of the page ends the pointer capture.
+    while (list.indexOf(under) < list.indexOf(tile) && tile.previousElementSibling) {
+      tile.after(tile.previousElementSibling);
+      list.splice(0, list.length, ...tiles.children);
+    }
+    while (list.indexOf(under) > list.indexOf(tile) && tile.nextElementSibling && !tile.nextElementSibling.classList.contains('add')) {
+      tile.before(tile.nextElementSibling);
+      list.splice(0, list.length, ...tiles.children);
+    }
+  });
+  function endDeckPress(tap) {
+    if (!deckPress) return;
+    const { tile, dragging, timer } = deckPress;
+    clearTimeout(timer);
+    tile.classList.remove('pressed', 'dragging');
+    deckPress = null;
+    if (dragging) {
+      const order = [...tiles.querySelectorAll('.tile:not(.add)')].map((t) => deckButtons[Number(t.dataset.i)]);
+      const moved = order.some((b, i) => b !== deckButtons[i]);
+      deckButtons = order;
+      renderDeck();
+      if (moved) saveDeck();
+    } else if (tap) {
+      const b = deckButtons[Number(tile.dataset.i)];
+      if (deckEditing) openDeckSheet(Number(tile.dataset.i)); else runDeckButton(b);
+    }
+  }
+  tiles.addEventListener('pointerup', (e) => { if (deckPress && e.pointerId === deckPress.id) endDeckPress(true); });
+  tiles.addEventListener('pointercancel', () => endDeckPress(false));
+  tiles.addEventListener('contextmenu', (e) => { if (deckEditing) e.preventDefault(); }); // long press on Android
+
+  // ---------- Deck: add / edit sheet ----------
+  const deckSheet = $('deck-sheet');
+  const deckForm = $('deck-form');
+  const deckIcons = $('deck-icons');
+  const deckColors = $('deck-colors');
+  const deckError = $('deck-error');
+  let draft = null; // the button being edited
+  let draftIndex = -1;
+
+  for (const name of Object.keys(DECK_ICONS)) {
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.dataset.icon = name;
+    b.setAttribute('aria-label', `Icon ${name}`);
+    b.innerHTML = iconSvg(name);
+    b.addEventListener('click', () => { draft.icon = name; paintDraft(); });
+    deckIcons.append(b);
+  }
+  for (const color of DECK_COLORS) {
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.dataset.color = color || '';
+    b.setAttribute('aria-label', color ? `Colour ${color}` : 'No colour');
+    if (color) b.style.setProperty('--c', color); else b.classList.add('none');
+    b.addEventListener('click', () => { draft.color = color; paintDraft(); });
+    deckColors.append(b);
+  }
+  for (const b of $('deck-kind').children) b.addEventListener('click', () => { draft.kind = b.dataset.v; paintDraft(); });
+  for (const b of $('deck-mods').children) {
+    b.addEventListener('click', () => {
+      const m = b.dataset.m;
+      draft.mods = draft.mods.includes(m) ? draft.mods.filter((x) => x !== m) : [...draft.mods, m];
+      paintDraft();
+    });
+  }
+  $('deck-letter').addEventListener('input', (e) => { draft.key = e.target.value.toLowerCase(); $('deck-named').value = ''; paintDraft(); });
+  $('deck-named').addEventListener('change', (e) => { draft.key = e.target.value; $('deck-letter').value = ''; paintDraft(); });
+
+  const draftKeys = () => [...MODS.filter((m) => draft.mods.includes(m)), ...(draft.key ? [draft.key] : [])];
+
+  function paintDraft() {
+    for (const b of $('deck-kind').children) b.setAttribute('aria-checked', String(b.dataset.v === draft.kind));
+    for (const row of deckForm.querySelectorAll('[data-kind]')) row.hidden = row.dataset.kind !== draft.kind;
+    for (const b of $('deck-mods').children) b.classList.toggle('on', draft.mods.includes(b.dataset.m));
+    for (const b of deckIcons.children) b.classList.toggle('on', b.dataset.icon === draft.icon);
+    for (const b of deckColors.children) b.classList.toggle('on', (b.dataset.color || null) === (draft.color || null));
+    const keys = draftKeys();
+    $('deck-combo').textContent = keys.length ? keys.map(keyLabel).join(' + ') : 'nothing yet';
+  }
+
+  function openDeckSheet(i) {
+    draftIndex = i;
+    const b = i >= 0 ? deckButtons[i] : { kind: 'shortcut', name: '', icon: 'star', color: null, keys: [] };
+    const keys = b.keys || [];
+    draft = { kind: b.kind, icon: b.icon, color: b.color || null, mods: keys.filter((k) => MODS.includes(k)), key: keys.find((k) => !MODS.includes(k)) || '' };
+    $('deck-title').textContent = i >= 0 ? 'Edit button' : 'New button';
+    $('deck-name').value = b.name || '';
+    $('deck-text').value = b.text || '';
+    $('deck-enter').checked = !!b.enter;
+    $('deck-url').value = (b.url || '').replace(/^https:\/\//, '');
+    $('deck-app').value = b.app || '';
+    $('deck-letter').value = draft.key.length === 1 ? draft.key : '';
+    $('deck-named').value = draft.key.length > 1 ? draft.key : '';
+    $('deck-delete').hidden = i < 0;
+    deckError.hidden = true;
+    paintDraft();
+    setQuick(false);
+    deckSheet.hidden = false;
+  }
+
+  function deckFail(message) {
+    deckError.textContent = message;
+    deckError.hidden = false;
+  }
+
+  deckForm.addEventListener('submit', (e) => {
+    e.preventDefault();
+    const name = $('deck-name').value.trim();
+    const b = { kind: draft.kind, name: name.slice(0, 24), icon: draft.icon, color: draft.color || null };
+    if (b.kind === 'shortcut') {
+      b.keys = draftKeys();
+      if (!draft.key) { deckFail('Pick a letter, a number or a key.'); return; }
+    } else if (b.kind === 'text') {
+      b.text = $('deck-text').value;
+      b.enter = $('deck-enter').checked;
+      if (!b.text) { deckFail('Type the text to paste.'); return; }
+    } else if (b.kind === 'website') {
+      b.url = $('deck-url').value.trim();
+      if (!b.url || /\s/.test(b.url)) { deckFail('Type a website address, like youtube.com.'); return; }
+      if (!/^https?:\/\//i.test(b.url)) {
+        if (/^[a-z][a-z0-9+.-]*:(?!\d)/i.test(b.url)) { deckFail('Only web addresses (http or https) work here.'); return; }
+        b.url = `https://${b.url}`;
+      }
+    } else {
+      b.app = $('deck-app').value.trim();
+      if (!b.app) { deckFail('Type the app name, as in the Start menu.'); return; }
+    }
+    if (!b.name) {
+      b.name = (b.kind === 'shortcut' ? comboText(b.keys) : b.kind === 'website' ? subText(b) : b.kind === 'app' ? b.app : 'Text').slice(0, 24);
+    }
+    if (draftIndex >= 0) deckButtons[draftIndex] = b; else deckButtons.push(b);
+    deckSheet.hidden = true;
+    renderDeck();
+    saveDeck();
+  });
+  $('deck-delete').addEventListener('click', () => {
+    if (draftIndex < 0 || !window.confirm(`Delete "${deckButtons[draftIndex].name}"?`)) return;
+    deckButtons.splice(draftIndex, 1);
+    deckSheet.hidden = true;
+    renderDeck();
+    saveDeck();
+  });
+  $('deck-cancel').addEventListener('click', () => { deckSheet.hidden = true; });
+  deckSheet.addEventListener('click', (e) => { if (e.target === deckSheet) deckSheet.hidden = true; });
+
+  // The PC sends the saved buttons after deck_get, and to every phone whenever one changes them.
+  function onDeck(buttons) {
+    if (deckSavesPending > 0) { deckSavesPending--; return; }
+    deckButtons = Array.isArray(buttons) ? buttons : DEFAULT_DECK.map((b) => ({ ...b }));
+    if (!deckPress) renderDeck();
+  }
+  renderDeck();
 
   // ---------- PIN sheet ----------
   const pinSheet = $('pin-sheet');

@@ -9,6 +9,7 @@ from __future__ import annotations
 import base64
 import json
 import math
+import re
 from typing import Any
 
 PROTOCOL_VERSION = 1
@@ -34,6 +35,14 @@ MAX_SCROLL = 100         # wheel notches per message
 MAX_TEXT_LENGTH = 2000   # characters per type_text message
 MAX_PASTE_LENGTH = 100_000  # characters per paste_text message
 MAX_HOTKEY_KEYS = 5
+MAX_URL_LENGTH = 500
+_SCHEME = re.compile(r"^[A-Za-z][A-Za-z0-9+.-]*:(?!\d)")  # "name:" but not "host:8080"
+MAX_APP_NAME_LENGTH = 100
+# The Deck: the phone's own buttons, saved on the PC (see deck.py).
+DECK_KINDS = ("shortcut", "text", "website", "app")
+MAX_DECK_BUTTONS = 48
+MAX_DECK_NAME = 24
+MAX_DECK_TEXT = 2000
 MAX_PIN_LENGTH = 32
 MAX_TOKEN_LENGTH = 64
 ENC_NONCE_BYTES = 16
@@ -106,6 +115,66 @@ def _validate_button(msg: dict) -> dict:
 
 def _validate_double_click(msg: dict) -> dict:
     return {"button": _button(msg)}
+
+
+def _url(value: Any) -> str:
+    """A website address for open_url: http(s) only, "https://" added when there is no scheme."""
+    if not isinstance(value, str) or not value.strip() or len(value) > MAX_URL_LENGTH:
+        raise ProtocolError("bad_field", f"'url' must be a web address of up to {MAX_URL_LENGTH} characters")
+    url = value.strip()
+    # "javascript:…", "file:…", "mailto:…" name a scheme without "//": refuse those, don't prefix them.
+    if "://" not in url and _SCHEME.match(url):
+        raise ProtocolError("bad_field", "'url' must be an http or https address")
+    if "://" not in url:
+        url = "https://" + url
+    scheme = url.split("://", 1)[0].lower()
+    if scheme not in ("http", "https") or any(c.isspace() for c in url) or not url.isprintable():
+        raise ProtocolError("bad_field", "'url' must be an http or https address")
+    return url
+
+
+def _validate_open_url(msg: dict) -> dict:
+    return {"url": _url(msg.get("url"))}
+
+
+def _validate_open_app(msg: dict) -> dict:
+    name = msg.get("name")
+    if not isinstance(name, str) or not name.strip() or len(name) > MAX_APP_NAME_LENGTH or not name.isprintable():
+        raise ProtocolError("bad_field", f"'name' must be an app name of up to {MAX_APP_NAME_LENGTH} characters")
+    return {"name": name.strip()}
+
+
+def _deck_button(b: Any) -> dict:
+    if not isinstance(b, dict) or b.get("kind") not in DECK_KINDS:
+        raise ProtocolError("bad_field", f"each button needs a 'kind': {', '.join(DECK_KINDS)}")
+    name, icon, color = b.get("name"), b.get("icon"), b.get("color")
+    if not isinstance(name, str) or not 0 < len(name) <= MAX_DECK_NAME:
+        raise ProtocolError("bad_field", f"a button 'name' must be 1-{MAX_DECK_NAME} characters")
+    if not isinstance(icon, str) or not 0 < len(icon) <= 16 or not icon.isascii() or not icon.isalnum():
+        raise ProtocolError("bad_field", "a button 'icon' must be a short icon name")
+    if color is not None and not (isinstance(color, str) and len(color) == 7 and color[0] == "#"
+                                  and all(c in "0123456789abcdefABCDEF" for c in color[1:])):
+        raise ProtocolError("bad_field", "a button 'color' must be null or like '#9cc5a1'")
+    out = {"kind": b["kind"], "name": name, "icon": icon, "color": color.lower() if color else None}
+    if b["kind"] == "shortcut":
+        out.update(_validate_hotkey(b))
+    elif b["kind"] == "text":
+        text = b.get("text")
+        if not isinstance(text, str) or not 0 < len(text) <= MAX_DECK_TEXT:
+            raise ProtocolError("bad_field", f"a text button needs 'text' of 1-{MAX_DECK_TEXT} characters")
+        out.update(text=text, enter=b.get("enter") is True)
+    elif b["kind"] == "website":
+        out["url"] = _url(b.get("url"))
+    else:
+        out["app"] = _validate_open_app({"name": b.get("app")})["name"]
+    return out
+
+
+def _validate_deck_set(msg: dict) -> dict:
+    buttons = msg.get("buttons")
+    if not isinstance(buttons, list) or len(buttons) > MAX_DECK_BUTTONS:
+        raise ProtocolError("bad_field", f"'buttons' must be a list of up to {MAX_DECK_BUTTONS} buttons")
+    return {"buttons": [_deck_button(b) for b in buttons]}
 
 
 def _validate_type_text(msg: dict) -> dict:
@@ -203,13 +272,18 @@ _VALIDATORS = {
     "paste_text": _validate_paste_text,
     "key": _validate_key,
     "hotkey": _validate_hotkey,
+    "open_url": _validate_open_url,
+    "open_app": _validate_open_app,
+    "deck_get": _validate_no_fields,
+    "deck_set": _validate_deck_set,
     "task_manager": _validate_no_fields,
     "shutdown": _validate_no_fields,
     "cancel_shutdown": _validate_no_fields,
 }
 
 MESSAGE_TYPES = tuple(_VALIDATORS)
-INPUT_TYPES = tuple(t for t in MESSAGE_TYPES if t not in ("auth", "enc_hello", "ping", "accent"))
+INPUT_TYPES = tuple(t for t in MESSAGE_TYPES
+                    if t not in ("auth", "enc_hello", "ping", "accent", "deck_get", "deck_set"))
 # Actions the server confirms with "action_ok", so the client can show feedback.
 ACTION_TYPES = ("task_manager", "shutdown", "cancel_shutdown", "paste_text")
 

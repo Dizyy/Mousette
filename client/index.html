@@ -125,45 +125,13 @@
       </section>
 
       <section class="view view-deck" data-view="deck" hidden>
-        <div class="tiles">
-          <button class="tile press" data-action="search">
-            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15.5 14h-.79l-.28-.27a6.5 6.5 0 1 0-.7.7l.27.28v.79l5 4.99L20.49 19l-4.99-5Zm-6 0a4.5 4.5 0 1 1 0-9 4.5 4.5 0 0 1 0 9Z"/></svg>
-            <b>Search</b><small>Win+S</small>
-          </button>
-          <button class="tile press" data-action="alttab">
-            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 5h12v10H3V5Zm2 2v6h8V7H5Zm12 2h4v10H9v-2h10v-6h-2V9Z"/></svg>
-            <b>Alt+Tab</b><small>switch app</small>
-          </button>
-          <button class="tile press" data-action="desktop">
-            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 3H3a2 2 0 0 0-2 2v11a2 2 0 0 0 2 2h7v2H8v2h8v-2h-2v-2h7a2 2 0 0 0 2-2V5a2 2 0 0 0-2-2Zm0 13H3V5h18v11Z"/></svg>
-            <b>Desktop</b><small>Win+D</small>
-          </button>
-          <button class="tile press" data-action="newtab">
-            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 4H4a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2Zm0 14H4V8h16v10Z"/></svg>
-            <b>New tab</b><small>Ctrl+T</small>
-          </button>
-          <button class="tile press" data-action="reopentab">
-            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5V1L7 6l5 5V7a6 6 0 1 1-6 6H4a8 8 0 1 0 8-8Z"/></svg>
-            <b>Reopen tab</b><small>Ctrl+Shift+T</small>
-          </button>
-          <button class="tile press" data-action="closetab">
-            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12 19 6.41Z"/></svg>
-            <b>Close tab</b><small>Ctrl+W</small>
-          </button>
-          <button class="tile press" data-action="screenshot">
-            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 5v4h2V5h4V3H5a2 2 0 0 0-2 2Zm2 10H3v4a2 2 0 0 0 2 2h4v-2H5v-4Zm14 4h-4v2h4a2 2 0 0 0 2-2v-4h-2v4Zm0-16h-4v2h4v4h2V5a2 2 0 0 0-2-2Z"/></svg>
-            <b>Screenshot</b><small>Win+Shift+S</small>
-          </button>
-          <button class="tile press" data-action="sendtext">
-            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 5h2v3h10V5h2v6h2V5a2 2 0 0 0-2-2h-4.18A3 3 0 0 0 12 1a3 3 0 0 0-2.82 2H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h6v-2H5V5Zm7-2a1 1 0 1 1 0 2 1 1 0 0 1 0-2Zm6.01 10.5-1.41 1.4 2.58 2.6H13v2h6.18l-2.58 2.6 1.41 1.4 5-5-5-5Z"/></svg>
-            <b>Send text</b><small>phone → PC</small>
-          </button>
-          <button class="tile press" data-action="taskmgr">
-            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 13h2v7H3v-7Zm4-6h2v13H7V7Zm4 3h2v10h-2V10Zm4-6h2v16h-2V4Zm4 9h2v7h-2v-7Z"/></svg>
-            <b>Task Manager</b><small>admin</small>
-          </button>
+        <div class="deck-head">
+          <h2>My buttons</h2>
+          <button class="edit-btn" id="deck-edit" type="button">Edit</button>
         </div>
-        <p class="view-note">Your own buttons (shortcuts, text, websites) are coming next.</p>
+        <p class="view-note" id="deck-hint" hidden>Tap a button to change it. Hold one and drag it to move it.</p>
+        <div class="tiles" id="tiles"></div>
+        <p class="view-note">Saved on the PC, so every phone gets the same buttons.</p>
       </section>
 
       <section class="view view-media" data-view="media" hidden>
@@ -246,6 +214,86 @@
         <button class="primary-btn" id="settings-close">Done</button>
       </div>
     </div>
+  </div>
+
+  <div class="sheet" id="deck-sheet" hidden>
+    <form class="sheet-card" id="deck-form" novalidate role="dialog" aria-modal="true" aria-labelledby="deck-title">
+      <h2 id="deck-title">New button</h2>
+      <div class="segmented" id="deck-kind" role="radiogroup" aria-label="Button type">
+        <button type="button" role="radio" data-v="shortcut">Shortcut</button>
+        <button type="button" role="radio" data-v="text">Text</button>
+        <button type="button" role="radio" data-v="website">Website</button>
+        <button type="button" role="radio" data-v="app">App</button>
+      </div>
+
+      <div class="form-row" data-kind="shortcut">
+        <span class="lbl">Keys</span>
+        <div class="mods" id="deck-mods">
+          <button type="button" data-m="ctrl">Ctrl</button>
+          <button type="button" data-m="alt">Alt</button>
+          <button type="button" data-m="shift">Shift</button>
+          <button type="button" data-m="win">Win</button>
+        </div>
+        <div class="keypick">
+          <input class="input" id="deck-letter" maxlength="1" placeholder="Letter or number"
+                 autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" aria-label="Letter or number">
+          <select class="input" id="deck-named" aria-label="Or a key">
+            <option value="">or a key…</option>
+            <option value="enter">Enter</option><option value="esc">Esc</option><option value="tab">Tab</option>
+            <option value="space">Space</option><option value="backspace">Backspace</option><option value="delete">Delete</option>
+            <option value="home">Home</option><option value="end">End</option>
+            <option value="page_up">Page Up</option><option value="page_down">Page Down</option>
+            <option value="up">Up</option><option value="down">Down</option><option value="left">Left</option><option value="right">Right</option>
+            <option value="f1">F1</option><option value="f2">F2</option><option value="f3">F3</option><option value="f4">F4</option>
+            <option value="f5">F5</option><option value="f6">F6</option><option value="f7">F7</option><option value="f8">F8</option>
+            <option value="f9">F9</option><option value="f10">F10</option><option value="f11">F11</option><option value="f12">F12</option>
+          </select>
+        </div>
+        <p class="preview">Sends <b id="deck-combo">nothing yet</b></p>
+      </div>
+
+      <div class="form-row" data-kind="text">
+        <label for="deck-text">Text to paste on the PC</label>
+        <textarea class="input" id="deck-text" maxlength="2000" autocomplete="off" autocorrect="off"
+                  autocapitalize="off" spellcheck="false" placeholder="E.g. your email address or a greeting"></textarea>
+        <label class="toggle-row">Press Enter after pasting <input type="checkbox" id="deck-enter"></label>
+      </div>
+
+      <div class="form-row" data-kind="website">
+        <label for="deck-url">Website address</label>
+        <input class="input" id="deck-url" type="url" inputmode="url" maxlength="500" placeholder="youtube.com"
+               autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">
+        <p class="how">Opens in the PC's default browser.</p>
+      </div>
+
+      <div class="form-row" data-kind="app">
+        <label for="deck-app">App name, as in the Start menu</label>
+        <input class="input" id="deck-app" maxlength="100" placeholder="Spotify" autocomplete="off" autocorrect="off" spellcheck="false">
+        <p class="how">Mousette types the name into Windows search and presses Enter, like you would.</p>
+      </div>
+
+      <div class="form-row">
+        <label for="deck-name">Name on the button</label>
+        <input class="input" id="deck-name" maxlength="24" placeholder="Name" autocomplete="off" autocorrect="off" spellcheck="false">
+      </div>
+      <div class="form-row">
+        <span class="lbl">Icon</span>
+        <div class="icon-grid" id="deck-icons"></div>
+      </div>
+      <div class="form-row">
+        <span class="lbl">Colour</span>
+        <div class="color-grid" id="deck-colors"></div>
+      </div>
+      <p class="error" id="deck-error" hidden></p>
+
+      <div class="sheet-actions split">
+        <button class="text-btn danger" type="button" id="deck-delete">Delete</button>
+        <span class="sheet-actions-right">
+          <button class="text-btn" type="button" id="deck-cancel">Cancel</button>
+          <button class="primary-btn" type="submit">Save</button>
+        </span>
+      </div>
+    </form>
   </div>
 
   <div class="sheet" id="send-sheet" hidden>

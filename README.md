@@ -75,6 +75,7 @@ A program that controls your mouse and keyboard has to be one you can trust. Man
 - **Encrypted connection:** the QR code gives the phone a secret key, and everything sent between the phone and the PC is encrypted with keys made from it (XSalsa20-Poly1305 from the NaCl library). The key reaches the phone through the camera, never over the network, and the phone stays paired after the PC restarts. Typing the PIN by hand connects without encryption, and the page tells you so. Details: [PROTOCOL.md](PROTOCOL.md#encryption).
 - **Trackpad with Windows gestures:** tap to click, two-finger tap to right-click, two-finger scroll that keeps gliding after a flick, pinch to zoom, three-finger tap to middle-click, three- and four-finger swipes for Task view, the app switcher, Show desktop and virtual desktops, hold and drag to select or move windows. Or scroll with one finger on the scroll strip next to the trackpad (turn it on or off in settings).
 - **Keyboard:** type in any language, including é ü ñ and emoji, or paste text from your phone onto the PC.
+- **Your own buttons (Deck):** make buttons for a keyboard shortcut, a piece of text to paste, a website or an app, with your own name, icon and colour. They're saved on the PC, so every phone gets the same buttons.
 - **Shortcuts and media:** Search, Alt+Tab, Task Manager, volume, play/pause, next track, shut down.
 - **Your layout:** 14 accent colors, and you pick which buttons the bottom bar shows and in what order.
 
@@ -101,6 +102,7 @@ The phone and the PC must be on the **same home network** (the PC can be on Wi-F
   - `mdns.py`: makes `mousette.local` point at this PC, so you don't need the IP address
   - `update.py`: checks GitHub for a new version when Mousette starts, and installs it
   - `clipboard.py`: puts text from the phone on the PC clipboard
+  - `deck.py`: saves the phone's own Deck buttons on the PC (`deck.json` next to the encryption key)
   - `encryption.py`: the encryption key and encrypted connections (PyNaCl)
 - `client/`: the web page for the phone (plain HTML/CSS/JS, no build step); `client/vendor/` holds [tweetnacl.js](https://github.com/dchest/tweetnacl-js) 1.0.3 (public domain) for encryption
 - `PROTOCOL.md`: the messages the phone and the server exchange

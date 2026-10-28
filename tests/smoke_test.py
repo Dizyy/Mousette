@@ -68,6 +68,10 @@ INPUT_MESSAGES = [
     ({"type": "hotkey", "keys": ["ctrl", "c"]}, "DRY-RUN hotkey keys=ctrl+c"),
     ({"type": "hotkey", "keys": ["ctrl", "v"]}, "DRY-RUN hotkey keys=ctrl+v"),
     ({"type": "hotkey", "keys": ["ctrl", "shift", "Esc"]}, "DRY-RUN hotkey keys=ctrl+shift+esc"),
+    # Deck buttons: a website (https:// added) and an app opened through Windows search.
+    ({"type": "open_url", "url": "youtube.com"}, "DRY-RUN open_url url=https://youtube.com"),
+    ({"type": "open_url", "url": "http://example.org/a?b=1"}, "DRY-RUN open_url url=http://example.org/a?b=1"),
+    ({"type": "open_app", "name": "Spotify"}, "DRY-RUN open_app name='Spotify'"),
 ]
 
 # PC actions are confirmed with action_ok. Dry run only logs: nothing is shut down.
@@ -88,6 +92,13 @@ BAD_MESSAGES = [
     (json.dumps({"v": 1, "type": "key", "name": "launch_rockets"}), "bad_field"),
     (json.dumps({"v": 1, "type": "type_text", "text": "x" * 5000}), "bad_field"),
     (json.dumps({"v": 1, "type": "paste_text", "text": ""}), "bad_field"),
+    (json.dumps({"v": 1, "type": "open_url", "url": "javascript:alert(1)"}), "bad_field"),
+    (json.dumps({"v": 1, "type": "open_url", "url": "file:///C:/Windows"}), "bad_field"),
+    (json.dumps({"v": 1, "type": "open_url", "url": "https://a b"}), "bad_field"),
+    (json.dumps({"v": 1, "type": "open_app", "name": ""}), "bad_field"),
+    (json.dumps({"v": 1, "type": "deck_set", "buttons": [{"kind": "run", "name": "x", "icon": "star"}]}), "bad_field"),
+    (json.dumps({"v": 1, "type": "deck_set", "buttons": [{"kind": "website", "name": "x", "icon": "star",
+                                                           "url": "file:///etc"}]}), "bad_field"),
     (json.dumps({"v": 1, "type": "Shutdown"}), "unknown_type"),
     (json.dumps({"v": 1, "type": "restart"}), "unknown_type"),
     (json.dumps({"v": 1, "type": "ctrl_alt_del"}), "unknown_type"),
@@ -415,6 +426,31 @@ async def run(server: Server, port: int) -> None:
             await send(enc_ws, {"type": "enc_hello", "nonce": "short"})
             reply = await recv_json(enc_ws)
             check(reply.get("code") == "bad_field", "enc_hello with a bad nonce -> bad_field")
+
+        print("Deck saved on the PC")
+        await send(ws, {"type": "deck_get"})
+        reply = await recv_json(ws)
+        check(reply == {"v": 1, "type": "deck", "buttons": None}, f"deck_get before any save -> {reply}")
+        buttons = [
+            {"kind": "shortcut", "name": "Reopen tab", "icon": "redo", "keys": ["ctrl", "shift", "T"]},
+            {"kind": "text", "name": "My email", "icon": "mail", "text": "me@example.com", "enter": True,
+             "color": "#E3A0B4"},
+            {"kind": "website", "name": "YouTube", "icon": "globe", "url": "youtube.com"},
+            {"kind": "app", "name": "Spotify", "icon": "music", "app": " Spotify "},
+        ]
+        await send(ws, {"type": "deck_set", "buttons": buttons})
+        reply = await recv_json(ws)
+        saved = reply.get("buttons") or []
+        check(reply.get("type") == "deck" and len(saved) == 4, f"deck_set -> deck with {len(saved)} buttons")
+        check(saved[:1] == [{"kind": "shortcut", "name": "Reopen tab", "icon": "redo", "color": None,
+                             "keys": ["ctrl", "shift", "t"]}], "deck_set cleans keys and colours")
+        check(saved[1].get("color") == "#e3a0b4" and saved[2].get("url") == "https://youtube.com"
+              and saved[3].get("app") == "Spotify", "deck_set: colour lowercased, https added, name trimmed")
+        await send(ws, {"type": "deck_get"})
+        check((await recv_json(ws)).get("buttons") == saved, "deck_get returns the saved buttons")
+        deck_file = Path(server._key_dir.name) / "deck.json"
+        check(deck_file.exists() and json.loads(deck_file.read_text(encoding="utf-8"))["buttons"] == saved,
+              "deck.json written next to the key")
 
         print("Invalid messages get an error reply, connection stays open")
         for raw, expected_code in BAD_MESSAGES:

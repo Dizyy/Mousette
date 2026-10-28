@@ -158,11 +158,12 @@ def prepare(args: argparse.Namespace,
     hostname = mdns.start() if mdns else None
 
     pin = f"{secrets.randbelow(1_000_000):06d}"
-    key = encryption.load_key(args.key_file or encryption.default_key_file(), new=args.new_key)
+    key_file = Path(args.key_file) if args.key_file else encryption.default_key_file()
+    key = encryption.load_key(key_file, new=args.new_key)
     backend = DryRunBackend() if args.dry_run else PynputBackend()
     names = [hostname, host] if hostname else [host]
     app = create_app(backend, pin, addresses=[f"{name}:{port}" for name in names], key=key,
-                     on_clients=on_clients, on_accent=on_accent)
+                     on_clients=on_clients, on_accent=on_accent, deck_file=key_file.parent / "deck.json")
     return Setup(args, host, port, pin, key, hostname, candidates, mdns, app)
 
 

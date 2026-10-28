@@ -19,6 +19,7 @@ from fastapi.responses import JSONResponse, PlainTextResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 
 from . import encryption, protocol
+from .deck import DeckStore
 from .input_backend import InputBackend
 
 log = logging.getLogger("mousette")
@@ -122,13 +123,15 @@ class Channel:
 def create_app(backend: InputBackend, pin: str, addresses: list[str] | None = None,
                key: bytes | None = None,
                on_clients: Callable[[list[tuple[str, bool]]], None] | None = None,
-               on_accent: Callable[[str], None] | None = None) -> FastAPI:
+               on_accent: Callable[[str], None] | None = None,
+               deck_file: Path | None = None) -> FastAPI:
     """`addresses` are the "host:port" forms the phone may open (the .local name and the IP).
     When given, requests naming any other host are refused, which stops DNS-rebinding
     tricks from websites. `key` enables encrypted connections (see encryption.py).
     `on_clients` gets the logged-in phones as (address, encrypted) whenever they change.
     `on_accent` gets the accent colour ("#rrggbb") whenever a phone sends one;
-    `app.state.send_accent(color)` sends one to every phone."""
+    `app.state.send_accent(color)` sends one to every phone.
+    `deck_file` is where the phones' own Deck buttons are saved (None: in memory only)."""
     # Browsers leave out ":80", so accept that form too.
     allowed = None if addresses is None else {a for addr in addresses for a in (addr, addr.removesuffix(":80"))}
     # The page may be opened under one of these and connect through another: after a long
@@ -146,6 +149,7 @@ def create_app(backend: InputBackend, pin: str, addresses: list[str] | None = No
     clients: dict[int, tuple[str, bool]] = {}  # id(channel) -> (address, encrypted)
     channels: dict[int, Channel] = {}  # the logged-in phones, to send them the accent colour
     loops: list[asyncio.AbstractEventLoop] = []  # the server's event loop, once a phone connects
+    deck = DeckStore(deck_file)
 
     def send_accent(color: str) -> None:
         """Tells every phone the accent colour picked on the PC. Safe to call from any thread."""
@@ -306,6 +310,19 @@ def create_app(backend: InputBackend, pin: str, addresses: list[str] | None = No
                 elif type_ == "accent":
                     if on_accent:
                         on_accent(fields["color"])
+                elif type_ == "deck_get":
+                    await ch.send(protocol.make("deck", buttons=deck.buttons))
+                elif type_ == "deck_set":
+                    try:
+                        deck.save(fields["buttons"])
+                    except OSError as exc:
+                        log.exception("Could not save the Deck")
+                        await ch.send(protocol.error("deck_not_saved", str(exc), ref="deck_set"))
+                        continue
+                    log.info("Deck saved from %s: %d buttons", host, len(fields["buttons"]))
+                    # Every phone shows the same buttons, the one that changed them included.
+                    for other in list(channels.values()):
+                        await other.send(protocol.make("deck", buttons=deck.buttons))
                 else:
                     try:
                         await loop.run_in_executor(executor, backend.execute, type_, fields)

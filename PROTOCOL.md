@@ -53,6 +53,10 @@ The server only accepts requests whose `Host` header is the address it printed, 
 | `task_manager` | none | The server starts Task Manager itself, so it inherits the server's admin rights and Windows shows no UAC prompt. Replies `error` (`input_failed`) if the server is not running as administrator. |
 | `shutdown` | none | Shut the PC down after a 5 s delay (`shutdown /s /t 5`). Clients should ask the user to confirm first. |
 | `cancel_shutdown` | none | Abort a pending shutdown (`shutdown /a`). Replies `error` (`input_failed`) if none is pending. |
+| `open_url` | `url`: http or https address (≤ 500 chars); `https://` is added when no scheme is given | Opens a web page in the PC's default browser, the way a person would: Win+R, type the address, Enter (on macOS and Linux the system opener). Other schemes (`javascript:`, `file:`) are refused. |
+| `open_app` | `name`: app name (≤ 100 chars) | Opens Windows search (Spotlight on macOS), types the name and presses Enter. Mousette never starts programs itself. |
+| `deck_get` | none | Server replies `deck` with the saved Deck buttons. |
+| `deck_set` | `buttons`: list of up to 48 buttons (see [Deck](#deck)) | Saves the Deck on the PC and sends `deck` to every logged-in client, this one included. Replies `error` (`deck_not_saved`) if the file could not be written. |
 
 Fields that are missing default to `0` (numbers) or `"left"` (button). Unknown extra fields are ignored, so later clients can add optional fields without breaking older servers.
 
@@ -86,6 +90,7 @@ Examples:
 | `pong` | `id`: the id from the ping, or null | Reply to `ping`. |
 | `accent` | `color`: `"#rrggbb"` | The accent colour picked in the PC window, sent to every logged-in client. The web client takes it when it is one of its presets. |
 | `action_ok` | `ref`: `"task_manager"`, `"shutdown"`, `"cancel_shutdown"` or `"paste_text"` | The action was carried out. |
+| `deck` | `buttons`: list of buttons, or `null` when none were saved yet (the client then shows its own defaults) | Reply to `deck_get`, and sent to every client after a `deck_set`. |
 | `error` | `code`, `message`, optional `ref` | The message was rejected. The connection stays open, except for `auth_required`. |
 
 ### Error codes
@@ -100,6 +105,7 @@ Examples:
 | `no_encryption` | `enc_hello` was sent, but the server has no encryption key. The socket then closes with 4001. |
 | `bad_state` | `enc_hello` was sent after the connection had started. |
 | `input_failed` | Windows rejected the injected input or PC action (`ref` names the message type; `message` says why). |
+| `deck_not_saved` | The Deck file could not be written on the PC (`message` says why). |
 
 ### Close codes
 
@@ -111,6 +117,23 @@ Examples:
 | 4030 | The connection did not come from a local network address. |
 | 4031 | The connection came from another website's page, or used a different host name. |
 | 4032 | An encrypted connection received a frame that doesn't decrypt (wrong key, changed, replayed or out-of-order frame), or an unencrypted frame. Nothing in it was used. A client that gets this after its handshake should drop its saved key and pair again. |
+
+## Deck
+
+The Deck holds the client's own buttons. The server keeps them in `deck.json` next to the encryption key, so every phone gets the same buttons and a cleared browser loses nothing. Each button is an object:
+
+| Field | Value |
+|---|---|
+| `kind` | `"shortcut"`, `"text"`, `"website"` or `"app"` |
+| `name` | label on the button, 1–24 chars |
+| `icon` | an icon name the client knows (letters and digits, ≤ 16 chars) |
+| `color` | `"#rrggbb"` or `null` (stored lowercase) |
+| `keys` | `shortcut` only: 1–5 key names, as in `hotkey` |
+| `text`, `enter` | `text` only: text to paste (1–2000 chars) and whether to press Enter after it |
+| `url` | `website` only: as in `open_url` (stored with its scheme) |
+| `app` | `app` only: as `name` in `open_app` |
+
+The client runs a button with the existing messages: `hotkey`, `paste_text` (then `key` `enter`), `open_url` or `open_app`.
 
 ## Encryption
 
