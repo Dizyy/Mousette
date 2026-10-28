@@ -58,28 +58,44 @@ button {
 
 svg { width: 24px; height: 24px; fill: currentColor; flex: none; }
 
-/* Top bar */
+/* Top bar: logo, centred status pill, settings */
 .topbar {
-  display: flex;
+  display: grid;
+  grid-template-columns: 44px 1fr 44px;
   align-items: center;
-  justify-content: space-between;
-  padding: 2px 8px 2px 16px;
-  min-height: 52px;
+  gap: 8px;
+  padding: 6px 14px 4px;
+  min-height: 56px;
 }
-.status { display: flex; align-items: center; gap: 10px; color: var(--muted); font-size: 16px; }
+.logo { width: 36px; height: 36px; border-radius: 11px; }
+.status {
+  justify-self: center;
+  display: flex; align-items: center; gap: 9px;
+  max-width: 100%;
+  padding: 7px 14px;
+  border-radius: 999px;
+  background: var(--surface);
+  box-shadow: inset 0 0 0 1px var(--border);
+  color: var(--muted);
+  font-size: 14px;
+  white-space: nowrap;
+  overflow: hidden;
+}
 .status.connected { color: var(--text); }
+#status-text { overflow: hidden; text-overflow: ellipsis; }
 .dot {
-  width: 10px; height: 10px; border-radius: 50%;
+  flex: none;
+  width: 9px; height: 9px; border-radius: 50%;
   background: var(--bad);
-  box-shadow: 0 0 0 5px color-mix(in srgb, var(--bad) 18%, transparent);
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--bad) 18%, transparent);
   transition: background .2s, box-shadow .2s;
 }
 .status.connected .dot {
   background: var(--ok);
-  box-shadow: 0 0 0 5px color-mix(in srgb, var(--ok) 18%, transparent);
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--ok) 18%, transparent);
 }
 .icon-btn {
-  width: 48px; height: 48px;
+  width: 44px; height: 44px;
   display: grid; place-items: center;
   border-radius: 50%;
   background: var(--surface);
@@ -87,18 +103,94 @@ svg { width: 24px; height: 24px; fill: currentColor; flex: none; }
 }
 .icon-btn:active { background: var(--surface-2); }
 
-/* Trackpad */
-.pad-row {
+/* Tab bar: a pill with the Squeak button (quick actions) in the middle. Top by default, so the
+   lower screen belongs to the trackpad; Settings can move it to the bottom. */
+.tabs {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 4px;
+  margin: 4px 12px 10px;
+  padding: 6px;
+  border-radius: 999px;
+  background: var(--surface);
+  box-shadow: inset 0 0 0 1px var(--border);
+}
+.tab {
+  display: flex; align-items: center; justify-content: center; gap: 8px;
+  min-width: 48px; min-height: 48px;
+  padding: 0 12px;
+  border-radius: 999px;
+  color: var(--muted);
+  font-size: 14px; font-weight: 600;
+}
+.tab span { display: none; }
+.tab.on { background: var(--accent); color: var(--on-accent); padding: 0 16px; }
+.tab.on span { display: inline; }
+.tab.pressed:not(.on) { background: var(--surface-2); }
+.squeak {
+  flex: none;
+  width: 52px; height: 52px;
+  border-radius: 50%;
+  display: grid; place-items: center;
+  background: var(--surface-2);
+}
+.squeak img { width: 38px; height: 38px; border-radius: 11px; transition: transform .15s; }
+.squeak.on { box-shadow: 0 0 0 2px var(--accent); }
+.squeak.on img, .squeak.pressed img { transform: scale(.9) rotate(-8deg); }
+
+/* Quick actions: drops down under the tab bar (or up above it at the bottom). */
+.quick {
+  position: absolute;
+  left: 12px; right: 12px;
+  top: calc(env(safe-area-inset-top) + 128px);
+  z-index: 5;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  padding: 14px;
+  border-radius: 26px;
+  background: color-mix(in srgb, var(--surface-2) 96%, transparent);
+  box-shadow: inset 0 0 0 1px var(--border), 0 12px 40px rgba(0, 0, 0, .55);
+}
+.quick[hidden] { display: none; }
+.quick p { grid-column: 1 / -1; margin: 0 2px 2px; font-size: 13px; color: var(--muted); }
+.quick button {
+  min-height: 54px;
+  border-radius: 16px;
+  background: var(--surface);
+  box-shadow: inset 0 0 0 1px var(--border);
+  font-size: 14px; font-weight: 600;
+}
+.quick button.pressed { background: var(--accent); color: var(--on-accent); }
+.quick .danger { color: var(--bad); }
+
+/* Views: one per tab */
+.views {
   flex: 1;
   display: flex;
-  gap: 8px;
-  margin: 0 14px;
+  flex-direction: column;
   min-height: 0;
+  padding: 0 12px max(10px, calc(env(safe-area-inset-bottom) - 8px));
 }
+.view { flex: 1; display: flex; flex-direction: column; gap: 10px; min-height: 0; }
+.view[hidden] { display: none; }
+.view-note { margin: 0 4px; color: var(--muted); font-size: 13px; }
+
+/* Tab bar at the bottom: under the views, clearing the home bar like the old bottom bar. */
+#app[data-bar="bottom"] .tabs { order: 3; margin: 10px 12px max(8px, calc(env(safe-area-inset-bottom) - 14px)); }
+#app[data-bar="bottom"] .views { order: 2; padding-bottom: 0; }
+#app[data-bar="bottom"] .quick { top: auto; bottom: calc(env(safe-area-inset-bottom) + 84px); }
+.short-screen #app[data-bar="bottom"] .tabs { margin-bottom: 6px; }
+.short-screen #app[data-bar="top"] .views { padding-bottom: 6px; }
+
+/* Trackpad tab */
+.pad-row { flex: 1; display: flex; gap: 8px; min-height: 0; }
+.pad-wrap { position: relative; flex: 1; display: flex; }
 #trackpad {
   position: relative;
   flex: 1;
-  border-radius: 32px;
+  border-radius: 30px;
   background: radial-gradient(120% 90% at 50% 0%, #22201c 0%, var(--pad) 60%, #1b1a17 100%);
   box-shadow: inset 0 2px 10px rgba(0, 0, 0, .35), inset 0 0 0 1px var(--border);
   touch-action: none;
@@ -107,14 +199,14 @@ svg { width: 24px; height: 24px; fill: currentColor; flex: none; }
 #trackpad.active { box-shadow: inset 0 2px 10px rgba(0, 0, 0, .35), inset 0 0 0 2px color-mix(in srgb, var(--accent) 50%, var(--border)); }
 .hint {
   position: absolute;
-  inset: auto 0 24px 0;
+  inset: auto 0 96px 0;
   text-align: center;
   color: var(--muted);
-  font-size: 14px;
-  line-height: 1.7;
-  opacity: .65;
+  font-size: 13px;
+  line-height: 1.6;
+  opacity: .6;
   pointer-events: none;
-  padding: 0 16px;
+  padding: 0 18px;
 }
 .drag-badge {
   position: absolute;
@@ -139,10 +231,28 @@ svg { width: 24px; height: 24px; fill: currentColor; flex: none; }
               inset 0 0 4px 6px color-mix(in srgb, var(--accent) 70%, transparent);
   transition: box-shadow .15s;
 }
+/* Click / Right-click float on the bottom of the pad. */
+.clicks {
+  position: absolute;
+  left: 10px; right: 10px; bottom: 10px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+}
+.clicks button {
+  min-height: 70px;
+  background: color-mix(in srgb, var(--surface) 88%, transparent);
+  box-shadow: inset 0 0 0 1px var(--border);
+  color: var(--muted);
+  font-weight: 600;
+}
+.clicks button:first-child { border-radius: 22px 8px 8px 22px; }
+.clicks button:last-child { border-radius: 8px 22px 22px 8px; }
+.clicks button.pressed { background: var(--accent); color: var(--on-accent); }
 
 #scroll-strip {
   width: 44px;
-  border-radius: 32px;
+  border-radius: 30px;
   background: var(--pad);
   box-shadow: inset 0 0 0 1px var(--border);
   touch-action: none;
@@ -153,65 +263,89 @@ svg { width: 24px; height: 24px; fill: currentColor; flex: none; }
 #scroll-strip[hidden] { display: none; }
 #scroll-strip.active { box-shadow: inset 0 0 0 2px color-mix(in srgb, var(--accent) 50%, var(--border)); }
 
-/* Bottom bar: a raised tray. Spread (default) fills the width; Left/Center/Right keep
-   buttons at a fixed width and push them to that side. */
-.bottombar {
-  display: grid;
-  grid-template-columns: repeat(var(--bar-cols, 7), minmax(0, 1fr));
-  gap: 6px;
-  /* On iPhones with a home bar, sit partly in its safe area: the home bar line still has room. */
-  margin: 10px 10px max(8px, calc(env(safe-area-inset-bottom) - 14px));
-  padding: 8px;
-  border-radius: 28px;
+/* Shortcut keys: one row (two when there are many), above or below the pad, or off. */
+.keyrow { display: grid; grid-template-columns: repeat(var(--key-cols, 8), minmax(0, 1fr)); gap: 5px; }
+#app[data-keys="top"] .keyrow { order: -1; }
+#app[data-keys="off"] .keyrow { display: none; }
+.keyrow button, .keygrid button, .arrows button, .wide-key {
+  min-height: 46px;
+  border-radius: 14px;
   background: var(--surface);
-  box-shadow: 0 -1px 0 rgba(255, 255, 255, .03), 0 10px 30px rgba(0, 0, 0, .35);
+  box-shadow: inset 0 0 0 1px var(--border);
+  font-size: 14px; font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
 }
-.short-screen .bottombar { margin-bottom: 6px; }
-.bottombar[data-align="left"],
-.bottombar[data-align="center"],
-.bottombar[data-align="right"] { grid-template-columns: repeat(var(--bar-cols, 7), minmax(0, 60px)); }
-.bottombar[data-align="left"] { justify-content: start; }
-.bottombar[data-align="center"] { justify-content: center; }
-.bottombar[data-align="right"] { justify-content: end; }
-@media (max-width: 380px) { .bottombar { gap: 3px; margin-left: 6px; margin-right: 6px; padding: 6px; } }
-.bar-btn {
-  min-height: 64px;
-  min-width: 44px;
-  border-radius: 20px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 3px;
-  font-size: 11.5px;
-  font-weight: 600;
-  color: var(--muted);
-  padding: 4px 0;
-}
-.bar-btn svg { width: 26px; height: 26px; color: var(--text); }
-.bar-btn[hidden], .bottombar[hidden] { display: none; }
+.keyrow button { font-size: 13px; padding: 0 2px; color: var(--muted); }
+.keyrow button[hidden] { display: none; }
+.keyrow button.pressed, .keygrid button.pressed, .arrows button.pressed, .wide-key.pressed { background: var(--accent); color: var(--on-accent); }
 
-/* Media panel: opens above the bar from the Media button */
-.media-panel {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 8px;
-  padding: 12px 10px 0;
+/* Keyboard tab */
+.typebox {
+  display: flex; align-items: center; gap: 12px;
+  min-height: 64px;
+  padding: 0 18px;
+  border-radius: 20px;
+  background: var(--pad);
+  box-shadow: inset 0 0 0 1px var(--border);
+  color: var(--muted);
+  text-align: left;
 }
-.media-panel[hidden] { display: none; }
-.media-btn {
-  min-height: 60px;
+.typebox.on { color: var(--text); box-shadow: inset 0 0 0 2px var(--accent); }
+.typebox.on svg { color: var(--accent); }
+.keygrid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+.arrows { display: grid; grid-template-columns: repeat(3, 72px); gap: 8px; justify-content: center; }
+.arrows button:first-child { grid-column: 2; }
+.arrows button:nth-child(2) { grid-column: 1; }
+.wide-key { min-height: 56px; }
+
+/* Deck tab */
+.tiles { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+.tile {
+  aspect-ratio: 1;
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px;
   border-radius: 22px;
   background: var(--surface);
-  display: grid;
-  place-items: center;
+  box-shadow: inset 0 0 0 1px var(--border);
+  font-size: 13px;
+}
+.tile svg { width: 28px; height: 28px; color: var(--accent); margin-bottom: 2px; }
+.tile small { color: var(--muted); font-size: 11px; }
+.tile.pressed { background: color-mix(in srgb, var(--accent) 24%, var(--surface)); }
+
+/* Media tab */
+.now {
+  display: flex; flex-direction: column; align-items: center; gap: 4px;
+  padding: 18px;
+  border-radius: 26px;
+  background: radial-gradient(120% 80% at 50% 0%, color-mix(in srgb, var(--accent) 30%, transparent), transparent 65%), var(--surface);
+  box-shadow: inset 0 0 0 1px var(--border);
+  text-align: center;
+}
+.now small { color: var(--muted); font-size: 13px; }
+.cover {
+  width: 100%; height: clamp(90px, 22vh, 190px);
+  margin-bottom: 10px;
+  border-radius: 22px;
+  display: grid; place-items: center;
+  background: linear-gradient(135deg, color-mix(in srgb, var(--accent) 70%, #e3b866), color-mix(in srgb, var(--accent) 40%, #e39a8a));
+  color: rgba(26, 25, 22, .75);
+}
+.cover svg { width: 56px; height: 56px; }
+.media-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.media-btn {
+  min-height: 58px;
+  border-radius: 20px;
+  background: var(--surface);
+  box-shadow: inset 0 0 0 1px var(--border);
+  display: grid; place-items: center;
   color: var(--text);
+  font-size: 14px; font-weight: 600;
 }
 .media-btn svg { width: 28px; height: 28px; }
-.media-btn:active, .media-btn.pressed { background: var(--surface-2); }
-.bar-btn:active, .bar-btn.pressed { background: var(--surface-2); }
-.bar-btn.on { background: color-mix(in srgb, var(--accent) 24%, var(--surface)); color: var(--text); }
-.bar-btn.on svg { color: var(--accent); }
+.media-btn.play { background: var(--accent); color: var(--on-accent); }
+.media-btn.pressed { background: var(--surface-2); }
+.media-btn.play.pressed { filter: brightness(.9); }
 
 /* Hidden keyboard input: must stay focusable, so it is transparent rather than display:none.
    16px font stops iOS from zooming when it gets focus. */
@@ -320,10 +454,12 @@ input[type="range"] {
   box-shadow: 0 10px 24px rgba(0, 0, 0, .4);
 }
 
-.segmented { display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px; padding: 4px; border-radius: 18px; background: var(--surface-2); }
+.segmented { display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; gap: 4px; padding: 4px; border-radius: 18px; background: var(--surface-2); }
 .segmented button { min-height: 44px; border-radius: 14px; font-size: 14px; color: var(--muted); }
 .segmented button[aria-checked="true"] { background: var(--accent); color: var(--on-accent); font-weight: 700; }
 
+.setting-note { margin: 6px 4px 14px; font-size: 13px; color: var(--muted); }
+.segmented + .bar-choices { margin-top: 10px; }
 .section-title { margin: 8px 0 10px; font-size: 15px; color: var(--text); font-weight: 600; }
 .section-title small { font-weight: 400; font-size: 12px; color: var(--muted); margin-left: 6px; }
 .pc-actions { display: flex; flex-wrap: wrap; gap: 8px; }
@@ -348,6 +484,7 @@ input[type="range"] {
   font-size: 15px;
 }
 .toast[hidden] { display: none; }
+html[data-bar="top"] .toast { top: calc(136px + env(safe-area-inset-top)); }
 .toast.bad { border-color: var(--bad); }
 .toast-btn { flex: none; white-space: nowrap; min-height: 40px; padding: 0 14px; border-radius: 12px; background: var(--accent); color: var(--on-accent); font-weight: 600; }
 .toast-btn[hidden] { display: none; }

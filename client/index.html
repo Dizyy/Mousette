@@ -18,6 +18,7 @@
 <body>
   <div id="app">
     <header class="topbar">
+      <img class="logo" src="icons/icon-192.png" alt="">
       <div class="status" id="status" aria-live="polite">
         <span class="dot" id="status-dot"></span>
         <span id="status-text">Connecting…</span>
@@ -27,88 +28,175 @@
       </button>
     </header>
 
-    <div class="pad-row">
-      <main id="trackpad" aria-label="Trackpad">
-        <div class="hint" id="hint">
-          Drag to move · Tap to click · Double-tap to double-click<br>
-          Two-finger tap: right-click · Two-finger drag: scroll<br>
-          Hold, then drag: click-drag · Pinch: zoom<br>
-          Three fingers: tap = middle click · swipe = Task view, apps, desktop
-        </div>
-        <div class="drag-badge" id="drag-badge">Dragging</div>
-      </main>
-      <div id="scroll-strip" aria-label="Scroll strip" hidden>
-        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m12 5-5 5h10l-5-5Zm0 14 5-5H7l5 5Z"/></svg>
-      </div>
-    </div>
-
-    <div class="media-panel" id="media-panel" hidden>
-      <button class="media-btn" data-key="volume_down" aria-label="Volume down">
-        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18.5 12A4.5 4.5 0 0 0 16 7.97v8.05A4.5 4.5 0 0 0 18.5 12ZM5 9v6h4l5 5V4L9 9H5Z"/></svg>
-      </button>
-      <button class="media-btn" data-key="volume_mute" aria-label="Mute">
-        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M16.5 12A4.5 4.5 0 0 0 14 7.97v2.21l2.45 2.45c.03-.2.05-.41.05-.63Zm2.5 0c0 .94-.2 1.82-.54 2.64l1.51 1.51A8.8 8.8 0 0 0 21 12c0-4.28-2.99-7.86-7-8.77v2.06c2.89.86 5 3.54 5 6.71ZM4.27 3 3 4.27 7.73 9H3v6h4l5 5v-6.73l4.25 4.25c-.67.52-1.42.93-2.25 1.18v2.06a8.99 8.99 0 0 0 3.69-1.81L19.73 21 21 19.73l-9-9L4.27 3ZM12 4 9.91 6.09 12 8.18V4Z"/></svg>
-      </button>
-      <button class="media-btn" data-key="volume_up" aria-label="Volume up">
-        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 9v6h4l5 5V4L7 9H3Zm13.5 3A4.5 4.5 0 0 0 14 7.97v8.05c1.48-.73 2.5-2.25 2.5-4.02ZM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77Z"/></svg>
-      </button>
-      <button class="media-btn" data-key="media_previous" aria-label="Previous track">
-        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6h2v12H6V6Zm3.5 6 8.5 6V6l-8.5 6Z"/></svg>
-      </button>
-      <button class="media-btn" data-key="media_play_pause" aria-label="Play or pause">
-        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 5v14l7-7-7-7Zm9 0h3v14h-3V5Zm5 0h3v14h-3V5Z"/></svg>
-      </button>
-      <button class="media-btn" data-key="media_next" aria-label="Next track">
-        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 18l8.5-6L6 6v12ZM16 6v12h2V6h-2Z"/></svg>
-      </button>
-    </div>
-
-    <nav class="bottombar">
-      <button class="bar-btn" data-action="left" aria-label="Left click">
+    <nav class="tabs" id="tabs">
+      <button class="tab press" data-tab="pad" aria-label="Trackpad">
         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2a7 7 0 0 0-7 7v6a7 7 0 0 0 14 0V9a7 7 0 0 0-7-7Zm-1 2.08V10H7V9a5 5 0 0 1 4-4.92Z"/></svg>
-        <span>Left</span>
+        <span>Trackpad</span>
       </button>
-      <button class="bar-btn" data-action="right" aria-label="Right click">
-        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2a7 7 0 0 1 7 7v6a7 7 0 0 1-14 0V9a7 7 0 0 1 7-7Zm1 2.08V10h4V9a5 5 0 0 0-4-4.92Z"/></svg>
-        <span>Right</span>
-      </button>
-      <button class="bar-btn" data-action="keyboard" id="keyboard-btn" aria-label="Keyboard">
+      <button class="tab press" data-tab="keys" aria-label="Keyboard">
         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 5H4a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2Zm-9 3h2v2h-2V8Zm0 3h2v2h-2v-2ZM8 8h2v2H8V8Zm0 3h2v2H8v-2ZM7 13H5v-2h2v2Zm0-3H5V8h2v2Zm9 7H8v-2h8v2Zm0-4h-2v-2h2v2Zm0-3h-2V8h2v2Zm3 3h-2v-2h2v2Zm0-3h-2V8h2v2Z"/></svg>
-        <span>Keys</span>
+        <span>Keyboard</span>
       </button>
-      <button class="bar-btn" data-action="copy" aria-label="Copy (Ctrl+C)">
-        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M16 1H4a2 2 0 0 0-2 2v14h2V3h12V1Zm3 4H8a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h11a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2Zm0 16H8V7h11v14Z"/></svg>
-        <span>Copy</span>
+      <button class="squeak press" id="quick-btn" aria-label="Quick actions" aria-expanded="false">
+        <img src="icons/icon-192.png" alt="">
       </button>
-      <button class="bar-btn" data-action="paste" aria-label="Paste (Ctrl+V)">
-        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M19 3h-4.18A3 3 0 0 0 12 1a3 3 0 0 0-2.82 2H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V5a2 2 0 0 0-2-2Zm-7 0a1 1 0 1 1 0 2 1 1 0 0 1 0-2Zm7 16H5V5h2v3h10V5h2v14Z"/></svg>
-        <span>Paste</span>
+      <button class="tab press" data-tab="deck" aria-label="Deck">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 11h5V5H4v6Zm0 7h5v-6H4v6Zm6 0h5v-6h-5v6Zm6 0h5v-6h-5v6Zm-6-7h5V5h-5v6Zm6-6v6h5V5h-5Z"/></svg>
+        <span>Deck</span>
       </button>
-      <button class="bar-btn" data-action="sendtext" aria-label="Send text from the phone to the PC">
-        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 5h2v3h10V5h2v6h2V5a2 2 0 0 0-2-2h-4.18A3 3 0 0 0 12 1a3 3 0 0 0-2.82 2H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h6v-2H5V5Zm7-2a1 1 0 1 1 0 2 1 1 0 0 1 0-2Zm6.01 10.5-1.41 1.4 2.58 2.6H13v2h6.18l-2.58 2.6 1.41 1.4 5-5-5-5Z"/></svg>
-        <span>Send</span>
-      </button>
-      <button class="bar-btn" data-action="media" id="media-btn" aria-label="Media controls">
+      <button class="tab press" data-tab="media" aria-label="Media">
         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v10.55A4 4 0 1 0 14 17V7h4V3h-6Z"/></svg>
         <span>Media</span>
       </button>
-      <button class="bar-btn" data-action="search" aria-label="Search (Win+S)">
-        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15.5 14h-.79l-.28-.27a6.5 6.5 0 1 0-.7.7l.27.28v.79l5 4.99L20.49 19l-4.99-5Zm-6 0a4.5 4.5 0 1 1 0-9 4.5 4.5 0 0 1 0 9Z"/></svg>
-        <span>Search</span>
-      </button>
-      <button class="bar-btn" data-action="alttab" aria-label="Alt+Tab">
-        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 5h12v10H3V5Zm2 2v6h8V7H5Zm12 2h4v10H9v-2h10v-6h-2V9Z"/></svg>
-        <span>Alt+Tab</span>
-      </button>
-      <button class="bar-btn" data-action="desktop" aria-label="Show desktop (Win+D)">
-        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 3H3a2 2 0 0 0-2 2v11a2 2 0 0 0 2 2h7v2H8v2h8v-2h-2v-2h7a2 2 0 0 0 2-2V5a2 2 0 0 0-2-2Zm0 13H3V5h18v11Z"/></svg>
-        <span>Desktop</span>
-      </button>
-      <button class="bar-btn" data-action="esc" aria-label="Escape">
-        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12 19 6.41Z"/></svg>
-        <span>Esc</span>
-      </button>
     </nav>
+
+    <div class="quick" id="quick" hidden>
+      <p>Quick actions</p>
+      <button class="press" data-action="copy">Copy</button>
+      <button class="press" data-action="paste">Paste</button>
+      <button class="press" data-action="sendtext">Send text</button>
+      <button class="press" data-action="search">Search</button>
+      <button class="press" data-action="alttab">Alt+Tab</button>
+      <button class="press" data-action="desktop">Desktop</button>
+      <button class="press" data-action="taskmgr">Task Manager</button>
+      <button class="press" data-action="screenshot">Screenshot</button>
+      <button class="press danger" data-action="shutdown">Shut down</button>
+    </div>
+
+    <main class="views">
+      <section class="view view-pad" data-view="pad">
+        <div class="pad-row">
+          <div class="pad-wrap">
+            <div id="trackpad" aria-label="Trackpad">
+              <div class="hint" id="hint">
+                Drag to move · Tap to click · Two fingers: scroll, pinch to zoom<br>
+                Three fingers: tap = middle click · swipe = Task view, apps, desktop
+              </div>
+              <div class="drag-badge" id="drag-badge">Dragging</div>
+            </div>
+            <div class="clicks">
+              <button class="press" data-action="left">Click</button>
+              <button class="press" data-action="right">Right-click</button>
+            </div>
+          </div>
+          <div id="scroll-strip" aria-label="Scroll strip" hidden>
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m12 5-5 5h10l-5-5Zm0 14 5-5H7l5 5Z"/></svg>
+          </div>
+        </div>
+        <div class="keyrow" id="keyrow">
+          <button class="press" data-action="esc">Esc</button>
+          <button class="press" data-action="tab">Tab</button>
+          <button class="press" data-action="arrowleft" aria-label="Left arrow">←</button>
+          <button class="press" data-action="arrowup" aria-label="Up arrow">↑</button>
+          <button class="press" data-action="arrowdown" aria-label="Down arrow">↓</button>
+          <button class="press" data-action="arrowright" aria-label="Right arrow">→</button>
+          <button class="press" data-action="copy">Copy</button>
+          <button class="press" data-action="paste">Paste</button>
+          <button class="press" data-action="sendtext">Send</button>
+          <button class="press" data-action="search">Search</button>
+          <button class="press" data-action="alttab">Alt+Tab</button>
+          <button class="press" data-action="desktop">Desktop</button>
+        </div>
+      </section>
+
+      <section class="view view-keys" data-view="keys" hidden>
+        <button class="typebox press" id="typebox" data-action="keyboard">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 5H4a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2Zm-9 3h2v2h-2V8Zm0 3h2v2h-2v-2ZM8 8h2v2H8V8Zm0 3h2v2H8v-2ZM7 13H5v-2h2v2Zm0-3H5V8h2v2Zm9 7H8v-2h8v2Zm0-4h-2v-2h2v2Zm0-3h-2V8h2v2Zm3 3h-2v-2h2v2Zm0-3h-2V8h2v2Z"/></svg>
+          <span id="typebox-text">Tap to type with your phone's keyboard</span>
+        </button>
+        <p class="view-note">What you type goes straight to the PC, where its cursor is.</p>
+        <div class="keygrid">
+          <button class="press" data-action="esc">Esc</button>
+          <button class="press" data-action="tab">Tab</button>
+          <button class="press" data-action="delete">Del</button>
+          <button class="press" data-action="backspace" aria-label="Backspace">⌫</button>
+          <button class="press" data-action="home">Home</button>
+          <button class="press" data-action="end">End</button>
+          <button class="press" data-action="pageup">PgUp</button>
+          <button class="press" data-action="pagedown">PgDn</button>
+        </div>
+        <div class="arrows">
+          <button class="press" data-action="arrowup" aria-label="Up arrow">↑</button>
+          <button class="press" data-action="arrowleft" aria-label="Left arrow">←</button>
+          <button class="press" data-action="arrowdown" aria-label="Down arrow">↓</button>
+          <button class="press" data-action="arrowright" aria-label="Right arrow">→</button>
+        </div>
+        <button class="wide-key press" data-action="enter">Enter ↵</button>
+      </section>
+
+      <section class="view view-deck" data-view="deck" hidden>
+        <div class="tiles">
+          <button class="tile press" data-action="search">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15.5 14h-.79l-.28-.27a6.5 6.5 0 1 0-.7.7l.27.28v.79l5 4.99L20.49 19l-4.99-5Zm-6 0a4.5 4.5 0 1 1 0-9 4.5 4.5 0 0 1 0 9Z"/></svg>
+            <b>Search</b><small>Win+S</small>
+          </button>
+          <button class="tile press" data-action="alttab">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 5h12v10H3V5Zm2 2v6h8V7H5Zm12 2h4v10H9v-2h10v-6h-2V9Z"/></svg>
+            <b>Alt+Tab</b><small>switch app</small>
+          </button>
+          <button class="tile press" data-action="desktop">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 3H3a2 2 0 0 0-2 2v11a2 2 0 0 0 2 2h7v2H8v2h8v-2h-2v-2h7a2 2 0 0 0 2-2V5a2 2 0 0 0-2-2Zm0 13H3V5h18v11Z"/></svg>
+            <b>Desktop</b><small>Win+D</small>
+          </button>
+          <button class="tile press" data-action="newtab">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 4H4a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2Zm0 14H4V8h16v10Z"/></svg>
+            <b>New tab</b><small>Ctrl+T</small>
+          </button>
+          <button class="tile press" data-action="reopentab">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5V1L7 6l5 5V7a6 6 0 1 1-6 6H4a8 8 0 1 0 8-8Z"/></svg>
+            <b>Reopen tab</b><small>Ctrl+Shift+T</small>
+          </button>
+          <button class="tile press" data-action="closetab">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12 19 6.41Z"/></svg>
+            <b>Close tab</b><small>Ctrl+W</small>
+          </button>
+          <button class="tile press" data-action="screenshot">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 5v4h2V5h4V3H5a2 2 0 0 0-2 2Zm2 10H3v4a2 2 0 0 0 2 2h4v-2H5v-4Zm14 4h-4v2h4a2 2 0 0 0 2-2v-4h-2v4Zm0-16h-4v2h4v4h2V5a2 2 0 0 0-2-2Z"/></svg>
+            <b>Screenshot</b><small>Win+Shift+S</small>
+          </button>
+          <button class="tile press" data-action="sendtext">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 5h2v3h10V5h2v6h2V5a2 2 0 0 0-2-2h-4.18A3 3 0 0 0 12 1a3 3 0 0 0-2.82 2H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h6v-2H5V5Zm7-2a1 1 0 1 1 0 2 1 1 0 0 1 0-2Zm6.01 10.5-1.41 1.4 2.58 2.6H13v2h6.18l-2.58 2.6 1.41 1.4 5-5-5-5Z"/></svg>
+            <b>Send text</b><small>phone → PC</small>
+          </button>
+          <button class="tile press" data-action="taskmgr">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 13h2v7H3v-7Zm4-6h2v13H7V7Zm4 3h2v10h-2V10Zm4-6h2v16h-2V4Zm4 9h2v7h-2v-7Z"/></svg>
+            <b>Task Manager</b><small>admin</small>
+          </button>
+        </div>
+        <p class="view-note">Your own buttons (shortcuts, text, websites) are coming next.</p>
+      </section>
+
+      <section class="view view-media" data-view="media" hidden>
+        <div class="now">
+          <div class="cover"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v10.55A4 4 0 1 0 14 17V7h4V3h-6Z"/></svg></div>
+          <b>Media</b>
+          <small>Controls the music or video playing on the PC</small>
+        </div>
+        <div class="media-grid">
+          <button class="media-btn press" data-key="media_previous" aria-label="Previous track">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6h2v12H6V6Zm3.5 6 8.5 6V6l-8.5 6Z"/></svg>
+          </button>
+          <button class="media-btn press play" data-key="media_play_pause" aria-label="Play or pause">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 5v14l7-7-7-7Zm9 0h3v14h-3V5Zm5 0h3v14h-3V5Z"/></svg>
+          </button>
+          <button class="media-btn press" data-key="media_next" aria-label="Next track">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 18l8.5-6L6 6v12ZM16 6v12h2V6h-2Z"/></svg>
+          </button>
+          <button class="media-btn press" data-action="arrowleft" aria-label="Rewind (left arrow)">Rewind</button>
+          <button class="media-btn press" data-action="fullscreen" aria-label="Fullscreen (F)">Fullscreen</button>
+          <button class="media-btn press" data-action="arrowright" aria-label="Forward (right arrow)">Forward</button>
+          <button class="media-btn press" data-key="volume_down" aria-label="Volume down">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18.5 12A4.5 4.5 0 0 0 16 7.97v8.05A4.5 4.5 0 0 0 18.5 12ZM5 9v6h4l5 5V4L9 9H5Z"/></svg>
+          </button>
+          <button class="media-btn press" data-key="volume_mute" aria-label="Mute">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M16.5 12A4.5 4.5 0 0 0 14 7.97v2.21l2.45 2.45c.03-.2.05-.41.05-.63Zm2.5 0c0 .94-.2 1.82-.54 2.64l1.51 1.51A8.8 8.8 0 0 0 21 12c0-4.28-2.99-7.86-7-8.77v2.06c2.89.86 5 3.54 5 6.71ZM4.27 3 3 4.27 7.73 9H3v6h4l5 5v-6.73l4.25 4.25c-.67.52-1.42.93-2.25 1.18v2.06a8.99 8.99 0 0 0 3.69-1.81L19.73 21 21 19.73l-9-9L4.27 3ZM12 4 9.91 6.09 12 8.18V4Z"/></svg>
+          </button>
+          <button class="media-btn press" data-key="volume_up" aria-label="Volume up">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 9v6h4l5 5V4L7 9H3Zm13.5 3A4.5 4.5 0 0 0 14 7.97v8.05c1.48-.73 2.5-2.25 2.5-4.02ZM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77Z"/></svg>
+          </button>
+        </div>
+      </section>
+    </main>
   </div>
 
   <!-- Receives iOS keyboard input. Kept on screen (but invisible) so iOS will focus it. -->
@@ -132,18 +220,22 @@
       </label>
       <h3 class="section-title">Accent color</h3>
       <div class="swatches" id="swatches" role="radiogroup" aria-label="Accent color"></div>
-      <h3 class="section-title">Buttons on the bar</h3>
-      <div class="bar-choices" id="bar-choices"></div>
-      <h3 class="section-title">Bar order <small>drag the handle, or use the arrows</small></h3>
-      <ol class="order-list" id="order-list"></ol>
-      <h3 class="section-title">Bar alignment</h3>
-      <div class="segmented" id="bar-align" role="radiogroup" aria-label="Bar alignment">
-        <button role="radio" data-align="left">Left</button>
-        <button role="radio" data-align="center">Center</button>
-        <button role="radio" data-align="right">Right</button>
-        <button role="radio" data-align="spread">Spread</button>
+      <h3 class="section-title">Tab bar</h3>
+      <div class="segmented" id="bar-pos" role="radiogroup" aria-label="Tab bar position">
+        <button role="radio" data-v="top">Top</button>
+        <button role="radio" data-v="bottom">Bottom</button>
       </div>
-      <button class="text-btn wide" id="reset-bar">Reset bar</button>
+      <p class="setting-note">Top keeps the lower screen free for your thumb on the trackpad.</p>
+      <h3 class="section-title">Shortcut keys <small>the small keys on the Trackpad tab</small></h3>
+      <div class="segmented" id="keys-pos" role="radiogroup" aria-label="Shortcut keys position">
+        <button role="radio" data-v="top">Top</button>
+        <button role="radio" data-v="bottom">Bottom</button>
+        <button role="radio" data-v="off">Off</button>
+      </div>
+      <div class="bar-choices" id="bar-choices"></div>
+      <h3 class="section-title">Shortcut key order <small>drag the handle, or use the arrows</small></h3>
+      <ol class="order-list" id="order-list"></ol>
+      <button class="text-btn wide" id="reset-bar">Reset shortcut keys</button>
       <h3 class="section-title">PC</h3>
       <div class="pc-actions">
         <button class="text-btn" id="taskmgr-btn">Task Manager</button>

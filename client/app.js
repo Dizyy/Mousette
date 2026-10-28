@@ -12,12 +12,13 @@
     remove(key) { try { localStorage.removeItem(key); } catch { /* ignore */ } },
   };
 
-  // hiddenButtons: data-action names of bottom-bar buttons the user turned off.
-  // barOrder: data-action names in bar order ([] = the order in index.html).
-  // barAlign: 'left' | 'center' | 'right' | 'spread'.
+  // keysHidden: data-action names of shortcut keys (Trackpad tab) the user turned off.
+  // keysOrder: data-action names in row order ([] = the order in index.html).
+  // barPos: tab bar 'top' | 'bottom'. keysPos: shortcut keys 'top' | 'bottom' | 'off'.
   const DEFAULT_SETTINGS = {
-    sens: 1.2, scroll: 1.0, strip: false, hiddenButtons: [],
-    accent: '#9cc5a1', barOrder: [], barAlign: 'spread',
+    sens: 1.2, scroll: 1.0, strip: false, accent: '#9cc5a1',
+    keysHidden: ['sendtext', 'search', 'alttab', 'desktop'], keysOrder: [],
+    barPos: 'top', keysPos: 'bottom',
   };
   let settings = { ...DEFAULT_SETTINGS };
   try { settings = { ...DEFAULT_SETTINGS, ...JSON.parse(store.get('pm.settings') || '{}') }; } catch { /* keep defaults */ }
@@ -606,7 +607,8 @@
 
   // ---------- Hidden keyboard input ----------
   const kbd = $('kbd');
-  const kbdBtn = $('keyboard-btn');
+  const typebox = $('typebox');
+  const typeboxText = $('typebox-text');
   // Pre-filled text so iOS has something to delete (backspace in an empty field sends nothing).
   // Underscores rather than spaces avoid iOS's "double space inserts a period" shortcut.
   const SENTINEL = '________';
@@ -650,8 +652,12 @@
     e.preventDefault();
     pasteOnPc(text);
   });
-  kbd.addEventListener('focus', () => kbdBtn.classList.add('on'));
-  kbd.addEventListener('blur', () => kbdBtn.classList.remove('on'));
+  function showKbdState(open) {
+    typebox.classList.toggle('on', open);
+    typeboxText.textContent = open ? 'Keyboard open · tap to close' : "Tap to type with your phone's keyboard";
+  }
+  kbd.addEventListener('focus', () => showKbdState(true));
+  kbd.addEventListener('blur', () => showKbdState(false));
 
   function toggleKeyboard() {
     if (document.activeElement === kbd) {
@@ -662,23 +668,69 @@
     }
   }
 
-  // ---------- Bottom bar ----------
+  // ---------- Buttons: tabs, quick actions, shortcut keys, deck, media ----------
+  const hotkey = (...keys) => () => send({ type: 'hotkey', keys });
+  const key = (name) => () => send({ type: 'key', name });
   const actions = {
     left: () => send({ type: 'click', button: 'left' }),
     right: () => send({ type: 'click', button: 'right' }),
     keyboard: toggleKeyboard,
-    copy: () => send({ type: 'hotkey', keys: ['ctrl', 'c'] }),
-    paste: () => send({ type: 'hotkey', keys: ['ctrl', 'v'] }),
+    copy: hotkey('ctrl', 'c'),
+    paste: hotkey('ctrl', 'v'),
     sendtext: openSendSheet,
-    media: () => setMediaPanel(mediaPanel.hidden),
-    search: () => send({ type: 'hotkey', keys: ['win', 's'] }),
-    alttab: () => send({ type: 'hotkey', keys: ['alt', 'tab'] }),
-    desktop: () => send({ type: 'hotkey', keys: ['win', 'd'] }),
-    esc: () => send({ type: 'key', name: 'esc' }),
+    search: hotkey('win', 's'),
+    alttab: hotkey('alt', 'tab'),
+    desktop: hotkey('win', 'd'),
+    newtab: hotkey('ctrl', 't'),
+    reopentab: hotkey('ctrl', 'shift', 't'),
+    closetab: hotkey('ctrl', 'w'),
+    screenshot: hotkey('win', 'shift', 's'),
+    fullscreen: hotkey('f'),
+    esc: key('esc'),
+    tab: key('tab'),
+    enter: key('enter'),
+    backspace: key('backspace'),
+    delete: key('delete'),
+    home: key('home'),
+    end: key('end'),
+    pageup: key('page_up'),
+    pagedown: key('page_down'),
+    arrowleft: key('left'),
+    arrowup: key('up'),
+    arrowdown: key('down'),
+    arrowright: key('right'),
+    // The server starts Task Manager itself, so Windows shows no UAC prompt the phone can't answer.
+    taskmgr: () => pcAction('task_manager'),
+    shutdown: () => { if (window.confirm('Shut down PC?')) pcAction('shutdown'); },
   };
 
-  for (const btn of document.querySelectorAll('.bar-btn')) {
-    const run = actions[btn.dataset.action];
+  const app = $('app');
+  const tabButtons = [...document.querySelectorAll('.tab')];
+  const views = [...document.querySelectorAll('.view')];
+  const quick = $('quick');
+  const quickBtn = $('quick-btn');
+
+  function showTab(name) {
+    for (const b of tabButtons) b.classList.toggle('on', b.dataset.tab === name);
+    for (const v of views) v.hidden = v.dataset.view !== name;
+    setQuick(false);
+  }
+
+  function setQuick(open) {
+    quick.hidden = !open;
+    quickBtn.classList.toggle('on', open);
+    quickBtn.setAttribute('aria-expanded', String(open));
+  }
+
+  function runButton(btn) {
+    if (btn.dataset.tab) { showTab(btn.dataset.tab); return; }
+    if (btn === quickBtn) { setQuick(quick.hidden); return; }
+    if (btn.dataset.key) send({ type: 'key', name: btn.dataset.key });
+    else if (actions[btn.dataset.action]) actions[btn.dataset.action]();
+    if (btn.closest('#quick')) setQuick(false);
+  }
+
+  for (const btn of document.querySelectorAll('.press')) {
     // Handling touchend (and cancelling touchstart) keeps the hidden input focused,
     // so the iOS keyboard stays open while using these buttons.
     btn.addEventListener('touchstart', (e) => {
@@ -690,36 +742,19 @@
       btn.classList.remove('pressed');
       const t = e.changedTouches[0];
       const r = btn.getBoundingClientRect();
-      if (t.clientX >= r.left && t.clientX <= r.right && t.clientY >= r.top && t.clientY <= r.bottom) run();
+      if (t.clientX >= r.left && t.clientX <= r.right && t.clientY >= r.top && t.clientY <= r.bottom) runButton(btn);
     }, { passive: false });
     btn.addEventListener('touchcancel', () => btn.classList.remove('pressed'));
-    btn.addEventListener('click', run); // mouse / desktop browsers
+    btn.addEventListener('click', () => runButton(btn)); // mouse / desktop browsers
   }
 
-  // ---------- Media panel (volume, playback) ----------
-  const mediaPanel = $('media-panel');
-  const mediaBtn = $('media-btn');
-
-  function setMediaPanel(open) {
-    mediaPanel.hidden = !open;
-    mediaBtn.classList.toggle('on', open);
-  }
-
-  for (const btn of mediaPanel.querySelectorAll('.media-btn')) {
-    const press = () => send({ type: 'key', name: btn.dataset.key });
-    // Same touch handling as the bar, so the panel stays open for repeated taps (volume).
-    btn.addEventListener('touchstart', (e) => { e.preventDefault(); btn.classList.add('pressed'); }, { passive: false });
-    btn.addEventListener('touchend', (e) => { e.preventDefault(); btn.classList.remove('pressed'); press(); }, { passive: false });
-    btn.addEventListener('touchcancel', () => btn.classList.remove('pressed'));
-    btn.addEventListener('click', press);
-  }
-
-  // Any touch outside the panel (trackpad, other buttons) closes it, without swallowing that touch.
-  const closeMediaOutside = (e) => {
-    if (!mediaPanel.hidden && !e.target.closest('#media-panel, #media-btn')) setMediaPanel(false);
+  // Any touch outside Quick actions closes it, without swallowing that touch.
+  const closeQuickOutside = (e) => {
+    if (!quick.hidden && !e.target.closest('#quick, #quick-btn')) setQuick(false);
   };
-  document.addEventListener('touchstart', closeMediaOutside, { capture: true, passive: true });
-  document.addEventListener('mousedown', closeMediaOutside, true);
+  document.addEventListener('touchstart', closeQuickOutside, { capture: true, passive: true });
+  document.addEventListener('mousedown', closeQuickOutside, true);
+  showTab('pad');
 
   // ---------- Keep layout above the iOS keyboard ----------
   const rootStyle = document.documentElement.style;
@@ -728,7 +763,7 @@
     if (!vv) return;
     // iOS can leave a home-screen app's page short of the screen bottom (by about the status bar
     // height), and the page can't draw there. That strip already clears the home bar, so the
-    // bottom bar then needs no gap of its own. A shorter page with the keyboard open doesn't count.
+    // bottom row then needs no gap of its own. A shorter page with the keyboard open doesn't count.
     if (appleTouch && homeScreenApp) {
       const full = matchMedia('(orientation: landscape)').matches
         ? Math.min(screen.width, screen.height) : Math.max(screen.width, screen.height);
@@ -752,25 +787,25 @@
   const scrollVal = $('scroll-val');
 
   const stripInput = $('strip');
-  const bar = document.querySelector('.bottombar');
-  const barButtons = [...document.querySelectorAll('.bar-btn')];
+  const keyrow = $('keyrow');
+  const keyButtons = [...keyrow.children];
 
-  // One tick box per bottom-bar button, built from the bar itself so new buttons appear here too.
+  // One tick box per shortcut key, built from the row itself so new keys appear here too.
   const barChoices = $('bar-choices');
-  for (const btn of barButtons) {
+  for (const btn of keyButtons) {
     const label = document.createElement('label');
     label.className = 'bar-choice';
     const box = document.createElement('input');
     box.type = 'checkbox';
     box.dataset.action = btn.dataset.action;
     box.addEventListener('change', () => {
-      const hidden = new Set(settings.hiddenButtons);
+      const hidden = new Set(settings.keysHidden);
       if (box.checked) hidden.delete(box.dataset.action); else hidden.add(box.dataset.action);
-      settings.hiddenButtons = [...hidden];
+      settings.keysHidden = [...hidden];
       renderSettings();
       saveSettings();
     });
-    label.append(box, btn.querySelector('span').textContent);
+    label.append(box, btn.textContent);
     barChoices.append(label);
   }
 
@@ -802,46 +837,45 @@
     for (const s of swatches.children) s.setAttribute('aria-checked', String(s.dataset.color === accent));
   }
 
-  // Bar order: one row per button with a drag handle and up/down buttons.
-  const DEFAULT_ORDER = barButtons.map((btn) => btn.dataset.action);
-  const ALIGNS = ['left', 'center', 'right', 'spread'];
+  // Shortcut key order: one row per key with a drag handle and up/down buttons.
+  const DEFAULT_ORDER = keyButtons.map((btn) => btn.dataset.action);
   const orderList = $('order-list');
   const orderRows = {};
   const GRIP = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 5a1.5 1.5 0 1 1-3 0 1.5 1.5 0 0 1 3 0Zm0 7a1.5 1.5 0 1 1-3 0 1.5 1.5 0 0 1 3 0Zm-1.5 8.5a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3ZM18 5a1.5 1.5 0 1 1-3 0 1.5 1.5 0 0 1 3 0Zm-1.5 8.5a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3ZM18 19a1.5 1.5 0 1 1-3 0 1.5 1.5 0 0 1 3 0Z"/></svg>';
   const UP = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m12 8-6 6 1.41 1.41L12 10.83l4.59 4.58L18 14l-6-6Z"/></svg>';
   const DOWN = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M16.59 8.59 12 13.17 7.41 8.59 6 10l6 6 6-6-1.41-1.41Z"/></svg>';
 
-  // Saved order, cleaned up: unknown names dropped, buttons missing from it added at the end.
-  function barOrder() {
-    const saved = Array.isArray(settings.barOrder) ? settings.barOrder.filter((a) => DEFAULT_ORDER.includes(a)) : [];
+  // Saved order, cleaned up: unknown names dropped, keys missing from it added at the end.
+  function keyOrder() {
+    const saved = Array.isArray(settings.keysOrder) ? settings.keysOrder.filter((a) => DEFAULT_ORDER.includes(a)) : [];
     const order = [...new Set(saved)];
     for (const action of DEFAULT_ORDER) if (!order.includes(action)) order.push(action);
     return order;
   }
 
-  function moveButton(action, step) {
-    const order = barOrder();
+  function moveKey(action, step) {
+    const order = keyOrder();
     const i = order.indexOf(action);
     const j = i + step;
     if (j < 0 || j >= order.length) return;
     [order[i], order[j]] = [order[j], order[i]];
-    settings.barOrder = order;
+    settings.keysOrder = order;
     renderSettings();
     saveSettings();
   }
 
-  for (const btn of barButtons) {
+  for (const btn of keyButtons) {
     const action = btn.dataset.action;
-    const name = btn.querySelector('span').textContent;
+    const name = btn.getAttribute('aria-label') || btn.textContent;
     const row = document.createElement('li');
     row.className = 'order-row';
     row.dataset.action = action;
     row.innerHTML = `<button class="grip" aria-label="Drag to move ${name}">${GRIP}</button>`
-      + `<span class="name">${btn.querySelector('svg').outerHTML}<span>${name}</span><span class="tag">hidden</span></span>`
+      + `<span class="name"><span>${btn.textContent}</span><span class="tag">hidden</span></span>`
       + `<button class="move up" aria-label="Move ${name} up">${UP}</button>`
       + `<button class="move down" aria-label="Move ${name} down">${DOWN}</button>`;
-    row.querySelector('.up').addEventListener('click', () => moveButton(action, -1));
-    row.querySelector('.down').addEventListener('click', () => moveButton(action, 1));
+    row.querySelector('.up').addEventListener('click', () => moveKey(action, -1));
+    row.querySelector('.down').addEventListener('click', () => moveKey(action, 1));
 
     // Pointer events cover touch, pen and mouse: the row moves as the finger passes other rows' midpoints.
     // The neighbours are moved, not the dragged row: taking it out of the page would end the pointer capture.
@@ -866,7 +900,7 @@
         moved = true;
       }
       if (!moved) return;
-      settings.barOrder = [...orderList.children].map((r) => r.dataset.action);
+      settings.keysOrder = [...orderList.children].map((r) => r.dataset.action);
       renderSettings();
     });
     const endDrag = (e) => {
@@ -880,47 +914,52 @@
     orderRows[action] = row;
   }
 
-  const alignButtons = [...$('bar-align').children];
-  for (const b of alignButtons) {
-    b.addEventListener('click', () => { settings.barAlign = b.dataset.align; renderSettings(); saveSettings(); });
+  // Tab bar top/bottom and shortcut keys top/bottom/off.
+  const segments = { barPos: $('bar-pos'), keysPos: $('keys-pos') };
+  for (const [name, seg] of Object.entries(segments)) {
+    for (const b of seg.children) {
+      b.addEventListener('click', () => { settings[name] = b.dataset.v; renderSettings(); saveSettings(); });
+    }
   }
   $('reset-bar').addEventListener('click', () => {
-    settings.hiddenButtons = [];
-    settings.barOrder = [];
-    settings.barAlign = DEFAULT_SETTINGS.barAlign;
+    settings.keysHidden = [...DEFAULT_SETTINGS.keysHidden];
+    settings.keysOrder = [];
+    settings.keysPos = DEFAULT_SETTINGS.keysPos;
     renderSettings();
     saveSettings();
   });
 
-  function renderBar() {
-    const hidden = new Set(Array.isArray(settings.hiddenButtons) ? settings.hiddenButtons : []);
-    const order = barOrder();
-    const byAction = Object.fromEntries(barButtons.map((btn) => [btn.dataset.action, btn]));
+  function renderLayout() {
+    const hidden = new Set(Array.isArray(settings.keysHidden) ? settings.keysHidden : []);
     let shown = 0;
-    order.forEach((action, i) => {
-      const btn = byAction[action];
-      bar.append(btn); // moving a node keeps its listeners
+    keyOrder().forEach((action, i) => {
+      const btn = keyButtons.find((b) => b.dataset.action === action);
+      keyrow.append(btn); // moving a node keeps its listeners
       btn.hidden = hidden.has(action);
       if (!btn.hidden) shown++;
       const row = orderRows[action];
       if (orderList.children[i] !== row) orderList.insertBefore(row, orderList.children[i] || null);
       row.classList.toggle('is-hidden', btn.hidden);
       row.querySelector('.up').disabled = i === 0;
-      row.querySelector('.down').disabled = i === order.length - 1;
+      row.querySelector('.down').disabled = i === DEFAULT_ORDER.length - 1;
     });
     for (const box of barChoices.querySelectorAll('input')) box.checked = !hidden.has(box.dataset.action);
-    // Up to 7 buttons fit in one row; more wrap into two even rows.
-    bar.style.setProperty('--bar-cols', shown <= 7 ? shown : Math.ceil(shown / 2));
-    bar.hidden = shown === 0;
-    const align = ALIGNS.includes(settings.barAlign) ? settings.barAlign : DEFAULT_SETTINGS.barAlign;
-    bar.dataset.align = align;
-    for (const b of alignButtons) b.setAttribute('aria-checked', String(b.dataset.align === align));
-    if (mediaBtn.hidden) setMediaPanel(false);
+    // Up to 8 keys fit in one row; more wrap into two even rows.
+    keyrow.style.setProperty('--key-cols', shown <= 8 ? shown : Math.ceil(shown / 2));
+    const barPos = settings.barPos === 'bottom' ? 'bottom' : 'top';
+    const keysPos = ['top', 'bottom', 'off'].includes(settings.keysPos) ? settings.keysPos : DEFAULT_SETTINGS.keysPos;
+    app.dataset.bar = barPos;
+    document.documentElement.dataset.bar = barPos; // messages (toasts) sit below a top tab bar
+    app.dataset.keys = shown ? keysPos : 'off';
+    for (const [name, seg] of Object.entries(segments)) {
+      const value = name === 'barPos' ? barPos : keysPos;
+      for (const b of seg.children) b.setAttribute('aria-checked', String(b.dataset.v === value));
+    }
   }
 
   function renderSettings() {
     renderAccent();
-    renderBar();
+    renderLayout();
     sensInput.value = settings.sens;
     scrollInput.value = settings.scroll;
     stripInput.checked = !!settings.strip;
@@ -932,7 +971,7 @@
   sensInput.addEventListener('input', () => { settings.sens = Number(sensInput.value); renderSettings(); saveSettings(); });
   scrollInput.addEventListener('input', () => { settings.scroll = Number(scrollInput.value); renderSettings(); saveSettings(); });
   stripInput.addEventListener('change', () => { settings.strip = stripInput.checked; renderSettings(); saveSettings(); });
-  $('settings-btn').addEventListener('click', () => { renderSettings(); settingsSheet.hidden = false; });
+  $('settings-btn').addEventListener('click', () => { renderSettings(); setQuick(false); settingsSheet.hidden = false; });
   $('settings-close').addEventListener('click', () => { settingsSheet.hidden = true; });
   settingsSheet.addEventListener('click', (e) => { if (e.target === settingsSheet) settingsSheet.hidden = true; });
 
@@ -1020,7 +1059,6 @@
   $('send-cancel').addEventListener('click', () => { sendSheet.hidden = true; });
   sendSheet.addEventListener('click', (e) => { if (e.target === sendSheet) sendSheet.hidden = true; });
 
-  // The server starts Task Manager itself, so Windows shows no UAC prompt the phone can't answer.
   $('taskmgr-btn').addEventListener('click', () => pcAction('task_manager'));
   $('shutdown-btn').addEventListener('click', () => {
     if (window.confirm('Shut down PC?')) pcAction('shutdown');
