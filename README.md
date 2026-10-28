@@ -53,6 +53,16 @@ Trackpad, keyboard, your own buttons and media controls for your Windows PC, on 
 </tr>
 </table>
 
+> [!NOTE]
+> **Is it safe? Yes: no virus, no tracker, no ads.**
+> - **Nothing is collected.** No accounts, no analytics, no ads, no tracking. Mousette never sends your taps, typing or anything else to the internet.
+> - **It only talks to GitHub,** once at start, to check for a new version (turn it off with `--no-update`). Everything else stays between your phone and your PC, on your own Wi-Fi.
+> - **You can check every line.** The PC program and the phone page are open source, all in this repo.
+> - **Nothing stays behind.** It installs no service and doesn't start with Windows. **Quit Mousette** stops it completely, and deleting the file removes it.
+> - **Locked to you.** A new random PIN on every start, and an encrypted connection when you scan the QR code.
+>
+> **Why does Windows warn me?** "Windows protected your PC" shows because `Mousette.exe` isn't signed with a paid code signing certificate yet, not because something was found in it. Want to check it yourself? Upload it to [VirusTotal](https://www.virustotal.com), compare its SHA-256 with the one on the [release page](https://github.com/Dizyy/Mousette/releases/latest), or [run it from source](#1-download) instead.
+
 ## Four tabs, one hand
 
 <table>
@@ -209,7 +219,7 @@ To control admin windows such as Task Manager, the On-Screen Keyboard and instal
 
 ```
 ==============================================
-  Mousette 1.9.0 is running
+  Mousette 2.0.0 is running
   Open on your phone:    http://192.168.1.23
   iPhone/iPad also:      http://mousette.local
   PIN:                  482915
