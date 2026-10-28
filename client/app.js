@@ -306,6 +306,7 @@
   // ---------- Outgoing input, with move/scroll coalesced per animation frame ----------
   const pendingMove = { dx: 0, dy: 0 };
   const pendingScroll = { dx: 0, dy: 0 };
+  let pendingZoom = 0;
   let flushScheduled = false;
   const round2 = (n) => Math.round(n * 100) / 100;
 
@@ -319,6 +320,10 @@
     if (Math.abs(pendingScroll.dx) >= 1 / 120 || Math.abs(pendingScroll.dy) >= 1 / 120) {
       rawSend({ type: 'scroll', dx: round2(pendingScroll.dx), dy: round2(pendingScroll.dy) });
       pendingScroll.dx = pendingScroll.dy = 0;
+    }
+    if (Math.abs(pendingZoom) >= 1 / 120) {
+      rawSend({ type: 'zoom', steps: round2(pendingZoom) });
+      pendingZoom = 0;
     }
   }
 
@@ -337,23 +342,76 @@
   const TAP_SLOP = 10;        // px a finger may wander and still count as a tap
   const HOLD_MS = 400;        // press this long without moving to start a click-drag
   const HOLD_SLOP = 4;        // px of movement that cancels a pending click-drag
-  const TWO_TAP_MS = 300;     // max duration of a two-finger tap
+  const MULTI_TAP_MS = 350;   // max duration of a two-, three- or four-finger tap
   const SCROLL_PER_PX = 1 / 40; // wheel notches per px of two-finger travel at speed 1
+  const PINCH_PX = 24;        // change in finger spread that makes two fingers a pinch
+  const ZOOM_PER_LOG = 6;     // zoom notches per e-fold of the finger spread (~4 per doubling)
+  const SWIPE_PX = 45;        // three/four-finger travel that fires a swipe
+  const SWITCH_STEP_PX = 70;  // sideways travel per app in the three-finger app switcher
+  const COAST_DECAY_MS = 300; // momentum scrolling slows down by e every this many ms
 
-  let mode = 'idle';          // idle | pending | move | drag | two
+  let mode = 'idle';          // idle | pending | move | drag | multi
   let start = null;           // {x, y, t}
   let last = null;            // {x, y, t}
   let speed = 0;              // smoothed finger speed, px/ms
   let holdTimer = null;
-  let twoStartT = 0;
-  let twoMoved = false;
-  let twoStart = null;
-  let twoLast = null;
+  // Two or more fingers: `fingers` is the most seen at once in this gesture; `kind` is
+  // decided by the first clear movement (scroll or pinch for two, swipe or switcher for 3-4).
+  let multi = null;           // {fingers, t, start, last, spread, kind, switchX}
 
   function centroid(touches) {
     let x = 0; let y = 0;
     for (const t of touches) { x += t.clientX; y += t.clientY; }
     return { x: x / touches.length, y: y / touches.length };
+  }
+
+  function spread(touches) {
+    return Math.hypot(touches[0].clientX - touches[1].clientX, touches[0].clientY - touches[1].clientY);
+  }
+
+  // Momentum scrolling: after a flick the page keeps going and slows down, like Windows.
+  let coastV = null;          // {dx, dy} notches per ms while coasting
+  let scrollV = { dx: 0, dy: 0, t: 0 };
+  function trackScrollSpeed(ddx, ddy, now) {
+    const dt = Math.max(1, now - scrollV.t);
+    const a = scrollV.t && dt < 100 ? 0.6 : 0;
+    scrollV = { dx: a * scrollV.dx + (1 - a) * ddx / dt, dy: a * scrollV.dy + (1 - a) * ddy / dt, t: now };
+  }
+  function startCoast(now) {
+    const v = scrollV;
+    scrollV = { dx: 0, dy: 0, t: 0 };
+    if (now - v.t > 80 || Math.hypot(v.dx, v.dy) < 0.01) return; // slow scroll or finger stopped: no glide
+    coastV = { dx: v.dx, dy: v.dy };
+    let prev = performance.now();
+    const step = (t) => {
+      if (!coastV) return;
+      const dt = Math.min(50, t - prev);
+      prev = t;
+      const f = Math.exp(-dt / COAST_DECAY_MS);
+      // Distance covered while the speed decays from v to v*f.
+      pendingScroll.dx += coastV.dx * COAST_DECAY_MS * (1 - f);
+      pendingScroll.dy += coastV.dy * COAST_DECAY_MS * (1 - f);
+      coastV.dx *= f; coastV.dy *= f;
+      flush();
+      if (Math.hypot(coastV.dx, coastV.dy) < 0.001) { coastV = null; return; }
+      requestAnimationFrame(step);
+    };
+    requestAnimationFrame(step);
+  }
+  function stopCoast() { coastV = null; }
+
+  // Three- and four-finger swipes do what they do on a Windows touchpad.
+  function swipeAction(fingers, dir) {
+    if (dir === 'up') return send({ type: 'hotkey', keys: ['win', 'tab'] });       // Task view
+    if (dir === 'down') return send({ type: 'hotkey', keys: ['win', 'd'] });       // Show desktop
+    if (fingers >= 4) {
+      // Content follows the fingers: swipe left to reach the desktop on the right.
+      return send({ type: 'hotkey', keys: ['ctrl', 'win', dir === 'left' ? 'right' : 'left'] });
+    }
+    // Three fingers sideways: the app switcher stays open and follows the hand; lift picks.
+    send({ type: 'hotkey', keys: ['ctrl', 'alt', 'tab'] });
+    multi.kind = 'switcher';
+    multi.switchX = multi.last.x;
   }
 
   // Pointer acceleration: slow finger => < 1x for precision, fast swipe => several x.
@@ -375,6 +433,7 @@
   pad.addEventListener('touchstart', (e) => {
     e.preventDefault();
     pad.classList.add('active');
+    stopCoast();
     const now = e.timeStamp;
 
     if (e.touches.length === 1 && mode === 'idle') {
@@ -395,13 +454,16 @@
     if (e.touches.length >= 2) {
       clearTimeout(holdTimer);
       if (mode === 'drag') return; // keep dragging; ignore extra fingers
-      if (mode !== 'two') {
-        mode = 'two';
-        twoStartT = now;
-        twoMoved = false;
-        twoStart = centroid(e.touches);
+      const c = centroid(e.touches);
+      if (mode !== 'multi') {
+        mode = 'multi';
+        multi = { fingers: 0, t: now, start: c, last: c, spread: spread(e.touches), kind: null, switchX: 0 };
+      } else if (!multi.kind) {
+        multi.start = c; // fingers rarely land together: measure from the last one down
+        multi.spread = spread(e.touches);
       }
-      twoLast = centroid(e.touches);
+      if (!multi.kind) multi.fingers = Math.max(multi.fingers, Math.min(e.touches.length, 4));
+      multi.last = c;
     }
   }, { passive: false });
 
@@ -409,18 +471,43 @@
     e.preventDefault();
     const now = e.timeStamp;
 
-    if (mode === 'two') {
+    if (mode === 'multi') {
       if (e.touches.length < 2) return;
       const c = centroid(e.touches);
-      if (!twoMoved && Math.hypot(c.x - twoStart.x, c.y - twoStart.y) > TAP_SLOP) twoMoved = true;
-      if (twoMoved) {
+      const mx = c.x - multi.start.x;
+      const my = c.y - multi.start.y;
+      if (!multi.kind) {
+        if (multi.fingers === 2) {
+          if (Math.abs(spread(e.touches) - multi.spread) > PINCH_PX) {
+            multi.kind = 'pinch'; // zooms from the starting spread, so no movement is lost
+          } else if (Math.hypot(mx, my) > TAP_SLOP) {
+            multi.kind = 'scroll';
+          }
+        } else if (Math.hypot(mx, my) > SWIPE_PX) {
+          multi.kind = 'swipe';
+          const dir = Math.abs(mx) > Math.abs(my) ? (mx < 0 ? 'left' : 'right') : (my < 0 ? 'up' : 'down');
+          swipeAction(multi.fingers, dir);
+        }
+      }
+      if (multi.kind === 'scroll') {
         // Natural scrolling: content follows the fingers.
         const k = SCROLL_PER_PX * settings.scroll;
-        pendingScroll.dy += (c.y - twoLast.y) * k;
-        pendingScroll.dx -= (c.x - twoLast.x) * k;
+        const ddy = (c.y - multi.last.y) * k;
+        const ddx = -(c.x - multi.last.x) * k;
+        pendingScroll.dy += ddy;
+        pendingScroll.dx += ddx;
+        trackScrollSpeed(ddx, ddy, now);
         scheduleFlush();
+      } else if (multi.kind === 'pinch' && e.touches.length === 2) {
+        const d = spread(e.touches);
+        pendingZoom += Math.log(d / multi.spread) * ZOOM_PER_LOG;
+        multi.spread = d;
+        scheduleFlush();
+      } else if (multi.kind === 'switcher') {
+        while (c.x - multi.switchX > SWITCH_STEP_PX) { send({ type: 'key', name: 'right' }); multi.switchX += SWITCH_STEP_PX; }
+        while (multi.switchX - c.x > SWITCH_STEP_PX) { send({ type: 'key', name: 'left' }); multi.switchX -= SWITCH_STEP_PX; }
       }
-      twoLast = c;
+      multi.last = c;
       return;
     }
 
@@ -449,7 +536,11 @@
 
   function onTouchEnd(e) {
     e.preventDefault();
-    if (mode === 'two' && e.touches.length >= 2) { twoLast = centroid(e.touches); return; }
+    if (mode === 'multi' && e.touches.length >= 2) {
+      multi.last = centroid(e.touches);
+      if (multi.kind === 'pinch') multi.spread = spread(e.touches);
+      return;
+    }
     if (e.touches.length > 0) return; // wait until every finger is up
 
     const now = e.timeStamp;
@@ -457,10 +548,14 @@
       if (mode === 'pending') {
         // Each tap is a click; two quick taps reach Windows as a native double-click.
         send({ type: 'click', button: 'left' });
-      } else if (mode === 'two' && !twoMoved && now - twoStartT < TWO_TAP_MS) {
-        send({ type: 'click', button: 'right' });
+      } else if (mode === 'multi' && !multi.kind && now - multi.t < MULTI_TAP_MS) {
+        if (multi.fingers === 2) send({ type: 'click', button: 'right' });
+        else if (multi.fingers === 3) send({ type: 'click', button: 'middle' });
+        else send({ type: 'hotkey', keys: ['win', 'n'] }); // notifications
       }
     }
+    if (mode === 'multi' && multi.kind === 'switcher') send({ type: 'key', name: 'enter' });
+    if (mode === 'multi' && multi.kind === 'scroll' && e.type === 'touchend') startCoast(now);
     endDrag();
     flush();
     reset();
@@ -475,6 +570,7 @@
 
   strip.addEventListener('touchstart', (e) => {
     e.preventDefault();
+    stopCoast();
     strip.classList.add('active');
     stripLast = e.targetTouches[0].clientY;
   }, { passive: false });
@@ -483,7 +579,9 @@
     e.preventDefault();
     if (stripLast === null || !e.targetTouches.length) return;
     const y = e.targetTouches[0].clientY;
-    pendingScroll.dy += (y - stripLast) * SCROLL_PER_PX * settings.scroll;
+    const ddy = (y - stripLast) * SCROLL_PER_PX * settings.scroll;
+    pendingScroll.dy += ddy;
+    trackScrollSpeed(0, ddy, e.timeStamp);
     stripLast = y;
     scheduleFlush();
   }, { passive: false });
@@ -494,6 +592,7 @@
     stripLast = null;
     strip.classList.remove('active');
     flush();
+    if (e.type === 'touchend') startCoast(e.timeStamp);
   }
   strip.addEventListener('touchend', onStripEnd, { passive: false });
   strip.addEventListener('touchcancel', onStripEnd, { passive: false });

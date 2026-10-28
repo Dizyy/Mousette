@@ -95,6 +95,11 @@ def _validate_scroll(msg: dict) -> dict:
     return {"dx": _number(msg, "dx", MAX_SCROLL), "dy": _number(msg, "dy", MAX_SCROLL)}
 
 
+def _validate_zoom(msg: dict) -> dict:
+    # Pinch on the trackpad: Ctrl + mouse wheel, so it zooms in browsers, Office, photos and maps.
+    return {"steps": _number(msg, "steps", MAX_SCROLL)}
+
+
 def _validate_button(msg: dict) -> dict:
     return {"button": _button(msg)}
 
@@ -193,6 +198,7 @@ _VALIDATORS = {
     "mouse_down": _validate_button,
     "mouse_up": _validate_button,
     "scroll": _validate_scroll,
+    "zoom": _validate_zoom,
     "type_text": _validate_type_text,
     "paste_text": _validate_paste_text,
     "key": _validate_key,

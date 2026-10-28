@@ -51,12 +51,18 @@ INPUT_MESSAGES = [
     ({"type": "mouse_down", "button": "left"}, "DRY-RUN mouse_down button=left"),
     ({"type": "mouse_up", "button": "left"}, "DRY-RUN mouse_up button=left"),
     ({"type": "scroll", "dx": 0, "dy": -1.5}, "DRY-RUN scroll dx=0.000 dy=-1.500"),
+    ({"type": "zoom", "steps": 0.75}, "DRY-RUN zoom steps=0.750"),
     ({"type": "type_text", "text": "Héllo! café naïve ñ ÉÜ 😀👍"}, "DRY-RUN type_text text='Héllo! café naïve ñ ÉÜ 😀👍'"),
     *[({"type": "key", "name": n}, f"DRY-RUN hotkey keys={n}")
       for n in ("enter", "backspace", "tab", "esc", "up", "down", "left", "right", "delete", "home", "end")],
     ({"type": "hotkey", "keys": ["win", "s"]}, "DRY-RUN hotkey keys=win+s"),
     ({"type": "hotkey", "keys": ["alt", "tab"]}, "DRY-RUN hotkey keys=alt+tab"),
     ({"type": "hotkey", "keys": ["win", "d"]}, "DRY-RUN hotkey keys=win+d"),
+    # Trackpad gestures: Task view, app switcher, virtual desktops, notifications.
+    ({"type": "hotkey", "keys": ["win", "tab"]}, "DRY-RUN hotkey keys=win+tab"),
+    ({"type": "hotkey", "keys": ["ctrl", "alt", "tab"]}, "DRY-RUN hotkey keys=ctrl+alt+tab"),
+    ({"type": "hotkey", "keys": ["ctrl", "win", "right"]}, "DRY-RUN hotkey keys=ctrl+win+right"),
+    ({"type": "hotkey", "keys": ["win", "n"]}, "DRY-RUN hotkey keys=win+n"),
     *[({"type": "key", "name": n}, f"DRY-RUN hotkey keys={n}")
       for n in ("volume_down", "volume_mute", "volume_up", "media_previous", "media_play_pause", "media_next")],
     ({"type": "hotkey", "keys": ["ctrl", "c"]}, "DRY-RUN hotkey keys=ctrl+c"),
@@ -78,6 +84,7 @@ BAD_MESSAGES = [
     (json.dumps({"v": 1, "type": "teleport"}), "unknown_type"),
     (json.dumps({"v": 1, "type": "click", "button": "thumb"}), "bad_field"),
     (json.dumps({"v": 1, "type": "move", "dx": "far", "dy": 0}), "bad_field"),
+    (json.dumps({"v": 1, "type": "zoom", "steps": 500}), "bad_field"),
     (json.dumps({"v": 1, "type": "key", "name": "launch_rockets"}), "bad_field"),
     (json.dumps({"v": 1, "type": "type_text", "text": "x" * 5000}), "bad_field"),
     (json.dumps({"v": 1, "type": "paste_text", "text": ""}), "bad_field"),

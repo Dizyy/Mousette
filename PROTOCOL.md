@@ -45,6 +45,7 @@ The server only accepts requests whose `Host` header is the address it printed, 
 | `mouse_down` | `button` (default `"left"`) | Press and hold a button (start of a drag). |
 | `mouse_up` | `button` (default `"left"`) | Release the button. |
 | `scroll` | `dx`, `dy`: number (wheel notches, ±100) | Positive `dy` scrolls **up**, negative `dy` scrolls down. Positive `dx` scrolls right. Fractions give smooth scrolling (the smallest effective step is 1/120 notch). |
+| `zoom` | `steps`: number (wheel notches, ±100) | Ctrl + mouse wheel (pinch on the trackpad). Positive `steps` zooms **in**. Fractions zoom smoothly. |
 | `type_text` | `text`: string (≤ 2000 chars) | Types the text as Unicode, including accented letters (é ü ñ) and emoji. `\n` presses Enter. |
 | `paste_text` | `text`: non-empty string (≤ 100 000 chars) | Puts the text on the PC clipboard, then presses Ctrl+V (Cmd+V on macOS), so it is pasted at the cursor in one go. Replies `action_ok`, or `error` (`input_failed`) if the clipboard could not be set. |
 | `key` | `name`: key name (see below) | Press and release one key. |

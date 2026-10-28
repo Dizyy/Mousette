@@ -77,6 +77,9 @@ class InputBackend:
     def _do_scroll(self, dx: float, dy: float) -> None:
         self.scroll(dx, dy)
 
+    def _do_zoom(self, steps: float) -> None:
+        self.zoom(steps)
+
     def _do_type_text(self, text: str) -> None:
         if text:
             self.type_text(text)
@@ -105,6 +108,7 @@ class InputBackend:
     def press(self, button: str) -> None: raise NotImplementedError
     def release(self, button: str) -> None: raise NotImplementedError
     def scroll(self, dx: float, dy: float) -> None: raise NotImplementedError
+    def zoom(self, steps: float) -> None: raise NotImplementedError
     def type_text(self, text: str) -> None: raise NotImplementedError
     def paste_text(self, text: str) -> None: raise NotImplementedError
     def hotkey(self, keys: list[str]) -> None: raise NotImplementedError
@@ -168,6 +172,13 @@ class PynputBackend(InputBackend):
     def scroll(self, dx: float, dy: float) -> None:
         # pynput multiplies by WHEEL_DELTA (120), so fractions give smooth scrolling.
         self._mouse.scroll(dx, dy)
+
+    def zoom(self, steps: float) -> None:
+        self._keyboard.press(self._keys["ctrl"])
+        try:
+            self._mouse.scroll(0, steps)
+        finally:
+            self._keyboard.release(self._keys["ctrl"])
 
     def type_text(self, text: str) -> None:
         # keyboard.type sends characters outside the active layout (accented letters, emoji)
@@ -256,6 +267,7 @@ class DryRunBackend(InputBackend):
     def press(self, button): log.info("DRY-RUN mouse_down button=%s", button)
     def release(self, button): log.info("DRY-RUN mouse_up button=%s", button)
     def scroll(self, dx, dy): log.info("DRY-RUN scroll dx=%.3f dy=%.3f", dx, dy)
+    def zoom(self, steps): log.info("DRY-RUN zoom steps=%.3f", steps)
     def type_text(self, text): log.info("DRY-RUN type_text text=%r", text)
     def paste_text(self, text): log.info("DRY-RUN paste_text text=%r", text)
     def hotkey(self, keys): log.info("DRY-RUN hotkey keys=%s", "+".join(keys))

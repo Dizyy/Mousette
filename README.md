@@ -73,7 +73,7 @@ A program that controls your mouse and keyboard has to be one you can trust. Man
 
 - **Quick to connect:** scan the QR code in the Mousette window with the phone camera.
 - **Encrypted connection:** the QR code gives the phone a secret key, and everything sent between the phone and the PC is encrypted with keys made from it (XSalsa20-Poly1305 from the NaCl library). The key reaches the phone through the camera, never over the network, and the phone stays paired after the PC restarts. Typing the PIN by hand connects without encryption, and the page tells you so. Details: [PROTOCOL.md](PROTOCOL.md#encryption).
-- **Trackpad:** tap to click, two-finger tap to right-click, two-finger scroll, hold and drag to select or move windows. Or scroll with one finger on the scroll strip next to the trackpad (turn it on or off in settings).
+- **Trackpad with Windows gestures:** tap to click, two-finger tap to right-click, two-finger scroll that keeps gliding after a flick, pinch to zoom, three-finger tap to middle-click, three- and four-finger swipes for Task view, the app switcher, Show desktop and virtual desktops, hold and drag to select or move windows. Or scroll with one finger on the scroll strip next to the trackpad (turn it on or off in settings).
 - **Keyboard:** type in any language, including é ü ñ and emoji, or paste text from your phone onto the PC.
 - **Shortcuts and media:** Search, Alt+Tab, Task Manager, volume, play/pause, next track, shut down.
 - **Your layout:** 14 accent colors, and you pick which buttons the bottom bar shows and in what order.
@@ -214,7 +214,13 @@ You only type the PIN once per server start. After that the phone stays logged i
 | Tap | Left click |
 | Double-tap | Double click |
 | Two-finger tap | Right click |
-| Two-finger drag | Scroll (natural direction, both axes) |
+| Two-finger drag | Scroll (natural direction, both axes). Flick and let go: it keeps scrolling and slows down. |
+| Pinch (two fingers apart or together) | Zoom (Ctrl + mouse wheel): browsers, Office, photos, maps |
+| Three-finger tap | Middle click: open a link in a new tab, close a tab |
+| Three-finger swipe up / down | Task view / Show desktop |
+| Three-finger swipe left or right | Opens the app switcher; keep sliding to pick an app, lift to open it |
+| Four-finger tap | Notifications |
+| Four-finger swipe left / right | Next / previous virtual desktop (up / down as with three fingers) |
 | Hold for about 0.4 s, then drag | Click-drag: select text, move windows. "Dragging" shows while it's active; lift your finger to release. |
 
 Bottom bar buttons: **Left**, **Right**, **Keys** (opens the on-screen keyboard; tap again to close), **Copy** (Ctrl+C), **Paste** (Ctrl+V), **Send** (paste text from your phone on the PC, see below), **Media** (opens volume −, mute, volume +, previous, play/pause and next; tap Media again or anywhere else to close), **Search** (Win+S), **Alt+Tab**, **Desktop** (Win+D), **Esc**. Under **Buttons on the bar** in settings, untick the ones you don't need; up to 7 fit in one row, more wrap into two. Under **Bar order**, drag a button by its handle (or use the arrows) to move it, and under **Bar alignment** choose **Left**, **Center**, **Right** or **Spread** (the default). **Reset bar** brings back all buttons in the original order.
