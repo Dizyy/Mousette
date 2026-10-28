@@ -23,6 +23,34 @@ def png_to_ico(png: Path, ico: Path) -> None:
     Image.open(png).save(ico, sizes=[(n, n) for n in (16, 20, 24, 32, 40, 48, 64, 128, 256)])
 
 
+def version_file(path: Path) -> None:
+    """Windows file properties (Details tab): product name and version. Code signing needs them,
+    and virus scanners trust an .exe with them a little more."""
+    sys.path.insert(0, str(ROOT))
+    from server import __version__
+
+    nums = tuple(int(n) for n in __version__.split(".")) + (0,) * (4 - len(__version__.split(".")))
+    strings = {
+        "CompanyName": "Mousette",
+        "FileDescription": "Mousette",
+        "FileVersion": __version__,
+        "InternalName": "Mousette",
+        "LegalCopyright": "Mousette contributors, AGPL-3.0",
+        "OriginalFilename": "Mousette.exe",
+        "ProductName": "Mousette",
+        "ProductVersion": __version__,
+    }
+    path.write_text(f"""VSVersionInfo(
+  ffi=FixedFileInfo(filevers={nums}, prodvers={nums}, mask=0x3f, flags=0x0, OS=0x40004,
+                    fileType=0x1, subtype=0x0, date=(0, 0)),
+  kids=[
+    StringFileInfo([StringTable('040904B0', [{', '.join(f'StringStruct({k!r}, {v!r})' for k, v in strings.items())}])]),
+    VarFileInfo([VarStruct('Translation', [1033, 1200])]),
+  ]
+)
+""", encoding="utf-8")
+
+
 def main() -> int:
     subprocess.run([sys.executable, "-m", "pip", "install", "--disable-pip-version-check", "-q",
                     "-r", str(ROOT / "requirements.txt"), "pyinstaller",
@@ -31,12 +59,15 @@ def main() -> int:
     BUILD.mkdir(exist_ok=True)
     icon = BUILD / "mousette.ico"
     png_to_ico(ROOT / "client" / "icons" / "icon-512.png", icon)
+    version = BUILD / "version.txt"
+    version_file(version)
     sep = ";" if sys.platform == "win32" else ":"
     subprocess.run([
         sys.executable, "-m", "PyInstaller", "--noconfirm", "--clean", "--onefile",
         "--name", "Mousette", "--icon", str(icon),
         # Windows: no console window; pystray picks its backend at runtime.
-        *(["--windowed", "--collect-submodules", "pystray"] if sys.platform == "win32" else []),
+        *(["--windowed", "--collect-submodules", "pystray", "--version-file", str(version)]
+          if sys.platform == "win32" else []),
         "--add-data", f"{ROOT / 'client'}{sep}client",
         # Both pick their backends at runtime, which PyInstaller can't see on its own.
         "--collect-submodules", "uvicorn", "--collect-submodules", "pynput",
