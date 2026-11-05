@@ -63,7 +63,7 @@ Trackpad, keyboard, your own buttons and media controls for your Windows PC, on 
 >
 > **Why does Windows warn me?** "Windows protected your PC" shows because `Mousette.exe` isn't signed with a paid code signing certificate yet, not because something was found in it. Want to check it yourself? Upload it to [VirusTotal](https://www.virustotal.com), compare its SHA-256 with the one on the [release page](https://github.com/Dizyy/Mousette/releases/latest), or [run it from source](#1-download) instead.
 >
-> **Why do a few virus scanners flag it?** On [VirusTotal](https://www.virustotal.com/gui/file/2624141771adbaa616f80c23379874f464c5ce32497064e9ae090e8bbc96a7fd), 4 of 70 scanners flag the 2.0.0 `Mousette.exe`, all with "machine learning" guesses, not a known virus. Programs packed with PyInstaller that control the mouse and keyboard often get these false alarms. The detection by Microsoft Defender has been reported to Microsoft as a false positive.
+> **Why do a few virus scanners flag it?** On [VirusTotal](https://www.virustotal.com/gui/file/2624141771adbaa616f80c23379874f464c5ce32497064e9ae090e8bbc96a7fd), 3 of 69 scanners flag the 2.0.0 `Mousette.exe`, all with "machine learning" guesses, not a known virus. Programs packed with PyInstaller that control the mouse and keyboard often get these false alarms. Microsoft has confirmed it is a false positive and removed the Defender detection.
 
 ## Four tabs, one hand
 
