@@ -69,8 +69,7 @@
           <div class="pad-wrap">
             <div id="trackpad" aria-label="Trackpad">
               <div class="hint" id="hint">
-                Drag to move · Tap to click · Two fingers: scroll, pinch to zoom<br>
-                Three fingers: tap = middle click · swipe = Task view, apps, desktop
+                Drag to move, tap to click<br>Two fingers scroll or zoom<br>Three fingers: tap for middle click, swipe for Task view
               </div>
               <div class="drag-badge" id="drag-badge">Dragging</div>
             </div>
@@ -86,10 +85,10 @@
         <div class="keyrow" id="keyrow">
           <button class="press" data-action="esc">Esc</button>
           <button class="press" data-action="tab">Tab</button>
-          <button class="press" data-action="arrowleft" aria-label="Left arrow">←</button>
-          <button class="press" data-action="arrowup" aria-label="Up arrow">↑</button>
-          <button class="press" data-action="arrowdown" aria-label="Down arrow">↓</button>
-          <button class="press" data-action="arrowright" aria-label="Right arrow">→</button>
+          <button class="press" data-action="arrowleft" aria-label="Left arrow"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2Z"/></svg></button>
+          <button class="press" data-action="arrowup" aria-label="Up arrow"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12l1.41 1.41L11 7.83V20h2V7.83l5.58 5.59L20 12l-8-8-8 8Z"/></svg></button>
+          <button class="press" data-action="arrowdown" aria-label="Down arrow"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 12l-1.41-1.41L13 16.17V4h-2v12.17l-5.58-5.59L4 12l8 8 8-8Z"/></svg></button>
+          <button class="press" data-action="arrowright" aria-label="Right arrow"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4l-1.41 1.41L16.17 11H4v2h12.17l-5.58 5.59L12 20l8-8-8-8Z"/></svg></button>
           <button class="press" data-action="copy">Copy</button>
           <button class="press" data-action="paste">Paste</button>
           <button class="press" data-action="sendtext">Send</button>
@@ -104,7 +103,7 @@
           <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 5H4a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2Zm-9 3h2v2h-2V8Zm0 3h2v2h-2v-2ZM8 8h2v2H8V8Zm0 3h2v2H8v-2ZM7 13H5v-2h2v2Zm0-3H5V8h2v2Zm9 7H8v-2h8v2Zm0-4h-2v-2h2v2Zm0-3h-2V8h2v2Zm3 3h-2v-2h2v2Zm0-3h-2V8h2v2Z"/></svg>
           <span id="typebox-text">Tap to type with your phone's keyboard</span>
         </button>
-        <p class="view-note">What you type goes straight to the PC. Tap Ctrl, Alt, Shift or Win for the next key, twice to keep it on.</p>
+        <p class="view-note">What you type goes straight to the PC. Tap <kbd>Ctrl</kbd> <kbd>Alt</kbd> <kbd>Shift</kbd> or <kbd>Win</kbd> once for the next key, twice to keep it on.</p>
         <div class="fkeys">
           <button class="press" data-action="f1">F1</button>
           <button class="press" data-action="f2">F2</button>
@@ -129,19 +128,19 @@
           <button class="press" data-action="esc">Esc</button>
           <button class="press" data-action="tab">Tab</button>
           <button class="press" data-action="delete">Del</button>
-          <button class="press" data-action="backspace" aria-label="Backspace">⌫</button>
+          <button class="press" data-action="backspace" aria-label="Backspace"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M22 3H7c-.69 0-1.23.35-1.59.88L0 12l5.41 8.11c.36.53.9.89 1.59.89h15a2 2 0 0 0 2-2V5a2 2 0 0 0-2-2Zm-3 12.59L17.59 17 14 13.41 10.41 17 9 15.59 12.59 12 9 8.41 10.41 7 14 10.59 17.59 7 19 8.41 15.41 12 19 15.59Z"/></svg></button>
           <button class="press" data-action="home">Home</button>
           <button class="press" data-action="end">End</button>
           <button class="press" data-action="pageup">PgUp</button>
           <button class="press" data-action="pagedown">PgDn</button>
         </div>
         <div class="arrows">
-          <button class="press" data-action="arrowup" aria-label="Up arrow">↑</button>
-          <button class="press" data-action="arrowleft" aria-label="Left arrow">←</button>
-          <button class="press" data-action="arrowdown" aria-label="Down arrow">↓</button>
-          <button class="press" data-action="arrowright" aria-label="Right arrow">→</button>
+          <button class="press" data-action="arrowup" aria-label="Up arrow"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12l1.41 1.41L11 7.83V20h2V7.83l5.58 5.59L20 12l-8-8-8 8Z"/></svg></button>
+          <button class="press" data-action="arrowleft" aria-label="Left arrow"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2Z"/></svg></button>
+          <button class="press" data-action="arrowdown" aria-label="Down arrow"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 12l-1.41-1.41L13 16.17V4h-2v12.17l-5.58-5.59L4 12l8 8 8-8Z"/></svg></button>
+          <button class="press" data-action="arrowright" aria-label="Right arrow"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4l-1.41 1.41L16.17 11H4v2h12.17l-5.58 5.59L12 20l8-8-8-8Z"/></svg></button>
         </div>
-        <button class="wide-key press" data-action="enter">Enter ↵</button>
+        <button class="wide-key press" data-action="enter"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M19 7v4H5.83l3.58-3.59L8 6l-6 6 6 6 1.41-1.41L5.83 13H21V7h-2Z"/></svg>Enter</button>
       </section>
 
       <section class="view view-deck" data-view="deck" hidden>
@@ -156,9 +155,13 @@
 
       <section class="view view-media" data-view="media" hidden>
         <div class="now">
-          <div class="cover"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v10.55A4 4 0 1 0 14 17V7h4V3h-6Z"/></svg></div>
-          <b>Media</b>
-          <small>Controls the music or video playing on the PC</small>
+          <div class="art" aria-hidden="true">
+            <div class="record"><div class="vinyl"></div><div class="sleeve"></div></div>
+          </div>
+          <div class="track">
+            <b>Media on the PC</b>
+            <small>Play, pause, skip and volume for music or video</small>
+          </div>
         </div>
         <div class="media-grid">
           <button class="media-btn press" data-key="media_previous" aria-label="Previous track">
@@ -301,7 +304,7 @@
         <div class="icon-grid" id="deck-icons"></div>
       </div>
       <div class="form-row">
-        <span class="lbl">Colour</span>
+        <span class="lbl">Color</span>
         <div class="color-grid" id="deck-colors"></div>
       </div>
       <p class="error" id="deck-error" hidden></p>

@@ -1,17 +1,23 @@
-/* Comfort theme: warm, low-glare dark colors, large rounded controls.
+/* Comfort theme, unslopped. Same palette, logo and layout as 2.0; every value on a 4px grid,
+   weights 400/500, quiet hairlines, keycaps as the signature detail.
    --accent can be changed in Settings (app.js sets it on the root element). */
 :root {
   --bg: #1a1916;
   --surface: #24221e;
   --surface-2: #2e2b26;
   --pad: #1e1c19;
-  --border: #36332d;
+  --border: rgba(236, 230, 218, .08);    /* hairline: primary text at 8% */
+  --border-2: rgba(236, 230, 218, .14);  /* a hairline that must read, like the add tile */
   --text: #ece6da;
+  --text-2: #c4bcae;
   --muted: #a39a8a;
   --accent: #9cc5a1;
   --on-accent: #16241a;
   --ok: #9cc5a1;
   --bad: #e3796a;
+  --ease: cubic-bezier(.22, 1, .36, 1);
+  /* Keycap: hairline, a darker bottom edge and a faint top light. */
+  --cap: inset 0 0 0 1px var(--border), inset 0 -2px 0 rgba(0, 0, 0, .28), inset 0 1px 0 rgba(255, 255, 255, .04);
   --app-height: 100%;
   --app-top: 0px;
   color-scheme: dark;
@@ -26,7 +32,6 @@ html, body {
   background: var(--bg);
   color: var(--text);
   font: 16px/1.4 -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
-  /* No text selection, callouts, bounce or pull-to-refresh. */
   -webkit-user-select: none;
   user-select: none;
   -webkit-touch-callout: none;
@@ -54,7 +59,10 @@ button {
   background: none;
   touch-action: manipulation;
   cursor: pointer;
+  transition: background-color .12s var(--ease), color .12s var(--ease), box-shadow .12s var(--ease), transform .12s var(--ease);
 }
+button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.press.pressed { transform: scale(.97); }
 
 svg { width: 24px; height: 24px; fill: currentColor; flex: none; }
 
@@ -64,15 +72,15 @@ svg { width: 24px; height: 24px; fill: currentColor; flex: none; }
   grid-template-columns: 44px 1fr 44px;
   align-items: center;
   gap: 8px;
-  padding: 6px 14px 4px;
+  padding: 8px 12px 4px;
   min-height: 56px;
 }
-.logo { width: 36px; height: 36px; border-radius: 11px; }
+.logo { width: 36px; height: 36px; border-radius: 10px; }
 .status {
   justify-self: center;
-  display: flex; align-items: center; gap: 9px;
+  display: flex; align-items: center; gap: 8px;
   max-width: 100%;
-  padding: 7px 14px;
+  padding: 8px 16px;
   border-radius: 999px;
   background: var(--surface);
   box-shadow: inset 0 0 0 1px var(--border);
@@ -81,37 +89,39 @@ svg { width: 24px; height: 24px; fill: currentColor; flex: none; }
   white-space: nowrap;
   overflow: hidden;
 }
-.status.connected { color: var(--text); }
+.status.connected { color: var(--text-2); }
 #status-text { overflow: hidden; text-overflow: ellipsis; }
+/* The one live thing on screen: a dot with a soft ring. */
 .dot {
   flex: none;
-  width: 9px; height: 9px; border-radius: 50%;
+  width: 8px; height: 8px; border-radius: 50%;
   background: var(--bad);
-  box-shadow: 0 0 0 4px color-mix(in srgb, var(--bad) 18%, transparent);
-  transition: background .2s, box-shadow .2s;
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--bad) 16%, transparent);
+  transition: background-color .2s var(--ease), box-shadow .2s var(--ease);
 }
 .status.connected .dot {
   background: var(--ok);
-  box-shadow: 0 0 0 4px color-mix(in srgb, var(--ok) 18%, transparent);
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--ok) 16%, transparent);
 }
 .icon-btn {
   width: 44px; height: 44px;
   display: grid; place-items: center;
   border-radius: 50%;
   background: var(--surface);
-  color: var(--text);
+  box-shadow: inset 0 0 0 1px var(--border);
+  color: var(--text-2);
 }
+.icon-btn svg { width: 20px; height: 20px; }
 .icon-btn:active { background: var(--surface-2); }
 
-/* Tab bar: a pill with the Squeak button (quick actions) in the middle. Top by default, so the
-   lower screen belongs to the trackpad; Settings can move it to the bottom. */
+/* Tab bar: a pill with the Squeak button (quick actions) in the middle. */
 .tabs {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 4px;
-  margin: 4px 12px 10px;
-  padding: 6px;
+  margin: 4px 12px 12px;
+  padding: 4px;
   border-radius: 999px;
   background: var(--surface);
   box-shadow: inset 0 0 0 1px var(--border);
@@ -122,21 +132,22 @@ svg { width: 24px; height: 24px; fill: currentColor; flex: none; }
   padding: 0 12px;
   border-radius: 999px;
   color: var(--muted);
-  font-size: 14px; font-weight: 600;
+  font-size: 14px; font-weight: 500;
 }
+.tab svg { width: 20px; height: 20px; }
 .tab span { display: none; }
 .tab.on { background: var(--accent); color: var(--on-accent); padding: 0 16px; }
 .tab.on span { display: inline; }
 .tab.pressed:not(.on) { background: var(--surface-2); }
 .squeak {
   flex: none;
-  width: 52px; height: 52px;
+  width: 48px; height: 48px;
   border-radius: 50%;
   display: grid; place-items: center;
   background: var(--surface-2);
 }
-.squeak img { width: 38px; height: 38px; border-radius: 11px; transition: transform .15s; }
-.squeak.on { box-shadow: 0 0 0 2px var(--accent); }
+.squeak img { width: 36px; height: 36px; border-radius: 10px; transition: transform .15s var(--ease); }
+.squeak.on { box-shadow: inset 0 0 0 2px var(--accent); }
 .squeak.on img, .squeak.pressed img { transform: scale(.9) rotate(-8deg); }
 
 /* Quick actions: drops down under the tab bar (or up above it at the bottom). */
@@ -148,21 +159,21 @@ svg { width: 24px; height: 24px; fill: currentColor; flex: none; }
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   gap: 8px;
-  padding: 14px;
-  border-radius: 26px;
-  background: color-mix(in srgb, var(--surface-2) 96%, transparent);
-  box-shadow: inset 0 0 0 1px var(--border), 0 12px 40px rgba(0, 0, 0, .55);
+  padding: 12px;
+  border-radius: 24px;
+  background: var(--surface-2);
+  box-shadow: inset 0 0 0 1px var(--border), 0 12px 40px rgba(0, 0, 0, .5);
 }
 .quick[hidden] { display: none; }
-.quick p { grid-column: 1 / -1; margin: 0 2px 2px; font-size: 13px; color: var(--muted); }
+.quick p { grid-column: 1 / -1; margin: 0 4px 4px; font-size: 13px; color: var(--muted); }
 .quick button {
-  min-height: 54px;
-  border-radius: 16px;
+  min-height: 56px;
+  border-radius: 12px;
   background: var(--surface);
-  box-shadow: inset 0 0 0 1px var(--border);
-  font-size: 14px; font-weight: 600;
+  box-shadow: var(--cap);
+  font-size: 14px; font-weight: 500;
 }
-.quick button.pressed { background: var(--accent); color: var(--on-accent); }
+.quick button.pressed { background: var(--accent); color: var(--on-accent); box-shadow: none; }
 .quick .danger { color: var(--bad); }
 
 /* Views: one per tab */
@@ -171,88 +182,82 @@ svg { width: 24px; height: 24px; fill: currentColor; flex: none; }
   display: flex;
   flex-direction: column;
   min-height: 0;
-  padding: 0 12px max(10px, calc(env(safe-area-inset-bottom) - 8px));
+  padding: 0 12px max(12px, calc(env(safe-area-inset-bottom) - 8px));
 }
-.view { flex: 1; display: flex; flex-direction: column; gap: 10px; min-height: 0; }
+.view { flex: 1; display: flex; flex-direction: column; gap: 12px; min-height: 0; }
 .view[hidden] { display: none; }
-.view-note { margin: 0 4px; color: var(--muted); font-size: 13px; }
+.view-note { margin: 0 4px; color: var(--muted); font-size: 13px; line-height: 20px; }
 
-/* Tab bar at the bottom: under the views, clearing the home bar like the old bottom bar. */
-#app[data-bar="bottom"] .tabs { order: 3; margin: 10px 12px max(8px, calc(env(safe-area-inset-bottom) - 14px)); }
+#app[data-bar="bottom"] .tabs { order: 3; margin: 12px 12px max(8px, calc(env(safe-area-inset-bottom) - 12px)); }
 #app[data-bar="bottom"] .views { order: 2; padding-bottom: 0; }
 #app[data-bar="bottom"] .quick { top: auto; bottom: calc(env(safe-area-inset-bottom) + 84px); }
-.short-screen #app[data-bar="bottom"] .tabs { margin-bottom: 6px; }
-.short-screen #app[data-bar="top"] .views { padding-bottom: 6px; }
+.short-screen #app[data-bar="bottom"] .tabs { margin-bottom: 4px; }
+.short-screen #app[data-bar="top"] .views { padding-bottom: 4px; }
 
-/* Trackpad tab */
+/* Trackpad tab. The pad is the object people touch most: a matte surface with a soft top
+   light, like a laptop's glass pad. */
 .pad-row { flex: 1; display: flex; gap: 8px; min-height: 0; }
 .pad-wrap { position: relative; flex: 1; display: flex; }
 #trackpad {
   position: relative;
   flex: 1;
-  border-radius: 30px;
-  background: radial-gradient(120% 90% at 50% 0%, #22201c 0%, var(--pad) 60%, #1b1a17 100%);
-  box-shadow: inset 0 2px 10px rgba(0, 0, 0, .35), inset 0 0 0 1px var(--border);
+  border-radius: 28px;
+  background: linear-gradient(180deg, #211f1b 0%, var(--pad) 45%);
+  box-shadow: inset 0 0 0 1px var(--border), inset 0 1px 0 rgba(255, 255, 255, .05), inset 0 4px 12px rgba(0, 0, 0, .25);
   touch-action: none;
   overflow: hidden;
 }
-#trackpad.active { box-shadow: inset 0 2px 10px rgba(0, 0, 0, .35), inset 0 0 0 2px color-mix(in srgb, var(--accent) 50%, var(--border)); }
+#trackpad.active { box-shadow: inset 0 0 0 2px color-mix(in srgb, var(--accent) 50%, transparent), inset 0 4px 12px rgba(0, 0, 0, .25); }
 .hint {
   position: absolute;
-  inset: auto 0 96px 0;
+  inset: auto 0 100px 0;
   text-align: center;
   color: var(--muted);
   font-size: 13px;
-  line-height: 1.6;
-  opacity: .6;
+  line-height: 20px;
+  opacity: .7;
   pointer-events: none;
-  padding: 0 18px;
+  padding: 0 20px;
 }
 .drag-badge {
   position: absolute;
-  top: 14px; left: 50%;
+  top: 12px; left: 50%;
   transform: translateX(-50%);
-  padding: 6px 16px;
+  padding: 4px 12px;
   border-radius: 999px;
   background: var(--accent);
   color: var(--on-accent);
-  font-size: 14px;
-  font-weight: 600;
+  font-size: 13px;
+  font-weight: 500;
   opacity: 0;
-  transition: opacity .15s;
+  transition: opacity .15s var(--ease);
   pointer-events: none;
 }
 #trackpad.dragging .drag-badge { opacity: 1; }
-/* Holding to drag: a thick neon line in the accent colour along the edges (a bright core
-   on a coloured tube), so it's clear the button is held down. */
-#trackpad.dragging {
-  box-shadow: inset 0 0 0 2px color-mix(in srgb, var(--accent) 45%, white),
-              inset 0 0 0 5px var(--accent),
-              inset 0 0 4px 6px color-mix(in srgb, var(--accent) 70%, transparent);
-  transition: box-shadow .15s;
-}
-/* Click / Right-click float on the bottom of the pad. */
+/* Holding to drag: a solid accent edge, so it's clear the button is held down. */
+#trackpad.dragging { box-shadow: inset 0 0 0 3px var(--accent), inset 0 4px 12px rgba(0, 0, 0, .25); }
+/* Click / Right-click sit on the bottom of the pad, like the click zone of a real trackpad. */
 .clicks {
   position: absolute;
-  left: 10px; right: 10px; bottom: 10px;
+  left: 12px; right: 12px; bottom: 12px;
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 6px;
+  gap: 4px;
 }
 .clicks button {
-  min-height: 70px;
-  background: color-mix(in srgb, var(--surface) 88%, transparent);
-  box-shadow: inset 0 0 0 1px var(--border);
-  color: var(--muted);
-  font-weight: 600;
+  min-height: 72px;
+  background: var(--surface);
+  box-shadow: var(--cap);
+  color: var(--text-2);
+  font-size: 15px; font-weight: 500;
 }
-.clicks button:first-child { border-radius: 22px 8px 8px 22px; }
-.clicks button:last-child { border-radius: 8px 22px 22px 8px; }
-.clicks button.pressed { background: var(--accent); color: var(--on-accent); }
+.clicks button:first-child { border-radius: 16px 6px 6px 16px; }
+.clicks button:last-child { border-radius: 6px 16px 16px 6px; }
+.clicks button.pressed { background: var(--accent); color: var(--on-accent); box-shadow: none; }
 
 #scroll-strip {
   width: 44px;
-  border-radius: 30px;
+  border-radius: 28px;
   background: var(--pad);
   box-shadow: inset 0 0 0 1px var(--border);
   touch-action: none;
@@ -261,114 +266,207 @@ svg { width: 24px; height: 24px; fill: currentColor; flex: none; }
   color: var(--muted);
 }
 #scroll-strip[hidden] { display: none; }
-#scroll-strip.active { box-shadow: inset 0 0 0 2px color-mix(in srgb, var(--accent) 50%, var(--border)); }
+#scroll-strip.active { box-shadow: inset 0 0 0 2px color-mix(in srgb, var(--accent) 50%, transparent); }
 
-/* Shortcut keys: one row (two when there are many), above or below the pad, or off. */
-.keyrow { display: grid; grid-template-columns: repeat(var(--key-cols, 8), minmax(0, 1fr)); gap: 5px; }
+/* Keys everywhere are keycaps: one shape, one edge, one pressed state. */
+.keyrow { display: grid; grid-template-columns: repeat(var(--key-cols, 8), minmax(0, 1fr)); gap: 4px; }
 #app[data-keys="top"] .keyrow { order: -1; }
 #app[data-keys="off"] .keyrow { display: none; }
-.keyrow button, .keygrid button, .arrows button, .wide-key {
-  min-height: 46px;
-  border-radius: 14px;
+.keyrow button, .keygrid button, .arrows button, .wide-key, .fkeys button, .modrow button {
+  display: flex; align-items: center; justify-content: center; gap: 8px;
+  min-height: 48px;
+  border-radius: 10px;
   background: var(--surface);
-  box-shadow: inset 0 0 0 1px var(--border);
-  font-size: 14px; font-weight: 600;
+  box-shadow: var(--cap);
+  font-size: 14px; font-weight: 500;
   white-space: nowrap;
   overflow: hidden;
 }
-.keyrow button { font-size: 13px; padding: 0 2px; color: var(--muted); }
+.keyrow button svg, .keygrid button svg, .arrows button svg, .wide-key svg { width: 20px; height: 20px; }
+.keyrow button { min-height: 44px; font-size: 13px; padding: 0 2px; color: var(--text-2); }
 .keyrow button[hidden] { display: none; }
-.keyrow button.pressed, .keygrid button.pressed, .arrows button.pressed, .wide-key.pressed { background: var(--accent); color: var(--on-accent); }
+.keyrow button.pressed, .keygrid button.pressed, .arrows button.pressed, .wide-key.pressed,
+.fkeys button.pressed, .modrow button.pressed { background: var(--accent); color: var(--on-accent); box-shadow: none; }
 
 /* Keyboard tab */
 .typebox {
   display: flex; align-items: center; gap: 12px;
   min-height: 64px;
-  padding: 0 18px;
+  padding: 0 20px;
   border-radius: 20px;
   background: var(--pad);
   box-shadow: inset 0 0 0 1px var(--border);
   color: var(--muted);
+  font-size: 15px;
   text-align: left;
 }
+.typebox svg { width: 20px; height: 20px; }
 .typebox.on { color: var(--text); box-shadow: inset 0 0 0 2px var(--accent); }
 .typebox.on svg { color: var(--accent); }
 .view-keys { overflow-y: auto; }
 .keygrid, .modrow { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
-.fkeys { display: grid; grid-template-columns: repeat(6, 1fr); gap: 5px; }
-.fkeys button, .modrow button {
-  min-height: 40px;
-  border-radius: 12px;
-  background: var(--surface);
-  box-shadow: inset 0 0 0 1px var(--border);
-  font-size: 13px; font-weight: 600;
-}
-.fkeys button { color: var(--muted); }
-.modrow button { min-height: 46px; border-radius: 14px; font-size: 14px; position: relative; }
-.fkeys button.pressed, .modrow button.pressed { background: var(--accent); color: var(--on-accent); }
+.fkeys { display: grid; grid-template-columns: repeat(6, 1fr); gap: 4px; }
+.fkeys button { min-height: 40px; border-radius: 8px; font-size: 13px; color: var(--text-2); }
+.modrow button { position: relative; }
 /* Sticky modifiers: outlined = held for the next key, filled with a bar = locked on. */
 .modrow .mod.once { box-shadow: inset 0 0 0 2px var(--accent); color: var(--accent); }
-.modrow .mod.lock { background: var(--accent); color: var(--on-accent); }
+.modrow .mod.lock { background: var(--accent); color: var(--on-accent); box-shadow: none; }
 .modrow .mod.lock::after {
   content: ""; position: absolute; left: 50%; bottom: 6px;
-  width: 16px; height: 3px; margin-left: -8px; border-radius: 2px;
+  width: 16px; height: 2px; margin-left: -8px; border-radius: 2px;
   background: currentColor;
 }
 .arrows { display: grid; grid-template-columns: repeat(3, 72px); gap: 8px; justify-content: center; }
 .arrows button:first-child { grid-column: 2; }
 .arrows button:nth-child(2) { grid-column: 1; }
-.wide-key { min-height: 56px; }
+.wide-key { min-height: 56px; border-radius: 12px; }
 
-/* Deck tab */
-.tiles { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
-.tile {
-  aspect-ratio: 1;
-  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px;
-  border-radius: 22px;
-  background: var(--surface);
-  box-shadow: inset 0 0 0 1px var(--border);
-  font-size: 13px;
-}
-.tile svg { width: 28px; height: 28px; color: var(--accent); margin-bottom: 2px; }
-.tile small { color: var(--muted); font-size: 11px; }
-.tile.pressed { background: color-mix(in srgb, var(--accent) 24%, var(--surface)); }
-
-/* Media tab */
-.now {
-  display: flex; flex-direction: column; align-items: center; gap: 4px;
-  padding: 18px;
-  border-radius: 26px;
-  background: radial-gradient(120% 80% at 50% 0%, color-mix(in srgb, var(--accent) 30%, transparent), transparent 65%), var(--surface);
-  box-shadow: inset 0 0 0 1px var(--border);
+/* Small keycaps inside text: the combo under a Deck button, a shortcut in a sentence. */
+kbd {
+  display: inline-block;
+  min-width: 20px;
+  padding: 0 4px;
+  border-radius: 4px;
+  background: rgba(236, 230, 218, .06);
+  box-shadow: inset 0 0 0 1px var(--border), inset 0 -1px 0 rgba(0, 0, 0, .3);
+  font: 500 11px/16px -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+  color: var(--text-2);
   text-align: center;
 }
-.now small { color: var(--muted); font-size: 13px; }
-.cover {
-  width: 100%; height: clamp(90px, 22vh, 190px);
-  margin-bottom: 10px;
-  border-radius: 22px;
-  display: grid; place-items: center;
-  background: linear-gradient(135deg, color-mix(in srgb, var(--accent) 70%, #e3b866), color-mix(in srgb, var(--accent) 40%, #e39a8a));
-  color: rgba(26, 25, 22, .75);
+
+/* Deck tab */
+.deck-head { display: flex; align-items: center; justify-content: space-between; margin: 0 4px; }
+.deck-head h2 { margin: 0; font-size: 16px; font-weight: 500; }
+.edit-btn {
+  min-height: 36px; padding: 0 16px;
+  border-radius: 10px;
+  background: var(--surface);
+  box-shadow: inset 0 0 0 1px var(--border);
+  color: var(--text-2);
+  font-size: 14px; font-weight: 500;
 }
-.cover svg { width: 56px; height: 56px; }
-.media-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
-.media-btn {
-  min-height: 58px;
+.edit-btn.on { background: var(--accent); color: var(--on-accent); box-shadow: none; }
+.tiles { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.tile {
+  position: relative;
+  aspect-ratio: 1;
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px;
   border-radius: 20px;
   background: var(--surface);
   box-shadow: inset 0 0 0 1px var(--border);
-  display: grid; place-items: center;
   color: var(--text);
-  font-size: 14px; font-weight: 600;
+  font-size: 14px;
 }
-.media-btn svg { width: 28px; height: 28px; }
-.media-btn.play { background: var(--accent); color: var(--on-accent); }
-.media-btn.pressed { background: var(--surface-2); }
-.media-btn.play.pressed { filter: brightness(.9); }
+.tile svg { width: 24px; height: 24px; color: var(--accent); margin-bottom: 4px; }
+.tile b { font-weight: 500; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; padding: 0 8px; }
+.tile small {
+  display: flex; gap: 2px; justify-content: center;
+  max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; padding: 0 8px;
+  color: var(--muted); font-size: 12px;
+}
+.tile.colored { background: var(--tile); box-shadow: none; color: #1a1916; }
+.tile.colored svg, .tile.colored small { color: rgba(26, 25, 22, .72); }
+.tile.colored kbd { background: rgba(26, 25, 22, .1); color: rgba(26, 25, 22, .8); box-shadow: inset 0 -1px 0 rgba(26, 25, 22, .2); }
+.tile.pressed { background: color-mix(in srgb, var(--accent) 20%, var(--surface)); }
+.tile.colored.pressed { filter: brightness(1.1); }
+.tile.add { background: transparent; color: var(--muted); box-shadow: inset 0 0 0 1px var(--border-2); }
+.tile.add svg { color: var(--muted); }
+.tile .badge {
+  position: absolute; top: 8px; right: 8px;
+  width: 24px; height: 24px;
+  display: none; place-items: center;
+  border-radius: 50%;
+  background: var(--surface-2);
+  color: var(--text);
+}
+.tile .badge svg { width: 14px; height: 14px; color: var(--text-2); margin: 0; }
+.editing .tiles { touch-action: none; }
+.editing .tile:not(.add) .badge { display: grid; }
+.editing .tile:not(.add):not(.colored) { box-shadow: inset 0 0 0 2px color-mix(in srgb, var(--accent) 55%, transparent); }
+.tile.dragging { transform: scale(1.04); z-index: 2; box-shadow: 0 12px 32px rgba(0, 0, 0, .5); }
 
-/* Hidden keyboard input: must stay focusable, so it is transparent rather than display:none.
-   16px font stops iOS from zooming when it gets focus. */
+/* Media tab. The record is the moment: a sleeve in the accent colour with the vinyl half out. */
+.now {
+  display: flex; flex-direction: column; gap: 16px;
+  padding: 12px;
+  border-radius: 24px;
+  background: var(--surface);
+  box-shadow: inset 0 0 0 1px var(--border);
+}
+.art {
+  position: relative;
+  height: clamp(120px, 24vh, 200px);
+  border-radius: 12px;
+  background: linear-gradient(180deg, #23211d, var(--pad));
+  box-shadow: inset 0 0 0 1px var(--border);
+  overflow: hidden;
+}
+.record {
+  position: absolute;
+  top: 50%; left: 50%;
+  height: 76%;
+  aspect-ratio: 1.6;
+  transform: translate(-50%, -50%);
+}
+.vinyl {
+  position: absolute;
+  right: 0; top: 4%;
+  height: 92%; aspect-ratio: 1;
+  border-radius: 50%;
+  background:
+    radial-gradient(circle, var(--bg) 0 3%, var(--accent) 3.5% 30%, #121110 30.5% 32%, transparent 32.5%),
+    repeating-radial-gradient(circle, #151412 0 1px, #1d1c19 1px 3px);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, .45), inset 0 0 0 1px rgba(255, 255, 255, .05);
+}
+.sleeve {
+  position: absolute;
+  left: 0; top: 0;
+  height: 100%; aspect-ratio: 1;
+  border-radius: 4px;
+  background: color-mix(in srgb, var(--accent) 78%, #efe6d4);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, .4), inset 0 0 0 1px rgba(255, 255, 255, .18);
+  overflow: hidden;
+}
+/* Printed on the sleeve: one ring, like the record inside. */
+.sleeve::before {
+  content: "";
+  position: absolute;
+  inset: 22%;
+  border-radius: 50%;
+  border: 2px solid rgba(26, 25, 22, .35);
+}
+.sleeve::after {
+  content: "";
+  position: absolute;
+  left: 50%; top: 50%;
+  width: 10%; aspect-ratio: 1;
+  transform: translate(-50%, -50%);
+  border-radius: 50%;
+  background: rgba(26, 25, 22, .35);
+}
+.track { display: grid; grid-template-columns: 1fr auto; align-items: end; gap: 4px 12px; padding: 0 4px; }
+.track b { font-size: 17px; font-weight: 500; }
+.track small { grid-column: 1; color: var(--muted); font-size: 14px; }
+.track:last-child { padding-bottom: 4px; }
+.track .src { grid-column: 2; grid-row: 1 / 3; align-self: center; color: var(--muted); font-size: 12px; }
+.progress { display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 12px; padding: 0 4px 4px; color: var(--muted); font-size: 12px; font-variant-numeric: tabular-nums; }
+.progress i { height: 4px; border-radius: 2px; background: linear-gradient(90deg, var(--text-2) 0 36%, var(--surface-2) 36%); }
+.media-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.media-btn {
+  display: flex; align-items: center; justify-content: center; gap: 8px;
+  min-height: 56px;
+  border-radius: 16px;
+  background: var(--surface);
+  box-shadow: var(--cap);
+  color: var(--text-2);
+  font-size: 14px; font-weight: 500;
+}
+.media-btn svg { width: 24px; height: 24px; color: var(--text); }
+.media-btn.play { background: var(--accent); color: var(--on-accent); box-shadow: none; }
+.media-btn.play svg { width: 28px; height: 28px; color: var(--on-accent); }
+.media-btn.pressed { background: var(--surface-2); }
+.media-btn.play.pressed { filter: brightness(.92); }
+
 #kbd {
   position: fixed;
   left: 0;
@@ -387,8 +485,6 @@ svg { width: 24px; height: 24px; fill: currentColor; flex: none; }
 /* Sheets (settings, PIN) */
 .sheet {
   position: fixed;
-  /* Only the part of the screen above the phone keyboard (set by fitViewport in app.js), so a
-     field being typed in is never hidden under the keyboard. */
   left: 0;
   right: 0;
   top: var(--app-top);
@@ -406,29 +502,33 @@ svg { width: 24px; height: 24px; fill: currentColor; flex: none; }
   width: 100%;
   max-width: 440px;
   background: var(--surface);
-  border-radius: 28px 28px 0 0;
+  border-radius: 24px 24px 0 0;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .05);
   padding: 12px 20px calc(24px + env(safe-area-inset-bottom));
+  max-height: calc(var(--app-height) - 24px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
 }
 .sheet-card::before {
   content: "";
   display: block;
-  width: 40px; height: 5px;
-  border-radius: 5px;
-  background: var(--border);
-  margin: 0 auto 14px;
+  width: 40px; height: 4px;
+  border-radius: 2px;
+  background: var(--border-2);
+  margin: 0 auto 16px;
 }
-#pin-sheet .sheet-card { border-radius: 28px; padding: 24px 20px; }
+#pin-sheet .sheet-card { border-radius: 24px; padding: 24px 20px; }
 #pin-sheet .sheet-card::before { display: none; }
-.sheet-card h2 { margin: 0 0 12px; font-size: 20px; }
+.sheet-card h2 { margin: 0 0 12px; font-size: 20px; font-weight: 500; }
 .muted { color: var(--muted); margin: 0 0 16px; font-size: 15px; }
 .error { color: var(--bad); margin: 12px 0 0; font-size: 15px; }
 
-.field { display: block; margin: 18px 0; }
-.field span { display: flex; justify-content: space-between; color: var(--muted); font-size: 15px; }
+.field { display: block; margin: 16px 0; }
+.field span { display: flex; justify-content: space-between; color: var(--text-2); font-size: 15px; }
 .field output { color: var(--text); font-variant-numeric: tabular-nums; }
 input[type="range"] {
   width: 100%;
-  height: 48px;
+  height: 44px;
   margin: 4px 0 0;
   accent-color: var(--accent);
   touch-action: manipulation;
@@ -436,57 +536,56 @@ input[type="range"] {
 
 .field.toggle span { align-items: center; }
 .field.toggle { display: flex; justify-content: space-between; align-items: center; min-height: 48px; }
-.field.toggle input { width: 28px; height: 28px; accent-color: var(--accent); }
+.field.toggle input { width: 24px; height: 24px; accent-color: var(--accent); }
 
-.swatches { display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; margin-bottom: 14px; }
+.swatches { display: grid; grid-template-columns: repeat(7, 1fr); gap: 8px; margin-bottom: 16px; }
 .swatch { aspect-ratio: 1; min-height: 36px; border-radius: 50%; background: var(--c); position: relative; }
 .swatch::after { content: ""; position: absolute; inset: -4px; border-radius: 50%; border: 2px solid transparent; }
 .swatch[aria-checked="true"]::after { border-color: var(--text); }
 @media (max-width: 400px) {
-  .swatches { gap: 8px; }
   .swatch { width: 100%; max-width: 52px; justify-self: center; }
 }
 
-.bar-choices { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; margin-bottom: 14px; }
+.bar-choices { display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px; margin-bottom: 16px; }
 .bar-choice {
   display: flex; align-items: center; gap: 8px;
-  min-height: 44px; padding: 0 10px;
-  border-radius: 16px; background: var(--surface-2);
-  font-size: 14px; color: var(--muted);
+  min-height: 44px; padding: 0 12px;
+  border-radius: 12px; background: var(--surface-2);
+  font-size: 14px; color: var(--text-2);
 }
-.bar-choice input { width: 22px; height: 22px; margin: 0; accent-color: var(--accent); flex: none; }
+.bar-choice input { width: 20px; height: 20px; margin: 0; accent-color: var(--accent); flex: none; }
 @media (max-width: 370px) { .bar-choices { grid-template-columns: repeat(2, 1fr); } }
-.sheet-card { max-height: calc(var(--app-height) - 24px); overflow-y: auto; overscroll-behavior: contain; }
 
-/* Bar order list: drag handle, name, up/down buttons. */
-.order-list { list-style: none; margin: 0 0 14px; padding: 0; display: grid; gap: 6px; }
+.order-list { list-style: none; margin: 0 0 16px; padding: 0; display: grid; gap: 4px; }
 .order-row {
   display: flex; align-items: center; gap: 4px;
   min-height: 48px; padding-right: 4px;
-  border-radius: 16px; background: var(--surface-2);
+  border-radius: 12px; background: var(--surface-2);
 }
 .order-row .grip { width: 44px; height: 48px; display: grid; place-items: center; color: var(--muted); touch-action: none; cursor: grab; }
-.order-row .name { flex: 1; display: flex; align-items: center; gap: 10px; font-size: 15px; min-width: 0; }
+.order-row .grip svg, .order-row .move svg { width: 20px; height: 20px; }
+.order-row .name { flex: 1; display: flex; align-items: center; gap: 8px; font-size: 15px; min-width: 0; }
 .order-row .name svg { width: 20px; height: 20px; }
-.order-row .tag { font-size: 11px; color: var(--muted); padding: 2px 8px; border-radius: 999px; border: 1px solid var(--border); }
+.order-row .tag { font-size: 12px; color: var(--muted); }
 .order-row:not(.is-hidden) .tag { display: none; }
 .order-row.is-hidden .name { opacity: .5; }
 .order-row .move { width: 44px; height: 44px; display: grid; place-items: center; color: var(--muted); }
 .order-row .move:disabled { opacity: .25; cursor: default; }
 .order-row.dragging {
   position: relative; z-index: 1; cursor: grabbing;
-  background: color-mix(in srgb, var(--accent) 22%, var(--surface-2));
-  box-shadow: 0 10px 24px rgba(0, 0, 0, .4);
+  background: color-mix(in srgb, var(--accent) 20%, var(--surface-2));
+  box-shadow: 0 12px 24px rgba(0, 0, 0, .4);
 }
 
-.segmented { display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; gap: 4px; padding: 4px; border-radius: 18px; background: var(--surface-2); }
-.segmented button { min-height: 44px; border-radius: 14px; font-size: 14px; color: var(--muted); }
-.segmented button[aria-checked="true"] { background: var(--accent); color: var(--on-accent); font-weight: 700; }
+.segmented { display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; gap: 4px; padding: 4px; border-radius: 16px; background: var(--surface-2); }
+.segmented button { min-height: 40px; border-radius: 12px; font-size: 14px; color: var(--text-2); }
+.segmented button[aria-checked="true"] { background: var(--accent); color: var(--on-accent); font-weight: 500; }
 
-.setting-note { margin: 6px 4px 14px; font-size: 13px; color: var(--muted); }
-.segmented + .bar-choices { margin-top: 10px; }
-.section-title { margin: 8px 0 10px; font-size: 15px; color: var(--text); font-weight: 600; }
-.section-title small { font-weight: 400; font-size: 12px; color: var(--muted); margin-left: 6px; }
+.setting-note { margin: 8px 4px 16px; font-size: 13px; line-height: 20px; color: var(--muted); }
+.segmented + .bar-choices { margin-top: 8px; }
+/* Section titles: 24 above, 8 below, so each belongs to its own controls. */
+.section-title { margin: 24px 0 8px; font-size: 15px; color: var(--text); font-weight: 500; }
+.section-title small { font-weight: 400; font-size: 13px; color: var(--muted); margin-left: 8px; }
 .pc-actions { display: flex; flex-wrap: wrap; gap: 8px; }
 .pc-actions .text-btn { flex: 1 1 auto; }
 .text-btn.danger { color: var(--bad); }
@@ -503,127 +602,95 @@ input[type="range"] {
   max-width: 440px;
   margin: 0 auto;
   padding: 12px 16px;
-  border-radius: 18px;
+  border-radius: 16px;
   background: var(--surface-2);
-  border: 1px solid var(--border);
+  box-shadow: inset 0 0 0 1px var(--border), 0 8px 24px rgba(0, 0, 0, .4);
   font-size: 15px;
 }
 .toast[hidden] { display: none; }
 html[data-bar="top"] .toast { top: calc(136px + env(safe-area-inset-top)); }
-.toast.bad { border-color: var(--bad); }
-.toast-btn { flex: none; white-space: nowrap; min-height: 40px; padding: 0 14px; border-radius: 12px; background: var(--accent); color: var(--on-accent); font-weight: 600; }
+.toast.bad { box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--bad) 60%, transparent), 0 8px 24px rgba(0, 0, 0, .4); }
+.toast-btn { flex: none; white-space: nowrap; min-height: 40px; padding: 0 16px; border-radius: 10px; background: var(--accent); color: var(--on-accent); font-weight: 500; }
 .toast-btn[hidden] { display: none; }
 
 #pin-input {
   width: 100%;
   height: 64px;
-  border-radius: 18px;
-  border: 1px solid var(--border);
+  border-radius: 16px;
+  border: 1px solid var(--border-2);
   background: var(--bg);
   color: var(--text);
   font-size: 32px;
+  font-variant-numeric: tabular-nums;
   letter-spacing: .4em;
   text-align: center;
   -webkit-user-select: text;
   user-select: text;
 }
-#pin-input:focus { outline: 2px solid var(--accent); outline-offset: 1px; }
+#pin-input:focus { outline: 2px solid var(--accent); outline-offset: 2px; }
 
 #send-text {
   width: 100%;
   min-height: 120px;
-  padding: 12px 14px;
-  border-radius: 18px;
-  border: 1px solid var(--border);
+  padding: 12px 16px;
+  border-radius: 12px;
+  border: 1px solid var(--border-2);
   background: var(--bg);
   color: var(--text);
   font: inherit;
-  font-size: 16px; /* stops iOS zooming in on focus */
+  font-size: 16px;
   resize: vertical;
   -webkit-user-select: text;
   user-select: text;
 }
-#send-text:focus { outline: 2px solid var(--accent); outline-offset: 1px; }
+#send-text:focus { outline: 2px solid var(--accent); outline-offset: 2px; }
 
-.sheet-actions { display: flex; justify-content: flex-end; gap: 12px; margin-top: 8px; }
+.sheet-actions { display: flex; justify-content: flex-end; gap: 12px; margin-top: 16px; }
 .primary-btn, .text-btn {
-  min-height: 52px;
-  padding: 0 22px;
-  border-radius: 18px;
-  font-weight: 600;
+  min-height: 48px;
+  padding: 0 20px;
+  border-radius: 14px;
+  font-weight: 500;
 }
 .primary-btn { background: var(--accent); color: var(--on-accent); }
 .primary-btn.wide { width: 100%; margin-top: 16px; }
-.text-btn { color: var(--text); background: var(--surface-2); }
-.text-btn.wide { width: 100%; margin: 14px 0; }
-
-/* Deck: the user's own buttons */
-.deck-head { display: flex; align-items: center; justify-content: space-between; margin: 0 4px; }
-.deck-head h2 { margin: 0; font-size: 16px; font-weight: 600; }
-.edit-btn {
-  min-height: 40px; padding: 0 16px;
-  border-radius: 999px;
-  background: var(--surface);
-  box-shadow: inset 0 0 0 1px var(--border);
-  font-size: 14px; font-weight: 600;
-}
-.edit-btn.on { background: var(--accent); color: var(--on-accent); box-shadow: none; }
-.tile { position: relative; color: var(--text); }
-.tile b { font-weight: 600; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; padding: 0 6px; }
-.tile small { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; padding: 0 6px; }
-.tile.colored { background: var(--tile); box-shadow: none; color: #1a1916; }
-.tile.colored svg, .tile.colored small { color: rgba(26, 25, 22, .75); }
-.tile.pressed { filter: brightness(1.15); }
-.tile.add { background: transparent; color: var(--muted); box-shadow: inset 0 0 0 1.5px var(--border); }
-.tile.add svg { color: var(--muted); }
-.tile .badge {
-  position: absolute; top: 6px; right: 6px;
-  width: 26px; height: 26px;
-  display: none; place-items: center;
-  border-radius: 50%;
-  background: var(--surface-2);
-  color: var(--text);
-  font-size: 13px;
-}
-.editing .tiles { touch-action: none; }
-.editing .tile:not(.add) .badge { display: grid; }
-.editing .tile:not(.add):not(.colored) { box-shadow: inset 0 0 0 2px color-mix(in srgb, var(--accent) 55%, var(--border)); }
-.tile.dragging { transform: scale(1.06); z-index: 2; box-shadow: 0 12px 30px rgba(0, 0, 0, .5); transition: transform .12s; }
+.text-btn { color: var(--text); background: var(--surface-2); box-shadow: inset 0 0 0 1px var(--border); }
+.text-btn.wide { width: 100%; margin: 16px 0 0; }
 
 /* Deck: add / edit sheet */
 .form-row { margin: 16px 0 0; }
-.form-row > label, .form-row > .lbl { display: block; margin: 0 4px 8px; color: var(--muted); font-size: 14px; }
+.form-row > label, .form-row > .lbl { display: block; margin: 0 4px 8px; color: var(--text-2); font-size: 14px; }
 .input {
   width: 100%;
-  min-height: 50px;
-  padding: 0 14px;
-  border-radius: 16px;
-  border: 1px solid var(--border);
+  min-height: 48px;
+  padding: 0 16px;
+  border-radius: 12px;
+  border: 1px solid var(--border-2);
   background: var(--bg);
   color: var(--text);
   font: inherit;
-  font-size: 16px; /* stops iOS zooming in on focus */
+  font-size: 16px;
   -webkit-user-select: text;
   user-select: text;
 }
-textarea.input { min-height: 96px; padding: 12px 14px; resize: vertical; }
-.input:focus { outline: 2px solid var(--accent); outline-offset: 1px; }
-.mods { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
-.mods button { min-height: 46px; border-radius: 14px; background: var(--surface-2); color: var(--muted); font-weight: 600; }
-.mods button.on { background: var(--accent); color: var(--on-accent); }
-.keypick { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-top: 6px; }
-.preview { margin: 10px 4px 0; color: var(--muted); font-size: 14px; }
-.preview b { color: var(--text); }
-.icon-grid, .color-grid { display: grid; grid-template-columns: repeat(8, 1fr); gap: 6px; }
-.icon-grid button { aspect-ratio: 1; border-radius: 12px; background: var(--surface-2); display: grid; place-items: center; color: var(--text); }
+textarea.input { min-height: 96px; padding: 12px 16px; resize: vertical; }
+.input:focus { outline: 2px solid var(--accent); outline-offset: 2px; }
+.mods { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+.mods button { min-height: 44px; border-radius: 10px; background: var(--surface-2); box-shadow: var(--cap); color: var(--text-2); font-weight: 500; }
+.mods button.on { background: var(--accent); color: var(--on-accent); box-shadow: none; }
+.keypick { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 8px; }
+.preview { margin: 12px 4px 0; color: var(--muted); font-size: 14px; }
+.preview b { color: var(--text); font-weight: 500; }
+.icon-grid, .color-grid { display: grid; grid-template-columns: repeat(8, 1fr); gap: 8px; }
+.icon-grid button { aspect-ratio: 1; border-radius: 10px; background: var(--surface-2); display: grid; place-items: center; color: var(--text-2); }
 .icon-grid button svg { width: 20px; height: 20px; }
 .icon-grid button.on { box-shadow: inset 0 0 0 2px var(--accent); color: var(--accent); }
 .color-grid button { aspect-ratio: 1; border-radius: 50%; background: var(--c); position: relative; }
-.color-grid button.none { background: var(--surface-2); box-shadow: inset 0 0 0 1px var(--border); }
+.color-grid button.none { background: var(--surface-2); box-shadow: inset 0 0 0 1px var(--border-2); }
 .color-grid button.on::after { content: ""; position: absolute; inset: -4px; border-radius: 50%; border: 2px solid var(--text); }
-.toggle-row { display: flex; align-items: center; justify-content: space-between; min-height: 48px; margin: 8px 4px 0; color: var(--muted); }
-.toggle-row input { width: 26px; height: 26px; accent-color: var(--accent); }
-.how { margin: 8px 4px 0; color: var(--muted); font-size: 13px; }
+.toggle-row { display: flex; align-items: center; justify-content: space-between; min-height: 48px; margin: 8px 4px 0; color: var(--text-2); }
+.toggle-row input { width: 24px; height: 24px; accent-color: var(--accent); }
+.how { margin: 8px 4px 0; color: var(--muted); font-size: 13px; line-height: 20px; }
 .sheet-actions.split { justify-content: space-between; }
 .sheet-actions-right { display: flex; gap: 12px; }
 .text-btn[hidden] { display: none; }

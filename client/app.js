@@ -863,7 +863,8 @@
       renderSettings();
       saveSettings();
     });
-    label.append(box, btn.textContent);
+    label.append(box);
+    label.insertAdjacentHTML('beforeend', btn.innerHTML); // our own markup: text or an arrow icon
     barChoices.append(label);
   }
 
@@ -929,7 +930,7 @@
     row.className = 'order-row';
     row.dataset.action = action;
     row.innerHTML = `<button class="grip" aria-label="Drag to move ${name}">${GRIP}</button>`
-      + `<span class="name"><span>${btn.textContent}</span><span class="tag">hidden</span></span>`
+      + `<span class="name"><span>${btn.innerHTML}</span><span class="tag">hidden</span></span>`
       + `<button class="move up" aria-label="Move ${name} up">${UP}</button>`
       + `<button class="move down" aria-label="Move ${name} down">${DOWN}</button>`;
     row.querySelector('.up').addEventListener('click', () => moveKey(action, -1));
@@ -1162,6 +1163,7 @@
   const keyLabel = (k) => ({ win: 'Win', ctrl: 'Ctrl', alt: 'Alt', shift: 'Shift', esc: 'Esc', page_up: 'PgUp', page_down: 'PgDn' }[k]
     || (k.length === 1 ? k.toUpperCase() : k[0].toUpperCase() + k.slice(1)));
   const comboText = (keys) => keys.map(keyLabel).join('+');
+  const EDIT_ICON = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25ZM20.71 7.04a1 1 0 0 0 0-1.41l-2.34-2.34a1 1 0 0 0-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83Z"/></svg>';
   const subText = (b) => (b.kind === 'shortcut' ? comboText(b.keys || [])
     : b.kind === 'text' ? 'Text' : b.kind === 'website' ? (b.url || '').replace(/^https?:\/\//, '') : 'App');
 
@@ -1188,9 +1190,13 @@
       t.className = 'tile';
       t.dataset.i = String(i);
       if (b.color) { t.classList.add('colored'); t.style.setProperty('--tile', b.color); }
-      t.innerHTML = `${iconSvg(b.icon)}<b></b><small></small><span class="badge" aria-hidden="true">✎</span>`;
+      t.innerHTML = `${iconSvg(b.icon)}<b></b><small></small><span class="badge" aria-hidden="true">${EDIT_ICON}</span>`;
       t.querySelector('b').textContent = b.name;
-      t.querySelector('small').textContent = subText(b);
+      const small = t.querySelector('small');
+      // Shortcuts show their keys as small keycaps; other kinds show plain text.
+      if (b.kind === 'shortcut' && (b.keys || []).length) {
+        for (const k of b.keys) { const cap = document.createElement('kbd'); cap.textContent = keyLabel(k); small.append(cap); }
+      } else small.textContent = subText(b);
       t.setAttribute('aria-label', deckEditing ? `Change ${b.name}` : b.name);
       tiles.append(t);
     });
