@@ -89,7 +89,7 @@ Trackpad, keyboard, your own buttons and media controls for your Windows PC, on 
 <tr>
 <td width="50%" align="center" valign="top">
 
-<img src="docs/screenshot-deck.png" width="260" alt="Deck tab: buttons for Search, Alt+Tab, Desktop, New tab, Reopen tab, Close tab, Screenshot and Add button">
+<img src="docs/screenshot-deck.png" width="260" alt="Deck tab: buttons for Search, Alt+Tab, Desktop, New tab, Reopen tab, Close tab, Screenshot and Add button, each showing its keys">
 
 **Deck**<br>
 <sub>Your own buttons: a shortcut, a piece of text, a website or an app, with your own name, icon and colour. Saved on the PC, so every phone gets them.</sub>
@@ -97,7 +97,7 @@ Trackpad, keyboard, your own buttons and media controls for your Windows PC, on 
 </td>
 <td width="50%" align="center" valign="top">
 
-<img src="docs/screenshot-media.png" width="260" alt="Media tab: previous, play/pause, next, rewind, fullscreen, forward, volume down, mute, volume up">
+<img src="docs/screenshot-media.png" width="260" alt="Media tab: a record in the accent color, then previous, play/pause, next, rewind, fullscreen, forward, volume down, mute, volume up">
 
 **Media**<br>
 <sub>Play/pause, next and previous track, rewind and forward, fullscreen and volume, for music and videos on the PC.</sub>
@@ -209,7 +209,7 @@ To control admin windows such as Task Manager, the On-Screen Keyboard and instal
 
 ```
 ==============================================
-  Mousette 2.0.0 is running
+  Mousette 2.0.1 is running
   Open on your phone:    http://192.168.1.23
   iPhone/iPad also:      http://mousette.local
   PIN:                  482915
